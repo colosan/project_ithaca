@@ -83,6 +83,10 @@ enum class L10nKey(val key: String) {
     UI_LANGUAGE_KO("uiLanguage.ko"),
     UI_LANGUAGE_EN("uiLanguage.en"),
     LINK_OPEN_REFERENCE("link.openReference"),
+    NAV_HISTORY("nav.history"),
+    NAV_MORE("nav.more"),
+    BRANCH_KEEP_MAIN("branch.keepMain"),
+    BRANCH_RESOLVED("branch.resolved"),
 }
 
 sealed interface L10nValue {
@@ -182,6 +186,10 @@ object L10n {
             L10nKey.UI_LANGUAGE_KO to L10nValue.Text("한국어"),
             L10nKey.UI_LANGUAGE_EN to L10nValue.Text("English"),
             L10nKey.LINK_OPEN_REFERENCE to L10nValue.Text("참조 패널 열기"),
+            L10nKey.NAV_HISTORY to L10nValue.Text("변경 기록"),
+            L10nKey.NAV_MORE to L10nValue.Text("더 보기"),
+            L10nKey.BRANCH_KEEP_MAIN to L10nValue.Text("본문 유지"),
+            L10nKey.BRANCH_RESOLVED to L10nValue.Text("정리됨"),
         ),
         L10nLocale.en to mapOf(
             L10nKey.APP_NAME to L10nValue.Text("Ithaca"),
@@ -262,6 +270,10 @@ object L10n {
             L10nKey.UI_LANGUAGE_KO to L10nValue.Text("한국어"),
             L10nKey.UI_LANGUAGE_EN to L10nValue.Text("English"),
             L10nKey.LINK_OPEN_REFERENCE to L10nValue.Text("Open reference"),
+            L10nKey.NAV_HISTORY to L10nValue.Text("History"),
+            L10nKey.NAV_MORE to L10nValue.Text("More"),
+            L10nKey.BRANCH_KEEP_MAIN to L10nValue.Text("Keep current"),
+            L10nKey.BRANCH_RESOLVED to L10nValue.Text("Resolved"),
         ),
     )
 }

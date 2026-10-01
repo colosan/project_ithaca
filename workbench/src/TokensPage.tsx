@@ -5,6 +5,7 @@ import sizing from "../../design/tokens/sizing.json";
 import spacing from "../../design/tokens/spacing.json";
 import typography from "../../design/tokens/typography.json";
 import { ContrastTable } from "./Contrast";
+import { SIZE_CLASS } from "./labels";
 import { camel, kebab } from "./names";
 
 type ColorTokens = Record<string, { light: string; dark: string; description?: string }>;
@@ -93,12 +94,13 @@ export function TokensPage() {
         <p className="wb-muted">{layout.description}</p>
         <table>
           <thead>
-            <tr><th>size class</th><th>폭</th><th>대표 뷰포트</th><th>pane 수</th><th>에디터 좌우 여백</th></tr>
+            <tr><th>size class</th><th>뜻</th><th>폭</th><th>대표 뷰포트</th><th>pane 수</th><th>에디터 좌우 여백</th></tr>
           </thead>
           <tbody>
             {Object.entries(layout.sizeClasses).map(([k, v]) => (
               <tr key={k}>
                 <td><span className={`wb-class wb-class-${k}`}>{k}</span></td>
+                <td>{SIZE_CLASS[k as keyof typeof SIZE_CLASS].panes} · {SIZE_CLASS[k as keyof typeof SIZE_CLASS].device}<br /><span className="wb-muted">{SIZE_CLASS[k as keyof typeof SIZE_CLASS].desc}</span></td>
                 <td>{v.min} – {v.max ?? "∞"}</td>
                 <td>{v.referenceViewport.join(" × ")}</td>
                 <td>{v.panes}</td>

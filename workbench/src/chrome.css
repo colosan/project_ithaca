@@ -260,3 +260,29 @@ code { font: 12px ui-monospace, "JetBrains Mono", monospace; }
 .wb-stage .wb-row:last-child { margin-bottom: 0; }
 .wb-stage figcaption { cursor: default; }
 .wb-sweep { max-height: 50%; overflow: auto; }
+
+/* Device sectors in the detail stage */
+.wb-sectors { display: flex; flex-wrap: wrap; align-items: flex-start; }
+.wb-sector { display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.5); border-style: solid; border-color: #d4d4d8; }
+.wb-sector-head { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: default; }
+.wb-sector-head b { font-size: 14px; }
+.wb-sector-head select { margin-left: auto; padding: 2px 6px; max-width: 160px; }
+.wb-sector-frames { display: flex; flex-wrap: nowrap; align-items: flex-start; }
+.wb-sector-empty { display: grid; place-items: center; border: 1px dashed #b4b4bc; border-radius: 8px; color: var(--wb-muted); font-size: 12px; }
+.wb-frame figcaption button:disabled { opacity: 0.3; cursor: default; }
+
+/* Focus mode and space-pan */
+.wb-focus-exit { border-color: var(--wb-accent); color: var(--wb-accent); }
+.wb-stage-pan, .wb-stage-pan * { cursor: grab !important; }
+.wb-stage .wb-device { cursor: auto; }
+
+/* Chips for sectors scrolled out of the stage */
+.wb-offstage {
+  position: absolute; left: 50%; transform: translateX(-50%); z-index: 3;
+  padding: 6px 14px; border-radius: 16px; border-color: var(--wb-accent); color: var(--wb-accent);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.wb-offstage-up { top: 12px; }
+.wb-offstage-down { bottom: 12px; }
+.wb-back { padding: 4px 9px; }
+.wb-planned-banner button { margin-right: 8px; }

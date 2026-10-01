@@ -3,7 +3,7 @@ import {
   type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode,
 } from "react";
 import { FrameContext, sample, sizeClassFor, type FrameInfo, type Locale, type Platform, type Theme } from "@ithaca/kit";
-import { viewportById, viewports, type Viewport } from "./registry";
+import { viewportById, viewports } from "./registry";
 
 // ── Issue detection (J3) ─────────────────────────────────────────────────
 
@@ -61,14 +61,16 @@ interface DeviceProps {
   style?: CSSProperties;
   /** Receives issue counts after every render; omit to skip scanning (thumbnails). */
   onIssues?: (issues: Issues) => void;
+  /** Links clicked inside the prototype; omit for non-interactive thumbnails. */
+  onNavigate?: (to: string) => void;
   showIssues?: boolean;
   children: ReactNode;
 }
 
 /** Stands in for one device/window. The prototype derives its size class from `width` (logical px). */
-export function Device({ width, height, platform, theme, locale, className, style, onIssues, showIssues, children }: DeviceProps) {
+export function Device({ width, height, platform, theme, locale, className, style, onIssues, onNavigate, showIssues, children }: DeviceProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const info: FrameInfo = { sizeClass: sizeClassFor(width), width, height, platform, theme, locale, sample };
+  const info: FrameInfo = { sizeClass: sizeClassFor(width), width, height, platform, theme, locale, sample, navigate: onNavigate };
 
   // Scan after each commit. A timeout (not rAF) so it also runs when the window is not painting.
   useEffect(() => {
@@ -102,43 +104,69 @@ class Boundary extends Component<{ children: ReactNode }, { error: Error | null 
   }
 }
 
-// ── ResizableFrame: a Device with presets, drag handles and tools ───────
+// ── Sectors and size rules ───────────────────────────────────────────────
 
 export interface FrameSpec {
   id: string;
   /** Preset id, or null once the user drags to a custom size. */
   preset: string | null;
-  /** Kept from the last preset when the size becomes custom. */
+  /** The sector the frame lives in. Never changes after the frame is created. */
   platform: Platform;
+  /** The preset a custom size started from, so the caption can still say which device it was. */
+  base?: string | null;
   w: number;
   h: number;
 }
 
 /** Minimum on-screen width of a frame slot, so its caption controls always fit (screen px). */
-export const CAPTION_W = 240;
+export const CAPTION_W = 220;
 /** Two caption rows (screen px). */
 export const CAPTION_H = 60;
 
-export const LIMIT = { minW: 280, maxW: 3840, minH: 360, maxH: 2400 };
-const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, Math.round(v)));
+/** Device sectors of the detail view. A frame lives in exactly one and is edited only within it. */
+export const SECTORS: { os: Platform; name: string }[] = [
+  { os: "ios", name: "iPhone" },
+  { os: "android", name: "Android" },
+  { os: "ipados", name: "iPad" },
+  { os: "macos", name: "Mac" },
+  { os: "windows", name: "Windows" },
+];
 
-export const byPlatform = viewports.reduce<Record<string, Viewport[]>>((acc, v) => {
-  (acc[v.platform] ??= []).push(v);
-  return acc;
-}, {});
+/**
+ * Sizes that make sense per platform, as short side / long side so rotating still works.
+ * Phones stay phone-sized; desktop windows range from a narrow window to a 4K screen.
+ */
+const SIDES: Record<Platform, { short: [number, number]; long: [number, number] }> = {
+  ios: { short: [320, 440], long: [568, 960] },
+  android: { short: [320, 1000], long: [480, 1600] },
+  ipados: { short: [320, 1032], long: [600, 1366] },
+  macos: { short: [360, 2400], long: [480, 3840] },
+  windows: { short: [360, 2400], long: [480, 3840] },
+};
+const clamp = (v: number, [lo, hi]: [number, number]) => Math.min(hi, Math.max(lo, Math.round(v)));
 
-interface ResizableFrameProps {
-  frame: FrameSpec;
-  zoom: number;
-  theme: Theme;
-  locale: Locale;
-  /** "app-shell#reference" — goes into the copied reference line. */
-  nodeRef: string;
-  showIssues: boolean;
-  edit: FrameEdit;
-  onRemove: () => void;
-  children: ReactNode;
+/** Clamp to the platform's sides. `portrait` decides which side is short; a drag keeps the frame's orientation. */
+export function clampSize(os: Platform, w: number, h: number, portrait = w <= h): [number, number] {
+  const { short, long } = SIDES[os];
+  return portrait ? [clamp(w, short), clamp(h, long)] : [clamp(w, long), clamp(h, short)];
 }
+
+/**
+ * A size change within the frame's platform: if the new size is exactly one of that platform's presets, the frame
+ * becomes that preset again; otherwise it is a custom size that remembers which preset it came from.
+ */
+export function resized(frame: FrameSpec, w: number, h: number, rotate = false): FrameSpec {
+  // Only the rotate button flips orientation; dragging or typing keeps it.
+  const portrait = rotate ? w <= h : frame.w <= frame.h;
+  [w, h] = clampSize(frame.platform, w, h, portrait);
+  const match = viewports.find((v) => v.os === frame.platform && v.width === w && v.height === h);
+  if (match) return { ...frame, w, h, preset: match.id, base: null };
+  return { ...frame, w, h, preset: null, base: frame.preset ?? frame.base ?? null };
+}
+
+export const presetsOf = (os: Platform) => viewports.filter((v) => v.os === os);
+
+// ── ResizableFrame: a Device with its platform's presets, drag handles and tools ──
 
 /** How a frame reports changes so each lands as one undo step. */
 export interface FrameEdit {
@@ -150,9 +178,29 @@ export interface FrameEdit {
   dragEnd: (frame: FrameSpec) => void;
 }
 
-export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues, edit, onRemove, children }: ResizableFrameProps) {
+interface ResizableFrameProps {
+  frame: FrameSpec;
+  zoom: number;
+  theme: Theme;
+  locale: Locale;
+  /** "app-shell#reference" — goes into the copied reference line. */
+  nodeRef: string;
+  showIssues: boolean;
+  edit: FrameEdit;
+  /** Links clicked inside the prototype. */
+  onNavigate?: (to: string) => void;
+  /** Show only this frame, large. Undefined when already focused. */
+  onFocus?: () => void;
+  /** Reorder within the sector; undefined at that end. */
+  onMoveLeft?: () => void;
+  onMoveRight?: () => void;
+  onRemove: () => void;
+  children: ReactNode;
+}
+
+export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues, edit, onNavigate, onFocus, onMoveLeft, onMoveRight, onRemove, children }: ResizableFrameProps) {
   const preset = frame.preset ? viewportById[frame.preset] : undefined;
-  const sizeClass = sizeClassFor(frame.w);
+  const base = frame.base ? viewportById[frame.base] : undefined;
   const [issues, setIssues] = useState<Issues>(NO_ISSUES);
   const [copied, setCopied] = useState(false);
   // Hard clips and offscreen text are defects; ellipsis is usually intentional and shown muted.
@@ -161,7 +209,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
   const report = (next: Issues) =>
     setIssues((prev) => ((Object.keys(next) as IssueKind[]).every((k) => prev[k] === next[k]) ? prev : next));
 
-  // Pointer deltas are screen px; divide by the matrix zoom to get layout px.
+  // Pointer deltas are screen px; divide by the stage zoom to get layout px.
   const startDrag = (axis: "x" | "y" | "xy") => (e: ReactPointerEvent) => {
     e.preventDefault();
     e.stopPropagation(); // not a stage pan
@@ -171,12 +219,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
     const move = (ev: PointerEvent) => {
       const dx = (ev.clientX - start.x) / zoom;
       const dy = (ev.clientY - start.y) / zoom;
-      last = {
-        ...frame,
-        preset: null,
-        w: axis === "y" ? start.w : clamp(start.w + dx, LIMIT.minW, LIMIT.maxW),
-        h: axis === "x" ? start.h : clamp(start.h + dy, LIMIT.minH, LIMIT.maxH),
-      };
+      last = resized(frame, axis === "y" ? start.w : start.w + dx, axis === "x" ? start.h : start.h + dy);
       edit.dragMove(last);
     };
     const up = () => {
@@ -190,12 +233,11 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
     window.addEventListener("pointerup", up);
   };
 
-  const setSize = (w: number, h: number, label: string, key?: string) =>
-    edit.commit({ ...frame, preset: null, w: clamp(w, LIMIT.minW, LIMIT.maxW), h: clamp(h, LIMIT.minH, LIMIT.maxH) }, label, key);
+  const setSize = (w: number, h: number, label: string, key?: string, rotate = false) => edit.commit(resized(frame, w, h, rotate), label, key);
 
   const copyRef = async () => {
-    const where = preset ? `${preset.platform} ${preset.label}` : "custom";
-    const line = `${nodeRef} · ${where} ${frame.w}×${frame.h} ${sizeClass} · ${frame.platform} · ${theme} · ${locale}`;
+    const where = preset ? preset.label : `custom${base ? ` from ${base.label}` : ""}`;
+    const line = `${nodeRef} · ${frame.platform} ${where} ${frame.w}×${frame.h} (${sizeClassFor(frame.w)}) · ${theme} · ${locale}`;
     try {
       await navigator.clipboard.writeText(line);
       setCopied(true);
@@ -206,7 +248,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
   };
 
   return (
-    <figure className="wb-frame" style={{ minWidth: CAPTION_W / zoom }}>
+    <figure className="wb-frame" style={{ minWidth: CAPTION_W / zoom }} onDoubleClick={(e) => (e.target as HTMLElement).closest("figcaption") && onFocus?.()}>
       {/* Counter-zoomed so it stays at screen size; its screen width matches the slot (frame or CAPTION_W, whichever is wider). */}
       <figcaption style={{ zoom: 1 / zoom, width: Math.max(frame.w * zoom, CAPTION_W) }}>
         <div className="wb-cap-row">
@@ -214,22 +256,21 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
             value={frame.preset ?? ""}
             onChange={(e) => {
               const v = viewportById[e.target.value];
-              if (v) edit.commit({ ...frame, preset: v.id, platform: v.os, w: v.width, h: v.height }, `프리셋 · ${v.label}`);
+              if (v) edit.commit({ ...frame, preset: v.id, w: v.width, h: v.height, base: null }, `기기 · ${v.label}`);
             }}
           >
-            <option value="">사용자 지정</option>
-            {Object.entries(byPlatform).map(([platform, list]) => (
-              <optgroup key={platform} label={platform}>
-                {list.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.label} ({v.width}×{v.height})
-                  </option>
-                ))}
-              </optgroup>
+            {/* Only while the size is custom; names the device it started from. */}
+            {!preset && <option value="">직접 조절{base ? ` · ${base.label} 기준` : ""}</option>}
+            {presetsOf(frame.platform).map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.label}
+              </option>
             ))}
           </select>
-          <span className={`wb-class wb-class-${sizeClass}`}>{sizeClass}</span>
-          <span className="wb-issues" title={`잘림 ${issues.clip} · 넘침 ${issues.spill} · 화면 밖 ${issues.offscreen} · 말줄임 ${issues.ellipsis} (말줄임은 의도된 경우가 많음)`}>
+          <span
+            className="wb-issues"
+            title={`잘림 ${issues.clip} · 넘침 ${issues.spill} · 화면 밖 ${issues.offscreen} · 말줄임 ${issues.ellipsis} (말줄임은 의도된 경우가 많음)`}
+          >
             {severe ? <b className="wb-issues-on">⚠ {severe}</b> : <span className="wb-ok">✓</span>}
             {issues.ellipsis > 0 && <span className="wb-muted"> …{issues.ellipsis}</span>}
           </span>
@@ -239,27 +280,18 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
             <input type="number" value={frame.w} onChange={(e) => setSize(Number(e.target.value), frame.h, "폭 입력", `w:${frame.id}`)} />×
             <input type="number" value={frame.h} onChange={(e) => setSize(frame.w, Number(e.target.value), "높이 입력", `h:${frame.id}`)} />
           </span>
-          <span className="wb-muted wb-cap-os" title={preset?.scale && preset.physical ? `물리 ${preset.physical.join("×")} ÷ 배율 ${preset.scale * 100}%` : undefined}>
-            {frame.platform}
-            {preset?.scale && preset.physical ? ` · ${preset.scale * 100}%` : ""}
-          </span>
           <span className="wb-spacer" />
+          {onFocus && <button title="이 프레임만 크게 (더블클릭도 됨)" onClick={onFocus}>⤢</button>}
+          <button title="왼쪽으로" disabled={!onMoveLeft} onClick={onMoveLeft}>‹</button>
+          <button title="오른쪽으로" disabled={!onMoveRight} onClick={onMoveRight}>›</button>
+          <button title="가로/세로 바꾸기" onClick={() => setSize(frame.h, frame.w, "가로/세로 바꾸기", undefined, true)}>⟲</button>
           <button title="참조 복사 — agent 에게 붙여넣기" onClick={copyRef}>{copied ? "✓" : "⧉"}</button>
-          <button title="가로/세로 바꾸기" onClick={() => setSize(frame.h, frame.w, "가로/세로 바꾸기")}>⟲</button>
-          <button title="프레임 빼기" onClick={onRemove}>✕</button>
+          <button title="이 프레임 빼기" onClick={onRemove}>✕</button>
         </div>
       </figcaption>
 
       <div className="wb-resize-box">
-        <Device
-          width={frame.w}
-          height={frame.h}
-          platform={frame.platform}
-          theme={theme}
-          locale={locale}
-          onIssues={report}
-          showIssues={showIssues}
-        >
+        <Device width={frame.w} height={frame.h} platform={frame.platform} theme={theme} locale={locale} onIssues={report} onNavigate={onNavigate} showIssues={showIssues}>
           {children}
         </Device>
         <span className="wb-handle wb-handle-x" onPointerDown={startDrag("x")} />

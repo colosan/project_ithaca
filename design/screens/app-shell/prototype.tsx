@@ -1,43 +1,115 @@
 // app-shell prototype. Rules: values from @ithaca/kit tokens only, copy via t() only (enforced by pnpm design:check).
-import type { ReactNode } from "react";
+// Interactive: selection, panes and panels are local state; links to other screens go through useNavigate().
+import { useState, type ReactNode } from "react";
 import {
   color, editor, opacity, pane, radius, shadow, size, space, type,
-  openContext, useFrame, useT, type SheetSummary, type SizeClass,
+  openContext, useFrame, useNavigate, useT, type SheetSummary, type SizeClass,
 } from "@ithaca/kit";
 
 export const states = ["default", "readonly", "reference"] as const;
 type State = (typeof states)[number];
 
 const hairline = (c: string) => `${size.strokeHairline} solid ${c}`;
+const clickable = { cursor: "pointer" } as const;
 
 /** Which panes are docked at each size class (spec.md table). */
 function panesFor(c: SizeClass) {
   return { library: c === "expanded" || c === "large", list: c !== "compact", dockedReference: c === "large" };
 }
 
+type CompactView = "editor" | "list" | "library";
+
+/** Everything the panes share. Kept in one place so each pane stays a plain function of it. */
+interface Shell {
+  folderId: string;
+  sheetId: string;
+  readOnly: boolean;
+  referenceOpen: boolean;
+  selectFolder: (id: string) => void;
+  selectSheet: (s: SheetSummary) => void;
+  takeOver: () => void;
+  toggleReference: () => void;
+  toggleLibrary: () => void;
+  showList: () => void;
+  showLibrary: () => void;
+}
+
 export default function AppShell({ state }: { state: State }) {
-  const { sizeClass } = useFrame();
+  const { sizeClass, sample } = useFrame();
+  const go = useNavigate();
   const panes = panesFor(sizeClass);
-  const showReference = state === "reference";
+  const start = openContext(sample);
+
+  const [folderId, setFolderId] = useState(start.folder.id);
+  const [sheetId, setSheetId] = useState(start.sheet.id);
+  const [readOnly, setReadOnly] = useState(state === "readonly");
+  const [referenceOpen, setReferenceOpen] = useState(state === "reference");
+  const [libraryOverlay, setLibraryOverlay] = useState(false);
+  const [compactView, setCompactView] = useState<CompactView>("editor");
+
+  const shell: Shell = {
+    folderId,
+    sheetId,
+    readOnly,
+    referenceOpen,
+    selectFolder: (id) => {
+      setFolderId(id);
+      const first = start.project.folders.find((f) => f.id === id)?.sheets[0];
+      if (first) setSheetId(first.id);
+      setLibraryOverlay(false);
+      setCompactView("list");
+    },
+    selectSheet: (s) => {
+      if (s.branched) return go("branch-resolve");
+      setSheetId(s.id);
+      setCompactView("editor");
+    },
+    takeOver: () => setReadOnly(false),
+    toggleReference: () => setReferenceOpen((v) => !v),
+    toggleLibrary: () => setLibraryOverlay((v) => !v),
+    showList: () => setCompactView("list"),
+    showLibrary: () => setCompactView("library"),
+  };
+
+  const root = { position: "relative" as const, display: "flex", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body };
+
+  if (sizeClass === "compact") {
+    return (
+      <div style={root}>
+        {compactView === "library" && <LibraryPane shell={shell} full />}
+        {compactView === "list" && <SheetListPane shell={shell} full />}
+        {compactView === "editor" && <EditorPane shell={shell} />}
+        {referenceOpen && compactView === "editor" && <ReferencePanel mode="sheet" onClose={shell.toggleReference} />}
+      </div>
+    );
+  }
   return (
-    <div style={{ position: "relative", display: "flex", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body }}>
-      {panes.library && <LibraryPane />}
-      {panes.list && <SheetListPane />}
-      <EditorPane readOnly={state === "readonly"} referenceOpen={showReference} />
-      {showReference && panes.dockedReference && <ReferencePanel mode="docked" />}
-      {showReference && !panes.dockedReference && <ReferencePanel mode={sizeClass === "compact" ? "sheet" : "overlay"} />}
+    <div style={root}>
+      {panes.library && <LibraryPane shell={shell} />}
+      {panes.list && <SheetListPane shell={shell} />}
+      <EditorPane shell={shell} />
+      {referenceOpen && <ReferencePanel mode={panes.dockedReference ? "docked" : "overlay"} onClose={shell.toggleReference} />}
+      {libraryOverlay && !panes.library && (
+        <>
+          <div style={{ position: "absolute", inset: 0, background: color.surfaceScrim, ...clickable }} onClick={shell.toggleLibrary} />
+          <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, display: "flex", boxShadow: shadow.dialog }}>
+            <LibraryPane shell={shell} />
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 // ── Library: projects → folders ─────────────────────────────────────────
 
-function LibraryPane() {
+function LibraryPane({ shell, full }: { shell: Shell; full?: boolean }) {
   const t = useT();
+  const go = useNavigate();
   const { sample } = useFrame();
-  const { project: open, folder: openFolder } = openContext(sample);
+  const { project: open } = openContext(sample);
   return (
-    <aside style={{ width: pane.library, flex: "none", display: "flex", flexDirection: "column", background: color.surfaceSidebar, borderRight: hairline(color.lineSubtle) }}>
+    <aside style={{ width: full ? "100%" : pane.library, flex: "none", display: "flex", flexDirection: "column", background: color.surfaceSidebar, borderRight: full ? undefined : hairline(color.lineSubtle) }}>
       <div style={{ ...type.label, color: color.inkTertiary, padding: `${space[200]} ${space[200]} ${space[100]}` }}>{t("library.title")}</div>
       <div style={{ flex: 1, overflow: "hidden", padding: `0 ${space[100]}` }}>
         {sample.projects.map((p) => (
@@ -45,10 +117,15 @@ function LibraryPane() {
             <Row muted={p.id !== open.id}>
               <span style={{ color: color.inkTertiary }}>{p.id === open.id ? "▾" : "▸"}</span>
               <span style={{ ...type.label, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</span>
+              {p.id === open.id && (
+                <span style={{ color: color.inkTertiary, ...clickable }} title={t("projectSettings.title")} onClick={() => go("project-settings")}>
+                  ⋯
+                </span>
+              )}
             </Row>
             {p.id === open.id &&
               p.folders.map((f) => (
-                <Row key={f.id} active={f.id === openFolder.id} indent>
+                <Row key={f.id} active={f.id === shell.folderId} indent onClick={() => shell.selectFolder(f.id)}>
                   <span style={{ flex: 1 }}>{f.name}</span>
                   <span style={{ ...type.caption, color: color.inkTertiary }}>{f.sheets.length}</span>
                 </Row>
@@ -61,20 +138,25 @@ function LibraryPane() {
           </div>
         ))}
       </div>
-      <div style={{ ...type.label, color: color.inkSecondary, padding: space[200], borderTop: hairline(color.lineSubtle) }}>＋ {t("library.newProject")}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: space[100], ...type.label, color: color.inkSecondary, padding: space[200], borderTop: hairline(color.lineSubtle) }}>
+        <span style={{ flex: 1, ...clickable }} onClick={() => go("new-project")}>＋ {t("library.newProject")}</span>
+        <span style={clickable} title={t("prefs.title")} onClick={() => go("preferences#general")}>⚙</span>
+      </div>
     </aside>
   );
 }
 
-function Row({ children, active, muted, indent }: { children: ReactNode; active?: boolean; muted?: boolean; indent?: boolean }) {
+function Row({ children, active, muted, indent, onClick }: { children: ReactNode; active?: boolean; muted?: boolean; indent?: boolean; onClick?: () => void }) {
   return (
     <div
+      onClick={onClick}
       style={{
         display: "flex", alignItems: "center", gap: space[100],
         height: size.controlMd, padding: `0 ${space[100]}`, paddingLeft: indent ? space[300] : space[100],
         borderRadius: radius.piece,
         background: active ? color.surfaceSelected : "transparent",
         color: muted ? color.inkTertiary : active ? color.inkPrimary : color.inkSecondary,
+        cursor: onClick ? "pointer" : undefined,
       }}
     >
       {children}
@@ -84,30 +166,32 @@ function Row({ children, active, muted, indent }: { children: ReactNode; active?
 
 // ── Sheet list ──────────────────────────────────────────────────────────
 
-function SheetListPane() {
+function SheetListPane({ shell, full }: { shell: Shell; full?: boolean }) {
   const t = useT();
   const { sample } = useFrame();
-  const { folder, sheet: openSheet } = openContext(sample);
+  const { project } = openContext(sample);
+  const folder = project.folders.find((f) => f.id === shell.folderId)!;
   return (
-    <section style={{ width: pane.sheetList, flex: "none", display: "flex", flexDirection: "column", background: color.surfaceList, borderRight: hairline(color.lineSubtle) }}>
+    <section style={{ width: full ? "100%" : pane.sheetList, flex: "none", display: "flex", flexDirection: "column", background: color.surfaceList, borderRight: full ? undefined : hairline(color.lineSubtle) }}>
       <header style={{ height: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[100], padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
+        {full && <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} onClick={shell.showLibrary}>‹</span>}
         <span style={{ ...type.heading, flex: 1 }}>{folder.name}</span>
         <span style={{ ...type.caption, color: color.inkTertiary }}>{t("sheetList.count", { count: folder.sheets.length })}</span>
         <span style={{ ...type.label, color: color.inkSecondary }} title={t("sheet.new")}>＋</span>
       </header>
       <div style={{ flex: 1, overflow: "hidden" }}>
         {folder.sheets.map((s) => (
-          <SheetRow key={s.id} sheet={s} active={s.id === openSheet.id} />
+          <SheetRow key={s.id} sheet={s} active={s.id === shell.sheetId} onClick={() => shell.selectSheet(s)} />
         ))}
       </div>
     </section>
   );
 }
 
-function SheetRow({ sheet, active }: { sheet: SheetSummary; active: boolean }) {
+function SheetRow({ sheet, active, onClick }: { sheet: SheetSummary; active: boolean; onClick: () => void }) {
   const t = useT();
   return (
-    <article style={{ minHeight: size.rowSheet, padding: `${space[150]} ${space[200]}`, borderBottom: hairline(color.lineSubtle), background: active ? color.surfaceSelected : "transparent" }}>
+    <article onClick={onClick} style={{ minHeight: size.rowSheet, padding: `${space[150]} ${space[200]}`, borderBottom: hairline(color.lineSubtle), background: active ? color.surfaceSelected : "transparent", ...clickable }}>
       <div style={{ ...type.body, fontWeight: type.heading.fontWeight, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sheet.title}</div>
       <div style={{ ...type.caption, color: color.inkSecondary, marginTop: space[25], overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {sheet.excerpt}
@@ -122,41 +206,48 @@ function SheetRow({ sheet, active }: { sheet: SheetSummary; active: boolean }) {
 
 // ── Editor ──────────────────────────────────────────────────────────────
 
-function EditorPane({ readOnly, referenceOpen }: { readOnly: boolean; referenceOpen: boolean }) {
+function EditorPane({ shell }: { shell: Shell }) {
   const t = useT();
+  const go = useNavigate();
   const { sizeClass, sample } = useFrame();
-  const { folder } = openContext(sample);
+  const { project, sheet: openSheet } = openContext(sample);
+  const folder = project.folders.find((f) => f.id === shell.folderId)!;
+  const sheet = project.folders.flatMap((f) => f.sheets).find((s) => s.id === shell.sheetId) ?? openSheet;
+  // Only the open sheet has full text in the fixture; other sheets show their title and first line.
+  const paragraphs = sheet.id === openSheet.id ? sample.openSheet.paragraphs : sheet.body ?? [`# ${sheet.title}`, sheet.excerpt];
   return (
     <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
       <header style={{ height: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[150], padding: `0 ${space[200]}`, color: color.inkSecondary, ...type.label }}>
-        {sizeClass === "compact" && <span>‹ {folder.name}</span>}
-        {sizeClass === "medium" && <span title={t("library.show")}>☰</span>}
+        {sizeClass === "compact" && <span style={clickable} onClick={shell.showList}>‹ {folder.name}</span>}
+        {sizeClass === "medium" && <span style={clickable} title={t("library.show")} onClick={shell.toggleLibrary}>☰</span>}
         <span style={{ flex: 1 }} />
+        <span style={clickable} title={t("nav.history")} onClick={() => go("history")}>↺</span>
         <span
+          onClick={shell.toggleReference}
           style={{
-            padding: `${space[25]} ${space[100]}`, borderRadius: radius.piece,
-            background: referenceOpen ? color.accentSoft : "transparent",
-            color: referenceOpen ? color.accentPrimary : color.inkSecondary,
+            padding: `${space[25]} ${space[100]}`, borderRadius: radius.piece, ...clickable,
+            background: shell.referenceOpen ? color.accentSoft : "transparent",
+            color: shell.referenceOpen ? color.accentPrimary : color.inkSecondary,
           }}
         >
           ◫ {t("reference.open")}
         </span>
       </header>
 
-      {readOnly && (
+      {shell.readOnly && (
         <div style={{ display: "flex", alignItems: "center", gap: space[150], margin: `0 ${space[200]}`, padding: `${space[100]} ${space[150]}`, borderRadius: radius.panel, background: color.accentSoft, color: color.stateWarning, ...type.label }}>
           <span style={{ flex: 1 }}>⚠ {t("lease.banner", { device: "MacBook Air", minutes: 3 })}</span>
-          <span style={{ padding: `${space[50]} ${space[150]}`, borderRadius: radius.piece, background: color.accentPrimary, color: color.inkOnAccent }}>
+          <span onClick={shell.takeOver} style={{ padding: `${space[50]} ${space[150]}`, borderRadius: radius.piece, background: color.accentPrimary, color: color.inkOnAccent, ...clickable }}>
             {t("lease.takeOver")}
           </span>
         </div>
       )}
 
-      <article style={{ flex: 1, overflow: "hidden", padding: `${space[300]} ${editor.paddingX[sizeClass]}`, opacity: readOnly ? opacity.readOnly : undefined }}>
-        <Manuscript paragraphs={sample.openSheet.paragraphs} />
+      <article style={{ flex: 1, overflow: "hidden", padding: `${space[300]} ${editor.paddingX[sizeClass]}`, opacity: shell.readOnly ? opacity.readOnly : undefined }}>
+        <Manuscript paragraphs={paragraphs} />
       </article>
 
-      <EditorFooter readOnly={readOnly} />
+      <EditorFooter sheet={sheet} readOnly={shell.readOnly} />
     </main>
   );
 }
@@ -184,10 +275,10 @@ function Manuscript({ paragraphs }: { paragraphs: string[] }) {
 }
 
 /** Both character counts always; a goal bar only when the project sets a goal (project-settings). */
-function EditorFooter({ readOnly }: { readOnly: boolean }) {
+function EditorFooter({ sheet, readOnly }: { sheet: SheetSummary; readOnly: boolean }) {
   const t = useT();
   const { sample } = useFrame();
-  const { project, sheet } = openContext(sample);
+  const { project } = openContext(sample);
   const goal = project.goal;
   const current = goal?.basis === "withoutSpaces" ? sheet.charsNoSpace : sheet.chars;
   const percent = goal ? Math.min(100, Math.round((current / goal.count) * 100)) : 0;
@@ -210,7 +301,7 @@ function EditorFooter({ readOnly }: { readOnly: boolean }) {
 
 // ── Reference panel: docked (large) · overlay (medium/expanded) · bottom sheet (compact) ──
 
-function ReferencePanel({ mode }: { mode: "docked" | "overlay" | "sheet" }) {
+function ReferencePanel({ mode, onClose }: { mode: "docked" | "overlay" | "sheet"; onClose: () => void }) {
   const t = useT();
   const { sample } = useFrame();
   const { reference } = openContext(sample);
@@ -222,12 +313,12 @@ function ReferencePanel({ mode }: { mode: "docked" | "overlay" | "sheet" }) {
         : { position: "absolute" as const, left: 0, right: 0, bottom: 0, height: "55%", boxShadow: shadow.dialog, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet };
   return (
     <>
-      {mode === "sheet" && <div style={{ position: "absolute", inset: 0, background: color.surfaceScrim }} />}
+      {mode === "sheet" && <div style={{ position: "absolute", inset: 0, background: color.surfaceScrim, ...clickable }} onClick={onClose} />}
       <aside style={{ ...frameStyle, display: "flex", flexDirection: "column", background: color.surfaceRaised, overflow: "hidden" }}>
         <header style={{ height: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[100], padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
           <span style={{ ...type.label, color: color.inkTertiary }}>{t("reference.title")}</span>
           <span style={{ ...type.heading, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{reference.title}</span>
-          <span style={{ ...type.label, color: color.inkSecondary }} title={t("action.close")}>✕</span>
+          <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} title={t("action.close")} onClick={onClose}>✕</span>
         </header>
         <div style={{ flex: 1, overflow: "hidden", padding: space[200] }}>
           {(reference.body ?? [reference.excerpt]).filter((p) => !p.startsWith("# ")).map((p, i) => (

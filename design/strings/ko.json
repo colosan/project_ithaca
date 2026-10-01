@@ -76,5 +76,9 @@
   "mcp.desktopOnly": "Claude 연동은 Mac · Windows 앱에서 켤 수 있어요.",
   "uiLanguage.ko": "한국어",
   "uiLanguage.en": "English",
-  "link.openReference": "참조 패널 열기"
+  "link.openReference": "참조 패널 열기",
+  "nav.history": "변경 기록",
+  "nav.more": "더 보기",
+  "branch.keepMain": "본문 유지",
+  "branch.resolved": "정리됨"
 }

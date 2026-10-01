@@ -85,6 +85,10 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case uiLanguageKo = "uiLanguage.ko"
     case uiLanguageEn = "uiLanguage.en"
     case linkOpenReference = "link.openReference"
+    case navHistory = "nav.history"
+    case navMore = "nav.more"
+    case branchKeepMain = "branch.keepMain"
+    case branchResolved = "branch.resolved"
 }
 
 enum L10nValue: Sendable {
@@ -186,6 +190,10 @@ public enum L10n {
             .uiLanguageKo: .text("한국어"),
             .uiLanguageEn: .text("English"),
             .linkOpenReference: .text("참조 패널 열기"),
+            .navHistory: .text("변경 기록"),
+            .navMore: .text("더 보기"),
+            .branchKeepMain: .text("본문 유지"),
+            .branchResolved: .text("정리됨"),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -266,6 +274,10 @@ public enum L10n {
             .uiLanguageKo: .text("한국어"),
             .uiLanguageEn: .text("English"),
             .linkOpenReference: .text("Open reference"),
+            .navHistory: .text("History"),
+            .navMore: .text("More"),
+            .branchKeepMain: .text("Keep current"),
+            .branchResolved: .text("Resolved"),
         ],
     ]
 }

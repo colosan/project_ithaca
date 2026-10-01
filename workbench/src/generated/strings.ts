@@ -82,6 +82,10 @@ export type StringKey =
   | "uiLanguage.ko"
   | "uiLanguage.en"
   | "link.openReference"
+  | "nav.history"
+  | "nav.more"
+  | "branch.keepMain"
+  | "branch.resolved"
   ;
 
 type Value = string | { one: string; other: string };
@@ -165,7 +169,11 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "mcp.desktopOnly": "Claude 연동은 Mac · Windows 앱에서 켤 수 있어요.",
     "uiLanguage.ko": "한국어",
     "uiLanguage.en": "English",
-    "link.openReference": "참조 패널 열기"
+    "link.openReference": "참조 패널 열기",
+    "nav.history": "변경 기록",
+    "nav.more": "더 보기",
+    "branch.keepMain": "본문 유지",
+    "branch.resolved": "정리됨"
   },
   "en": {
     "app.name": "Ithaca",
@@ -257,7 +265,11 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "mcp.desktopOnly": "Claude integration can be turned on in the Mac and Windows apps.",
     "uiLanguage.ko": "한국어",
     "uiLanguage.en": "English",
-    "link.openReference": "Open reference"
+    "link.openReference": "Open reference",
+    "nav.history": "History",
+    "nav.more": "More",
+    "branch.keepMain": "Keep current",
+    "branch.resolved": "Resolved"
   }
 };
 

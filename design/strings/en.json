@@ -88,5 +88,9 @@
   "mcp.desktopOnly": "Claude integration can be turned on in the Mac and Windows apps.",
   "uiLanguage.ko": "한국어",
   "uiLanguage.en": "English",
-  "link.openReference": "Open reference"
+  "link.openReference": "Open reference",
+  "nav.history": "History",
+  "nav.more": "More",
+  "branch.keepMain": "Keep current",
+  "branch.resolved": "Resolved"
 }
