@@ -1,0 +1,25 @@
+{
+  "app.name": "Ithaca",
+
+  "library.title": "Library",
+  "library.show": "Show library",
+  "section.lore": "Lore",
+  "section.episodes": "Episodes",
+  "section.ideas": "Ideas",
+
+  "sheetList.count": { "one": "{count} sheet", "other": "{count} sheets" },
+  "episode.number": "Ep. {n}",
+  "episode.status.draft": "Draft",
+  "episode.status.ready": "Ready",
+  "episode.status.published": "Published",
+
+  "editor.charCount": { "one": "{count} character", "other": "{count} characters" },
+  "editor.wordCount": { "one": "{count} word", "other": "{count} words" },
+
+  "lease.banner": "Being edited on {device} · last active {minutes} min ago",
+  "lease.takeOver": "Take over",
+  "lease.readOnly": "Read only",
+
+  "nav.back": "Back",
+  "prefs.title": "Settings"
+}

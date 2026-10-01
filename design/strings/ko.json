@@ -1,0 +1,25 @@
+{
+  "app.name": "Ithaca",
+
+  "library.title": "작품",
+  "library.show": "라이브러리 열기",
+  "section.lore": "설정",
+  "section.episodes": "연재",
+  "section.ideas": "아이디어",
+
+  "sheetList.count": "{count}개",
+  "episode.number": "{n}화",
+  "episode.status.draft": "초고",
+  "episode.status.ready": "퇴고 완료",
+  "episode.status.published": "발행됨",
+
+  "editor.charCount": "공백 포함 {count}자",
+  "editor.wordCount": "{count}단어",
+
+  "lease.banner": "{device}에서 편집 중 · 마지막 활동 {minutes}분 전",
+  "lease.takeOver": "점유하기",
+  "lease.readOnly": "읽기 전용",
+
+  "nav.back": "뒤로",
+  "prefs.title": "환경설정"
+}

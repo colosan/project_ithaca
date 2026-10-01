@@ -1,0 +1,4 @@
+{
+  "description": "workbench 캔버스의 카드 위치. 카드를 끌면 workbench 가 쓴다. 없는 카드는 자동 배치.",
+  "positions": {}
+}

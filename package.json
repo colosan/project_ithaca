@@ -1,0 +1,24 @@
+{
+  "name": "ithaca-writer",
+  "private": true,
+  "type": "module",
+  "description": "Ithaca — open-source writing studio for serial fiction. Repo root: design workbench + generators.",
+  "license": "MIT OR Apache-2.0",
+  "packageManager": "pnpm@11.1.2",
+  "scripts": {
+    "wb": "vite --config workbench/vite.config.ts",
+    "wb:build": "vite build --config workbench/vite.config.ts",
+    "design:gen": "node tools/design-gen/gen.mjs",
+    "design:check": "node tools/design-gen/check.mjs",
+    "typecheck": "tsc -p workbench/tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
+  }
+}

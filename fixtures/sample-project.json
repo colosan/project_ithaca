@@ -1,0 +1,29 @@
+{
+  "language": "ko",
+  "title": "등대지기의 딸 · The Keeper's Daughter",
+  "lore": [
+    { "id": "lore-1", "kind": "character", "title": "한서윤", "summary": "등대지기의 딸. 열아홉. 밤마다 불빛 신호를 기록한다." },
+    { "id": "lore-2", "kind": "character", "title": "Elliot Marsh", "summary": "A surveyor washed ashore. Redrawing the map — 한국어는 서툴다." },
+    { "id": "lore-3", "kind": "place", "title": "벼리섬 등대 (Byeori Light)", "summary": "백 년 된 등대. 렌즈가 한 번도 꺼진 적 없다고 전해진다." }
+  ],
+  "episodes": [
+    { "id": "ep-1", "number": 1, "title": "꺼지지 않는 불", "status": "published", "excerpt": "서윤은 오늘도 불빛의 횟수를 셌다." },
+    { "id": "ep-2", "number": 2, "title": "Castaway", "status": "published", "excerpt": "At the dawn ebb, a strange boat ran aground on the reef." },
+    { "id": "ep-3", "number": 3, "title": "다시 그리는 지도", "status": "draft", "excerpt": "엘리엇의 지도에는 섬이 하나 더 있었다." },
+    { "id": "ep-4", "number": 4, "title": "The Eleventh Signal · 열한 번째 신호", "status": "ready", "excerpt": "불빛은 열 번이 아니라 열한 번 깜박였다." }
+  ],
+  "ideas": [
+    { "id": "idea-1", "title": "렌즈에 새겨진 이름", "summary": "What if the former keepers' names are etched on the lens rim?" }
+  ],
+  "openEpisode": {
+    "id": "ep-3",
+    "paragraphs": [
+      "# 다시 그리는 지도",
+      "엘리엇의 지도에는 섬이 하나 더 있었다. 서윤은 그 점을 손끝으로 눌러 보았다. 잉크가 아직 덜 말라 있었다.",
+      "\"여기는 바다예요. 아무것도 없어요.\"",
+      "\"There was something last night,\" Elliot said, tapping the chart. \"When the light flashed the eleventh time.\"",
+      "서윤은 대답하지 않았다. 아버지의 logbook 마지막 장에도 같은 숫자가 적혀 있었기 때문이다 — 11, 그리고 그 옆에 낯선 좌표 하나."
+    ],
+    "charCount": 4812
+  }
+}

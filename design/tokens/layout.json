@@ -1,0 +1,19 @@
+{
+  "description": "반응형. 기기가 아니라 폭 구간(size class)으로 설계한다. 경계는 Android window size class 와 같다. referenceViewport 는 workbench 가 프레임을 그리는 대표 크기.",
+  "sizeClasses": {
+    "compact":  { "min": 0,    "max": 599,  "referenceViewport": [390, 844],  "panes": 1 },
+    "medium":   { "min": 600,  "max": 839,  "referenceViewport": [744, 1133], "panes": 2 },
+    "expanded": { "min": 840,  "max": 1199, "referenceViewport": [1024, 768], "panes": 3 },
+    "large":    { "min": 1200, "max": null, "referenceViewport": [1440, 900], "panes": 3 }
+  },
+  "panes": {
+    "library":   { "default": 240, "min": 200, "max": 320 },
+    "sheetList": { "default": 300, "min": 260, "max": 400 },
+    "inspector": { "default": 320, "min": 280, "max": 400 }
+  },
+  "editor": {
+    "measure": 680,
+    "paddingX": { "compact": 20, "medium": 32, "expanded": 48, "large": 64 },
+    "description": "measure = 본문 줄 길이 상한. 창이 아무리 넓어도 원고 폭은 여기서 멈춘다"
+  }
+}

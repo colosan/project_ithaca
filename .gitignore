@@ -1,0 +1,21 @@
+node_modules/
+dist/
+.DS_Store
+Thumbs.db
+
+# Rust
+target/
+
+# Apple — .xcodeproj is generated from swift/project.yml by XcodeGen
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+swift/**/*.xcframework/
+
+# Kotlin / Android
+.gradle/
+build/
+local.properties
+.idea/
+*.iml

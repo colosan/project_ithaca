@@ -1,0 +1,9 @@
+{
+  "title": { "ko": "앱 뼈대", "en": "App shell" },
+  "description": "라이브러리 / 시트 목록 / 에디터 3단이 size class 에 따라 접히는 방식",
+  "version": "0.1.0",
+  "links": [
+    { "from": "default", "to": "app-shell#readonly", "label": { "ko": "다른 기기가 점유", "en": "Another device takes over" } },
+    { "from": "readonly", "to": "app-shell#default", "label": { "ko": "점유하기", "en": "Take over" } }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "description": "요소 크기. 터치 최소 크기는 플랫폼 하한(iOS 44pt · Android 48dp) 중 큰 쪽을 compact 에 적용.",
+  "sizes": {
+    "icon.sm": 16,
+    "icon.md": 20,
+    "icon.lg": 24,
+    "control.sm": 28,
+    "control.md": 36,
+    "control.lg": 44,
+    "touch.min": 48,
+    "stroke.hairline": 1,
+    "stroke.focus": 2,
+    "row.sheet": 72,
+    "bar.top": 52
+  }
+}

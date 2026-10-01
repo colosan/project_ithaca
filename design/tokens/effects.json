@@ -1,0 +1,23 @@
+{
+  "description": "모서리·그림자·움직임. 그림자는 진하게 쓰지 않는다 — 위계는 면 색과 선으로.",
+  "radius": {
+    "none": 0,
+    "piece": 4,
+    "panel": 8,
+    "sheet": 12,
+    "full": 9999
+  },
+  "shadow": {
+    "popover": { "y": 4,  "blur": 16, "opacity": 0.10 },
+    "dialog":  { "y": 12, "blur": 40, "opacity": 0.16 }
+  },
+  "opacity": {
+    "readOnly": 0.72,
+    "disabled": 0.45
+  },
+  "motion": {
+    "fast":   { "duration": 120, "easing": [0.2, 0, 0, 1] },
+    "normal": { "duration": 200, "easing": [0.2, 0, 0, 1] },
+    "slow":   { "duration": 320, "easing": [0.2, 0, 0, 1] }
+  }
+}
