@@ -27,6 +27,12 @@ Ulysses 에서 가져오는 것은 모양이 아니라 태도다: 본문 한 줄
 3. 한국어 본문 행간은 넉넉하게(`type.editor.body`). 영어 UI 라벨은 한국어보다 길다 — 버튼·탭은 en 으로 넘침을 먼저 본다.
 4. 다크 모드는 반전이 아니라 따로 고른 값이다. 둘 다 workbench 에서 나란히 검수한다.
 
+## 대비 (2026-10-01, workbench 대비표로 검출)
+
+- 글자로 쓰이는 색은 **모든 면 위에서 4.5:1 이상**(WCAG AA 본문)을 지킨다. 예외는 `ink.markup` 하나 — Markdown 기호를 일부러 흐리게 두는 것이 정체성이라서.
+- 초안 값에서 light `ink.tertiary` · `accent.primary` · `state.*` 가 2.6~4.2 였다 → 색상·채도는 두고 명도만 기준까지 옮겼다. 그 결과 accent 가 황토에서 **짙은 갈색** 쪽으로 내려왔다.
+- tertiary 가 어두워지면서 secondary 와 겹쳐 ink 3단이 무너졌다 → secondary 를 한 단 더 진하게(light) · 밝게(dark) 벌렸다. 대비 순서: primary > secondary > tertiary 를 유지한다.
+
 ## [미정]
 
 - 본문 서체: Pretendard 로 시작. 명조 계열(Noto Serif KR 등) 선택지를 줄지.

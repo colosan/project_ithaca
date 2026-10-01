@@ -1,0 +1,9 @@
+{
+  "title": {
+    "ko": "변경 기록",
+    "en": "History"
+  },
+  "description": "시트의 hash chain 기록 — 누가(나 · Claude · 어느 기기) 무엇을 바꿨고, 되돌리기",
+  "version": "0.0.0",
+  "planned": true
+}

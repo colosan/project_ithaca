@@ -1,10 +1,42 @@
 {
-  "title": { "ko": "환경설정", "en": "Settings" },
+  "title": {
+    "ko": "환경설정",
+    "en": "Settings"
+  },
   "description": "일반 · 동기화 · Claude 연동(MCP, 데스크톱 전용)",
   "version": "0.1.0",
   "links": [
-    { "from": "general", "to": "preferences#sync", "label": { "ko": "동기화", "en": "Sync" } },
-    { "from": "general", "to": "preferences#claude", "label": { "ko": "Claude 연동", "en": "Claude" } },
-    { "from": "general", "to": "app-shell#default", "label": { "ko": "닫기", "en": "Close" } }
+    {
+      "from": "general",
+      "to": "preferences#sync",
+      "label": {
+        "ko": "동기화",
+        "en": "Sync"
+      }
+    },
+    {
+      "from": "general",
+      "to": "preferences#claude",
+      "label": {
+        "ko": "Claude 연동",
+        "en": "Claude"
+      }
+    },
+    {
+      "from": "general",
+      "to": "app-shell#default",
+      "label": {
+        "ko": "닫기",
+        "en": "Close"
+      }
+    },
+    {
+      "from": "sync",
+      "to": "pair-device",
+      "label": {
+        "ko": "＋ 기기 추가",
+        "en": "Pair a device"
+      }
+    }
   ]
 }

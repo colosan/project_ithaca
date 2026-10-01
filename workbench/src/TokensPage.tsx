@@ -4,6 +4,7 @@ import layout from "../../design/tokens/layout.json";
 import sizing from "../../design/tokens/sizing.json";
 import spacing from "../../design/tokens/spacing.json";
 import typography from "../../design/tokens/typography.json";
+import { ContrastTable } from "./Contrast";
 import { camel, kebab } from "./names";
 
 type ColorTokens = Record<string, { light: string; dark: string; description?: string }>;
@@ -34,6 +35,8 @@ export function TokensPage() {
           </tbody>
         </table>
       </section>
+
+      <ContrastTable />
 
       <section>
         <h2>typography</h2>

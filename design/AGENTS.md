@@ -23,6 +23,15 @@
 - `meta.json` 의 `links` 가 캔버스의 화살표다: `{ "from": "<내 state>", "to": "<slug>" | "<slug>#<state>", "label": { "ko", "en" } }`.
   화면을 이동시키는 동작(버튼·제스처·외부 사건)마다 하나씩. `design:check` 가 없는 화면·state 를 막는다.
 
+## 계획된 화면
+- 아직 그리지 않은 화면은 `spec.md` + `meta.json`(`"planned": true`) 만 둔다. 캔버스에 점선 카드로 보인다.
+- 다른 화면의 `links` 는 계획된 화면을 `"to": "<slug>"`(state 없이)로 가리킬 수 있다.
+- 그리기 시작하면 `prototype.tsx` 를 추가하고 `planned` 를 지운다.
+
+## workbench 검출 결과는 고친다
+- 프레임 배지 ⚠ (잘림 · 넘침 · 화면 밖)는 결함이다. 280px 폭 · English 에서도 0 이어야 한다.
+- 토큰 페이지 대비표의 빨간 칸(4.5:1 미만)은 `ink.markup` 외에는 없어야 한다.
+
 ## 캔버스 · 프리셋
 - `canvas.json` — 카드 위치. workbench 에서 카드를 끌면 저장된다. 손으로 고칠 일 없음.
 - `viewports.json` — 실제 기기·창 프리셋. Windows 는 `physical` + `scale`(디스플레이 배율)로 적고 논리 크기는 workbench 가 나눠서 쓴다.

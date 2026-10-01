@@ -39,13 +39,15 @@ export default function ProjectSettings({ state: _state }: { state: State }) {
 
 function Body() {
   const t = useT();
-  const { sample, locale } = useFrame();
+  const { sample, locale, sizeClass } = useFrame();
   const { project } = openContext(sample);
   const basisKey: Record<string, StringKey> = {
     withSpaces: "goal.basis.withSpaces",
     withoutSpaces: "goal.basis.withoutSpaces",
     words: "goal.basis.words",
   };
+  const basisIndex = Object.keys(basisKey).indexOf(project.goal?.basis ?? "withSpaces");
+  const basisLabels = Object.values(basisKey).map((k) => t(k));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: space[300] }}>
       <Section label={t("projectSettings.name")}>
@@ -59,10 +61,8 @@ function Body() {
       <Section label={t("projectSettings.goal")} hint={t("projectSettings.goalHint")}>
         <div style={{ display: "flex", gap: space[100], flexWrap: "wrap" }}>
           <Field narrow>{project.goal ? project.goal.count.toLocaleString(locale) : t("projectSettings.goalNone")}</Field>
-          <Segmented
-            options={Object.values(basisKey).map((k) => t(k))}
-            active={Object.keys(basisKey).indexOf(project.goal?.basis ?? "withSpaces")}
-          />
+          {/* Three long options do not fit a segmented control on a phone — stack them as a radio list there. */}
+          {sizeClass === "compact" ? <RadioList options={basisLabels} active={basisIndex} /> : <Segmented options={basisLabels} active={basisIndex} />}
         </div>
       </Section>
 
@@ -96,10 +96,24 @@ function Section({ label, hint, children }: { label: string; hint?: string; chil
   );
 }
 
+/** Grows with its content (long titles wrap) instead of a fixed height the text could spill out of. */
 function Field({ children, narrow }: { children: ReactNode; narrow?: boolean }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", height: size.controlMd, padding: `0 ${space[150]}`, border: hairline(color.lineStrong), borderRadius: radius.piece, background: color.surfaceCanvas, flex: narrow ? "none" : 1, minWidth: narrow ? size.rowSheet : 0 }}>
+    <div style={{ display: "flex", alignItems: "center", minHeight: size.controlMd, padding: `${space[100]} ${space[150]}`, border: hairline(color.lineStrong), borderRadius: radius.piece, background: color.surfaceCanvas, flex: narrow ? "none" : 1, minWidth: narrow ? size.rowSheet : 0 }}>
       {children}
+    </div>
+  );
+}
+
+function RadioList({ options, active }: { options: string[]; active: number }) {
+  return (
+    <div style={{ width: "100%", border: hairline(color.lineStrong), borderRadius: radius.piece, overflow: "hidden" }}>
+      {options.map((o, i) => (
+        <div key={o} style={{ display: "flex", alignItems: "center", gap: space[100], minHeight: size.controlMd, padding: `0 ${space[150]}`, borderTop: i ? hairline(color.lineSubtle) : undefined, background: i === active ? color.surfaceSelected : "transparent" }}>
+          <span style={{ color: i === active ? color.accentPrimary : color.inkMarkup }}>{i === active ? "●" : "○"}</span>
+          <span style={type.label}>{o}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -108,7 +122,7 @@ function Segmented({ options, active }: { options: string[]; active: number }) {
   return (
     <div style={{ display: "inline-flex", border: hairline(color.lineStrong), borderRadius: radius.piece, overflow: "hidden", ...type.label }}>
       {options.map((o, i) => (
-        <span key={o} style={{ padding: `${space[100]} ${space[150]}`, background: i === active ? color.surfaceSelected : "transparent", color: i === active ? color.inkPrimary : color.inkSecondary, borderLeft: i ? hairline(color.lineStrong) : undefined }}>
+        <span key={o} style={{ whiteSpace: "nowrap", padding: `${space[100]} ${space[150]}`, background: i === active ? color.surfaceSelected : "transparent", color: i === active ? color.inkPrimary : color.inkSecondary, borderLeft: i ? hairline(color.lineStrong) : undefined }}>
           {o}
         </span>
       ))}

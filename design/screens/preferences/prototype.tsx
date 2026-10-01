@@ -48,13 +48,15 @@ export default function Preferences({ state }: { state: State }) {
 
 function General() {
   const t = useT();
-  const { locale, theme } = useFrame();
+  const { locale, theme, sizeClass } = useFrame();
+  // A three-way segmented control leaves no room for the label on a phone — stack them there.
+  const stacked = sizeClass === "compact";
   return (
     <Stack>
-      <Row label={t("prefs.uiLanguage")}>
+      <Row label={t("prefs.uiLanguage")} column={stacked}>
         <Segmented options={[t("prefs.languageSystem"), t("uiLanguage.ko"), t("uiLanguage.en")]} active={locale === "ko" ? 1 : 2} />
       </Row>
-      <Row label={t("prefs.theme")}>
+      <Row label={t("prefs.theme")} column={stacked}>
         <Segmented options={[t("theme.system"), t("theme.light"), t("theme.dark")]} active={theme === "light" ? 1 : 2} />
       </Row>
     </Stack>

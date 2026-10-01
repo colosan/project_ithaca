@@ -1,0 +1,9 @@
+{
+  "title": {
+    "ko": "새 작품",
+    "en": "New project"
+  },
+  "description": "작품을 만들면서 원고 언어 · 목표 · 기본 폴더를 정한다",
+  "version": "0.0.0",
+  "planned": true
+}

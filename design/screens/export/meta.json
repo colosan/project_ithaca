@@ -1,0 +1,9 @@
+{
+  "title": {
+    "ko": "내보내기",
+    "en": "Export"
+  },
+  "description": "시트 · 폴더 · 작품을 파일이나 연재 플랫폼 붙여넣기용으로",
+  "version": "0.0.0",
+  "planned": true
+}

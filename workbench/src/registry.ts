@@ -4,18 +4,22 @@ import viewportsJson from "../../design/viewports.json";
 
 // ── Screens ──────────────────────────────────────────────────────────────
 
+export type Bilingual = { ko: string; en: string };
+
 export interface ScreenLink {
   /** State of this screen the link starts from. */
   from: string;
-  /** Target node: "<slug>" (its first state) or "<slug>#<state>". */
+  /** Target: "<slug>" (its first state, or a planned screen) or "<slug>#<state>". */
   to: string;
-  label: { ko: string; en: string };
+  label: Bilingual;
 }
 
 export interface ScreenMeta {
-  title: { ko: string; en: string };
+  title: Bilingual;
   description?: string;
   version: string;
+  /** Spec only, no prototype yet — shown as a dashed placeholder. */
+  planned?: boolean;
   links?: ScreenLink[];
 }
 
@@ -32,6 +36,12 @@ export interface Screen {
   states: readonly string[];
 }
 
+export interface PlannedScreen {
+  slug: string;
+  meta: ScreenMeta;
+  spec: string;
+}
+
 const protos = import.meta.glob<PrototypeModule>("../../design/screens/*/prototype.tsx", { eager: true });
 const metas = import.meta.glob<ScreenMeta>("../../design/screens/*/meta.json", { eager: true, import: "default" });
 const specs = import.meta.glob<string>("../../design/screens/*/spec.md", { eager: true, query: "?raw", import: "default" });
@@ -39,10 +49,11 @@ const specs = import.meta.glob<string>("../../design/screens/*/spec.md", { eager
 const slugOf = (path: string) => path.split("/").at(-2)!;
 const bySlug = <T,>(mods: Record<string, T>) => Object.fromEntries(Object.entries(mods).map(([p, m]) => [slugOf(p), m]));
 
+const protoBySlug = bySlug(protos);
 const metaBySlug = bySlug(metas);
 const specBySlug = bySlug(specs);
 
-export const screens: Screen[] = Object.entries(bySlug(protos))
+export const screens: Screen[] = Object.entries(protoBySlug)
   .filter(([slug]) => metaBySlug[slug])
   .map(([slug, mod]) => ({
     slug,
@@ -53,52 +64,73 @@ export const screens: Screen[] = Object.entries(bySlug(protos))
   }))
   .sort((a, b) => a.slug.localeCompare(b.slug));
 
+export const planned: PlannedScreen[] = Object.entries(metaBySlug)
+  .filter(([slug, meta]) => meta.planned && !protoBySlug[slug])
+  .map(([slug, meta]) => ({ slug, meta, spec: specBySlug[slug] ?? "" }))
+  .sort((a, b) => a.slug.localeCompare(b.slug));
+
 export const screenBySlug = Object.fromEntries(screens.map((s) => [s.slug, s]));
+export const plannedBySlug = Object.fromEntries(planned.map((s) => [s.slug, s]));
+
+/** First "# …" heading and first plain paragraph of a spec — used on placeholder cards. */
+export function specSummary(spec: string): string {
+  return (
+    spec
+      .split("\n")
+      .map((l) => l.trim())
+      .find((l) => l && !l.startsWith("#") && !l.startsWith("|") && !l.startsWith(">") && !l.startsWith("-")) ?? ""
+  );
+}
 
 // ── Navigation graph ─────────────────────────────────────────────────────
 
-/** A card on the canvas: one state of one screen. */
+/** A card: one state of one screen, or a planned screen (state = null). */
 export interface GraphNode {
-  id: string; // "<slug>#<state>"
-  screen: Screen;
-  state: string;
+  id: string;
+  slug: string;
+  state: string | null;
+  title: Bilingual;
+  screen: Screen | null;
+  planned: PlannedScreen | null;
 }
 
 export interface GraphEdge {
   from: string;
   to: string;
-  label: { ko: string; en: string };
+  label: Bilingual;
 }
 
-export const nodeId = (slug: string, state: string) => `${slug}#${state}`;
+export const nodeId = (slug: string, state: string | null) => (state ? `${slug}#${state}` : slug);
 
 function resolveTarget(to: string): string | null {
   const [slug, state] = to.split("#");
   const screen = screenBySlug[slug];
-  if (!screen) return null;
-  const s = state ?? screen.states[0];
-  return screen.states.includes(s) ? nodeId(slug, s) : null;
+  if (screen) {
+    const s = state ?? screen.states[0];
+    return screen.states.includes(s) ? nodeId(slug, s) : null;
+  }
+  return plannedBySlug[slug] && !state ? slug : null;
 }
 
-/** Nodes = each screen's first state + every state that a link touches. Unresolvable links are dropped (design:check reports them). */
+/**
+ * Nodes = every declared state of every screen + every planned screen.
+ * Unresolvable links are dropped here; `pnpm design:check` reports them.
+ */
 export function buildGraph(): { nodes: GraphNode[]; edges: GraphEdge[] } {
-  const ids = new Set<string>();
+  const nodes: GraphNode[] = [
+    ...screens.flatMap((screen) =>
+      screen.states.map((state) => ({ id: nodeId(screen.slug, state), slug: screen.slug, state, title: screen.meta.title, screen, planned: null })),
+    ),
+    ...planned.map((p) => ({ id: p.slug, slug: p.slug, state: null, title: p.meta.title, screen: null, planned: p })),
+  ];
   const edges: GraphEdge[] = [];
   for (const screen of screens) {
-    ids.add(nodeId(screen.slug, screen.states[0]));
     for (const link of screen.meta.links ?? []) {
       const to = resolveTarget(link.to);
       if (!to || !screen.states.includes(link.from)) continue;
-      const from = nodeId(screen.slug, link.from);
-      ids.add(from);
-      ids.add(to);
-      edges.push({ from, to, label: link.label });
+      edges.push({ from: nodeId(screen.slug, link.from), to, label: link.label });
     }
   }
-  const nodes = [...ids].map((id) => {
-    const [slug, state] = id.split("#");
-    return { id, screen: screenBySlug[slug], state };
-  });
   return { nodes, edges };
 }
 

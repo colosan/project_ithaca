@@ -104,16 +104,36 @@ const LINT = [
 ];
 
 // Pass 1: collect each screen's declared states (parsed from `export const states = [...]`) so links can be resolved.
+// A screen with "planned": true in meta.json is spec-only: no prototype, no states, no outgoing links.
 const statesBySlug = {};
 const metaBySlug = {};
+const plannedSlugs = new Set();
 for (const slug of slugs) {
   const dir = join(screensDir, slug);
   const where = `design/screens/${slug}`;
   if (!/^[a-z0-9-]+$/.test(slug)) block(where, `slug 는 소문자·숫자·하이픈만`);
-  for (const f of ["spec.md", "meta.json", "prototype.tsx"])
-    if (!existsSync(join(dir, f))) block(where, `${f} 가 없다`);
 
-  if (existsSync(join(dir, "prototype.tsx"))) {
+  let meta = null;
+  if (existsSync(join(dir, "meta.json"))) {
+    try {
+      meta = JSON.parse(readFileSync(join(dir, "meta.json"), "utf8"));
+      metaBySlug[slug] = meta;
+      for (const l of locales) if (!meta.title?.[l]) block(`${where}/meta.json`, `title.${l} 가 없다`);
+      if (typeof meta.version !== "string") block(`${where}/meta.json`, `version 이 문자열이 아니다`);
+    } catch (e) {
+      block(`${where}/meta.json`, `JSON 오류 — ${e.message}`);
+    }
+  }
+  const isPlanned = meta?.planned === true;
+  if (isPlanned) plannedSlugs.add(slug);
+
+  const required = isPlanned ? ["spec.md", "meta.json"] : ["spec.md", "meta.json", "prototype.tsx"];
+  for (const file of required) if (!existsSync(join(dir, file))) block(where, `${file} 가 없다`);
+  if (isPlanned && existsSync(join(dir, "prototype.tsx")))
+    block(where, `prototype.tsx 가 있는데 meta 가 planned — planned 를 지운다`);
+  if (isPlanned && meta.links?.length) block(`${where}/meta.json`, `계획된 화면은 상태가 없어 links 를 가질 수 없다`);
+
+  if (!isPlanned && existsSync(join(dir, "prototype.tsx"))) {
     const src = readFileSync(join(dir, "prototype.tsx"), "utf8");
     const m = src.match(/export\s+const\s+states\s*=\s*\[([^\]]*)\]/);
     if (!m) block(`${where}/prototype.tsx`, `export const states = [...] 가 없다`);
@@ -127,21 +147,11 @@ for (const slug of slugs) {
       }
     });
   }
-
-  if (existsSync(join(dir, "meta.json"))) {
-    try {
-      const meta = JSON.parse(readFileSync(join(dir, "meta.json"), "utf8"));
-      metaBySlug[slug] = meta;
-      for (const l of locales) if (!meta.title?.[l]) block(`${where}/meta.json`, `title.${l} 가 없다`);
-      if (typeof meta.version !== "string") block(`${where}/meta.json`, `version 이 문자열이 아니다`);
-    } catch (e) {
-      block(`${where}/meta.json`, `JSON 오류 — ${e.message}`);
-    }
-  }
 }
 
-// Pass 2: every link must start from a declared state and land on an existing screen/state.
+// Pass 2: every link must start from a declared state and land on an existing screen/state (or a planned screen).
 for (const [slug, meta] of Object.entries(metaBySlug)) {
+  if (plannedSlugs.has(slug)) continue;
   const where = `design/screens/${slug}/meta.json`;
   if (meta.links !== undefined && !Array.isArray(meta.links)) {
     block(where, `links 가 배열이 아니다`);
@@ -151,11 +161,14 @@ for (const [slug, meta] of Object.entries(metaBySlug)) {
     const at = `${where} links[${i}]`;
     if (!statesBySlug[slug]?.includes(link.from)) block(at, `from '${link.from}' 은 이 화면의 state 가 아니다 (${statesBySlug[slug]?.join(", ")})`);
     const [toSlug, toState] = String(link.to ?? "").split("#");
-    if (!statesBySlug[toSlug]) block(at, `to '${link.to}' — 그런 화면이 없다`);
+    if (plannedSlugs.has(toSlug)) {
+      if (toState) block(at, `to '${link.to}' — 계획된 화면에는 state 를 붙이지 않는다`);
+    } else if (!statesBySlug[toSlug]) block(at, `to '${link.to}' — 그런 화면이 없다`);
     else if (toState && !statesBySlug[toSlug].includes(toState)) block(at, `to '${link.to}' — ${toSlug} 에 그런 state 가 없다`);
     for (const l of locales) if (!link.label?.[l]) block(at, `label.${l} 가 없다`);
   }
 }
+if (plannedSlugs.size) warn("design/screens", `계획만 있는 화면 ${plannedSlugs.size}개 — ${[...plannedSlugs].join(", ")}`);
 
 // 5. Viewport presets · canvas ─────────────────────────────────────────────
 try {
@@ -177,7 +190,7 @@ try {
   const canvas = JSON.parse(readFileSync(join(ROOT, "design/canvas.json"), "utf8"));
   for (const id of Object.keys(canvas.positions ?? {})) {
     const [slug, state] = id.split("#");
-    if (!statesBySlug[slug]?.includes(state)) warn("design/canvas.json", `'${id}' 는 더 이상 없는 카드 — 자동 정렬로 정리 가능`);
+    if (!(state ? statesBySlug[slug]?.includes(state) : plannedSlugs.has(slug))) warn("design/canvas.json", `'${id}' 는 더 이상 없는 카드 — 자동 정렬로 정리 가능`);
   }
 } catch (e) {
   block("design/canvas.json", `읽기 실패 — ${e.message}`);

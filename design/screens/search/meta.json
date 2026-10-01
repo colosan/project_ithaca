@@ -1,0 +1,9 @@
+{
+  "title": {
+    "ko": "검색",
+    "en": "Search"
+  },
+  "description": "작품 안 / 모든 작품에서 시트 · 문단 찾기",
+  "version": "0.0.0",
+  "planned": true
+}
