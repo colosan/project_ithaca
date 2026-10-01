@@ -8,23 +8,83 @@ public enum L10nLocale: String, CaseIterable, Sendable {
 
 public enum L10nKey: String, CaseIterable, Sendable {
     case appName = "app.name"
+    case actionDone = "action.done"
+    case actionCancel = "action.cancel"
+    case actionClose = "action.close"
+    case navBack = "nav.back"
     case libraryTitle = "library.title"
     case libraryShow = "library.show"
-    case sectionLore = "section.lore"
-    case sectionEpisodes = "section.episodes"
-    case sectionIdeas = "section.ideas"
+    case libraryNewProject = "library.newProject"
+    case folderNew = "folder.new"
+    case folderDefaultSerial = "folder.defaultSerial"
+    case folderDefaultLore = "folder.defaultLore"
+    case folderDefaultMaterial = "folder.defaultMaterial"
+    case folderRename = "folder.rename"
+    case folderDelete = "folder.delete"
+    case sheetNew = "sheet.new"
+    case sheetBranched = "sheet.branched"
     case sheetListCount = "sheetList.count"
-    case episodeNumber = "episode.number"
-    case episodeStatusDraft = "episode.status.draft"
-    case episodeStatusReady = "episode.status.ready"
-    case episodeStatusPublished = "episode.status.published"
-    case editorCharCount = "editor.charCount"
-    case editorWordCount = "editor.wordCount"
+    case countWithSpaces = "count.withSpaces"
+    case countWithoutSpaces = "count.withoutSpaces"
+    case countWords = "count.words"
+    case goalProgress = "goal.progress"
+    case referenceTitle = "reference.title"
+    case referenceOpen = "reference.open"
     case leaseBanner = "lease.banner"
     case leaseTakeOver = "lease.takeOver"
     case leaseReadOnly = "lease.readOnly"
-    case navBack = "nav.back"
+    case branchTitle = "branch.title"
+    case branchSubtitle = "branch.subtitle"
+    case branchMain = "branch.main"
+    case branchCopy = "branch.copy"
+    case branchBringOver = "branch.bringOver"
+    case branchChanged = "branch.changed"
+    case branchOnlyHere = "branch.onlyHere"
+    case branchProgress = "branch.progress"
+    case branchResolve = "branch.resolve"
+    case branchLater = "branch.later"
+    case projectSettingsTitle = "projectSettings.title"
+    case projectSettingsName = "projectSettings.name"
+    case projectSettingsLanguage = "projectSettings.language"
+    case projectSettingsGoal = "projectSettings.goal"
+    case projectSettingsGoalHint = "projectSettings.goalHint"
+    case projectSettingsGoalNone = "projectSettings.goalNone"
+    case projectSettingsFolders = "projectSettings.folders"
+    case projectSettingsFolderHint = "projectSettings.folderHint"
+    case languageKo = "language.ko"
+    case languageEn = "language.en"
+    case goalBasisWithSpaces = "goal.basis.withSpaces"
+    case goalBasisWithoutSpaces = "goal.basis.withoutSpaces"
+    case goalBasisWords = "goal.basis.words"
     case prefsTitle = "prefs.title"
+    case prefsGeneral = "prefs.general"
+    case prefsUiLanguage = "prefs.uiLanguage"
+    case prefsLanguageSystem = "prefs.languageSystem"
+    case prefsTheme = "prefs.theme"
+    case themeSystem = "theme.system"
+    case themeLight = "theme.light"
+    case themeDark = "theme.dark"
+    case prefsSync = "prefs.sync"
+    case syncRelay = "sync.relay"
+    case syncRelayHint = "sync.relayHint"
+    case syncIcloud = "sync.icloud"
+    case syncIcloudHint = "sync.icloudHint"
+    case syncP2p = "sync.p2p"
+    case syncP2pHint = "sync.p2pHint"
+    case syncDevices = "sync.devices"
+    case syncPair = "sync.pair"
+    case syncJustNow = "sync.justNow"
+    case syncMinutesAgo = "sync.minutesAgo"
+    case prefsClaude = "prefs.claude"
+    case mcpToggle = "mcp.toggle"
+    case mcpHint = "mcp.hint"
+    case mcpAddress = "mcp.address"
+    case mcpToken = "mcp.token"
+    case mcpCopy = "mcp.copy"
+    case mcpDesktopOnly = "mcp.desktopOnly"
+    case uiLanguageKo = "uiLanguage.ko"
+    case uiLanguageEn = "uiLanguage.en"
+    case linkOpenReference = "link.openReference"
 }
 
 enum L10nValue: Sendable {
@@ -49,43 +109,163 @@ public enum L10n {
     static let table: [L10nLocale: [L10nKey: L10nValue]] = [
         .ko: [
             .appName: .text("Ithaca"),
+            .actionDone: .text("완료"),
+            .actionCancel: .text("취소"),
+            .actionClose: .text("닫기"),
+            .navBack: .text("뒤로"),
             .libraryTitle: .text("작품"),
             .libraryShow: .text("라이브러리 열기"),
-            .sectionLore: .text("설정"),
-            .sectionEpisodes: .text("연재"),
-            .sectionIdeas: .text("아이디어"),
+            .libraryNewProject: .text("새 작품"),
+            .folderNew: .text("새 폴더"),
+            .folderDefaultSerial: .text("연재"),
+            .folderDefaultLore: .text("설정"),
+            .folderDefaultMaterial: .text("자료"),
+            .folderRename: .text("이름 바꾸기"),
+            .folderDelete: .text("삭제"),
+            .sheetNew: .text("새 시트"),
+            .sheetBranched: .text("갈라진 사본 있음"),
             .sheetListCount: .text("{count}개"),
-            .episodeNumber: .text("{n}화"),
-            .episodeStatusDraft: .text("초고"),
-            .episodeStatusReady: .text("퇴고 완료"),
-            .episodeStatusPublished: .text("발행됨"),
-            .editorCharCount: .text("공백 포함 {count}자"),
-            .editorWordCount: .text("{count}단어"),
+            .countWithSpaces: .text("공백 포함 {count}자"),
+            .countWithoutSpaces: .text("공백 제외 {count}자"),
+            .countWords: .text("{count}단어"),
+            .goalProgress: .text("목표 {goal} · {percent}%"),
+            .referenceTitle: .text("참조"),
+            .referenceOpen: .text("참조 패널"),
             .leaseBanner: .text("{device}에서 편집 중 · 마지막 활동 {minutes}분 전"),
             .leaseTakeOver: .text("점유하기"),
             .leaseReadOnly: .text("읽기 전용"),
-            .navBack: .text("뒤로"),
+            .branchTitle: .text("갈라진 사본 정리"),
+            .branchSubtitle: .text("{device}에서 오프라인으로 쓴 내용이 있어요 · {minutes}분 전"),
+            .branchMain: .text("본문"),
+            .branchCopy: .text("갈라진 사본"),
+            .branchBringOver: .text("← 가져오기"),
+            .branchChanged: .text("바뀜"),
+            .branchOnlyHere: .text("이쪽에만 있음"),
+            .branchProgress: .text("{done}/{total} 정리됨"),
+            .branchResolve: .text("정리 완료"),
+            .branchLater: .text("나중에"),
+            .projectSettingsTitle: .text("작품 설정"),
+            .projectSettingsName: .text("제목"),
+            .projectSettingsLanguage: .text("원고 언어"),
+            .projectSettingsGoal: .text("시트 목표 분량"),
+            .projectSettingsGoalHint: .text("정해두면 에디터 아래에 진행률이 보여요."),
+            .projectSettingsGoalNone: .text("없음"),
+            .projectSettingsFolders: .text("폴더"),
+            .projectSettingsFolderHint: .text("폴더 이름은 자유롭게 바꾸고 지우고 새로 만들 수 있어요."),
+            .languageKo: .text("한국어"),
+            .languageEn: .text("영어"),
+            .goalBasisWithSpaces: .text("공백 포함"),
+            .goalBasisWithoutSpaces: .text("공백 제외"),
+            .goalBasisWords: .text("단어"),
             .prefsTitle: .text("환경설정"),
+            .prefsGeneral: .text("일반"),
+            .prefsUiLanguage: .text("화면 언어"),
+            .prefsLanguageSystem: .text("시스템"),
+            .prefsTheme: .text("테마"),
+            .themeSystem: .text("시스템"),
+            .themeLight: .text("라이트"),
+            .themeDark: .text("다크"),
+            .prefsSync: .text("동기화"),
+            .syncRelay: .text("중계 서버"),
+            .syncRelayHint: .text("직접 띄운 서버 주소. 내용은 기기에서 암호화돼서 서버는 읽을 수 없어요."),
+            .syncIcloud: .text("iCloud Drive"),
+            .syncIcloudHint: .text("iPhone · iPad · Mac 사이"),
+            .syncP2p: .text("기기 간 직접 연결"),
+            .syncP2pHint: .text("두 기기가 동시에 켜져 있을 때 바로 주고받아요."),
+            .syncDevices: .text("연결된 기기"),
+            .syncPair: .text("기기 추가"),
+            .syncJustNow: .text("방금 동기화"),
+            .syncMinutesAgo: .text("{minutes}분 전 동기화"),
+            .prefsClaude: .text("Claude 연동 (MCP)"),
+            .mcpToggle: .text("MCP 서버 켜기"),
+            .mcpHint: .text("켜면 이 컴퓨터의 Claude가 모든 작품을 읽고 고칠 수 있어요. 고친 내용은 전부 기록되고 되돌릴 수 있어요."),
+            .mcpAddress: .text("주소"),
+            .mcpToken: .text("토큰"),
+            .mcpCopy: .text("복사"),
+            .mcpDesktopOnly: .text("Claude 연동은 Mac · Windows 앱에서 켤 수 있어요."),
+            .uiLanguageKo: .text("한국어"),
+            .uiLanguageEn: .text("English"),
+            .linkOpenReference: .text("참조 패널 열기"),
         ],
         .en: [
             .appName: .text("Ithaca"),
-            .libraryTitle: .text("Library"),
+            .actionDone: .text("Done"),
+            .actionCancel: .text("Cancel"),
+            .actionClose: .text("Close"),
+            .navBack: .text("Back"),
+            .libraryTitle: .text("Projects"),
             .libraryShow: .text("Show library"),
-            .sectionLore: .text("Lore"),
-            .sectionEpisodes: .text("Episodes"),
-            .sectionIdeas: .text("Ideas"),
+            .libraryNewProject: .text("New project"),
+            .folderNew: .text("New folder"),
+            .folderDefaultSerial: .text("Episodes"),
+            .folderDefaultLore: .text("Lore"),
+            .folderDefaultMaterial: .text("Notes"),
+            .folderRename: .text("Rename"),
+            .folderDelete: .text("Delete"),
+            .sheetNew: .text("New sheet"),
+            .sheetBranched: .text("Diverged copy"),
             .sheetListCount: .plural(one: "{count} sheet", other: "{count} sheets"),
-            .episodeNumber: .text("Ep. {n}"),
-            .episodeStatusDraft: .text("Draft"),
-            .episodeStatusReady: .text("Ready"),
-            .episodeStatusPublished: .text("Published"),
-            .editorCharCount: .plural(one: "{count} character", other: "{count} characters"),
-            .editorWordCount: .plural(one: "{count} word", other: "{count} words"),
+            .countWithSpaces: .plural(one: "{count} char with spaces", other: "{count} chars with spaces"),
+            .countWithoutSpaces: .plural(one: "{count} char without spaces", other: "{count} chars without spaces"),
+            .countWords: .plural(one: "{count} word", other: "{count} words"),
+            .goalProgress: .text("Goal {goal} · {percent}%"),
+            .referenceTitle: .text("Reference"),
+            .referenceOpen: .text("Reference panel"),
             .leaseBanner: .text("Being edited on {device} · last active {minutes} min ago"),
             .leaseTakeOver: .text("Take over"),
             .leaseReadOnly: .text("Read only"),
-            .navBack: .text("Back"),
+            .branchTitle: .text("Resolve diverged copy"),
+            .branchSubtitle: .text("{device} edited this offline · {minutes} min ago"),
+            .branchMain: .text("Current"),
+            .branchCopy: .text("Offline copy"),
+            .branchBringOver: .text("← Bring over"),
+            .branchChanged: .text("Changed"),
+            .branchOnlyHere: .text("Only here"),
+            .branchProgress: .text("{done} of {total} resolved"),
+            .branchResolve: .text("Mark resolved"),
+            .branchLater: .text("Later"),
+            .projectSettingsTitle: .text("Project settings"),
+            .projectSettingsName: .text("Title"),
+            .projectSettingsLanguage: .text("Manuscript language"),
+            .projectSettingsGoal: .text("Length goal per sheet"),
+            .projectSettingsGoalHint: .text("Shows progress under the editor."),
+            .projectSettingsGoalNone: .text("None"),
+            .projectSettingsFolders: .text("Folders"),
+            .projectSettingsFolderHint: .text("Rename, delete or add folders freely."),
+            .languageKo: .text("Korean"),
+            .languageEn: .text("English"),
+            .goalBasisWithSpaces: .text("With spaces"),
+            .goalBasisWithoutSpaces: .text("Without spaces"),
+            .goalBasisWords: .text("Words"),
             .prefsTitle: .text("Settings"),
+            .prefsGeneral: .text("General"),
+            .prefsUiLanguage: .text("Language"),
+            .prefsLanguageSystem: .text("System"),
+            .prefsTheme: .text("Appearance"),
+            .themeSystem: .text("System"),
+            .themeLight: .text("Light"),
+            .themeDark: .text("Dark"),
+            .prefsSync: .text("Sync"),
+            .syncRelay: .text("Relay server"),
+            .syncRelayHint: .text("Your own server. Content is encrypted on device, so the server cannot read it."),
+            .syncIcloud: .text("iCloud Drive"),
+            .syncIcloudHint: .text("Between iPhone, iPad and Mac"),
+            .syncP2p: .text("Peer-to-peer"),
+            .syncP2pHint: .text("Syncs directly while both devices are online."),
+            .syncDevices: .text("Paired devices"),
+            .syncPair: .text("Pair a device"),
+            .syncJustNow: .text("Synced just now"),
+            .syncMinutesAgo: .text("Synced {minutes} min ago"),
+            .prefsClaude: .text("Claude (MCP)"),
+            .mcpToggle: .text("Enable MCP server"),
+            .mcpHint: .text("Lets Claude on this computer read and edit every project. Every edit is recorded and can be reverted."),
+            .mcpAddress: .text("Address"),
+            .mcpToken: .text("Token"),
+            .mcpCopy: .text("Copy"),
+            .mcpDesktopOnly: .text("Claude integration can be turned on in the Mac and Windows apps."),
+            .uiLanguageKo: .text("한국어"),
+            .uiLanguageEn: .text("English"),
+            .linkOpenReference: .text("Open reference"),
         ],
     ]
 }

@@ -1,0 +1,8 @@
+{
+  "title": { "ko": "작품 설정", "en": "Project settings" },
+  "description": "제목 · 원고 언어 · 시트 목표 분량 · 폴더 관리",
+  "version": "0.1.0",
+  "links": [
+    { "from": "default", "to": "app-shell#default", "label": { "ko": "완료", "en": "Done" } }
+  ]
+}

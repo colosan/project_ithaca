@@ -1,29 +1,188 @@
 {
-  "language": "ko",
-  "title": "등대지기의 딸 · The Keeper's Daughter",
-  "lore": [
-    { "id": "lore-1", "kind": "character", "title": "한서윤", "summary": "등대지기의 딸. 열아홉. 밤마다 불빛 신호를 기록한다." },
-    { "id": "lore-2", "kind": "character", "title": "Elliot Marsh", "summary": "A surveyor washed ashore. Redrawing the map — 한국어는 서툴다." },
-    { "id": "lore-3", "kind": "place", "title": "벼리섬 등대 (Byeori Light)", "summary": "백 년 된 등대. 렌즈가 한 번도 꺼진 적 없다고 전해진다." }
+  "projects": [
+    {
+      "id": "p-keeper",
+      "title": "등대지기의 딸 · The Keeper's Daughter",
+      "language": "ko",
+      "goal": {
+        "count": 5000,
+        "basis": "withSpaces"
+      },
+      "folders": [
+        {
+          "id": "f-serial",
+          "name": "연재",
+          "sheets": [
+            {
+              "id": "s-1",
+              "title": "꺼지지 않는 불",
+              "excerpt": "서윤은 오늘도 불빛의 횟수를 셌다.",
+              "chars": 5210,
+              "charsNoSpace": 4003
+            },
+            {
+              "id": "s-2",
+              "title": "Castaway",
+              "excerpt": "At the dawn ebb, a strange boat ran aground on the reef.",
+              "chars": 5034,
+              "charsNoSpace": 3871
+            },
+            {
+              "id": "s-3",
+              "title": "다시 그리는 지도",
+              "excerpt": "엘리엇의 지도에는 섬이 하나 더 있었다.",
+              "chars": 4812,
+              "charsNoSpace": 3690
+            },
+            {
+              "id": "s-4",
+              "title": "The Eleventh Signal · 열한 번째 신호",
+              "excerpt": "불빛은 열 번이 아니라 열한 번 깜박였다.",
+              "chars": 1240,
+              "charsNoSpace": 951,
+              "branched": true
+            }
+          ]
+        },
+        {
+          "id": "f-lore",
+          "name": "설정",
+          "sheets": [
+            {
+              "id": "l-1",
+              "title": "한서윤",
+              "excerpt": "등대지기의 딸. 열아홉. 밤마다 불빛 신호를 기록한다.",
+              "chars": 812,
+              "charsNoSpace": 620,
+              "body": [
+                "# 한서윤",
+                "등대지기의 딸. 열아홉. 밤마다 불빛 신호를 기록한다.",
+                "- 말투: 짧고 단정함. 존댓말을 쓰지만 아버지 앞에서만 반말.",
+                "- 습관: 긴장하면 손끝으로 숫자를 센다.",
+                "- Secret: 아버지의 logbook 마지막 장을 아직 아무에게도 보여주지 않았다."
+              ]
+            },
+            {
+              "id": "l-2",
+              "title": "Elliot Marsh",
+              "excerpt": "A surveyor washed ashore. Redrawing the map — 한국어는 서툴다.",
+              "chars": 640,
+              "charsNoSpace": 512
+            },
+            {
+              "id": "l-3",
+              "title": "벼리섬 등대 (Byeori Light)",
+              "excerpt": "백 년 된 등대. 렌즈가 한 번도 꺼진 적 없다고 전해진다.",
+              "chars": 1120,
+              "charsNoSpace": 861
+            }
+          ]
+        },
+        {
+          "id": "f-material",
+          "name": "자료",
+          "sheets": [
+            {
+              "id": "m-1",
+              "title": "렌즈에 새겨진 이름",
+              "excerpt": "What if the former keepers' names are etched on the lens rim?",
+              "chars": 210,
+              "charsNoSpace": 168
+            },
+            {
+              "id": "m-2",
+              "title": "등대 불빛 주기표",
+              "excerpt": "Fl(11) 30s — 11번 섬광 후 30초 암흑.",
+              "chars": 430,
+              "charsNoSpace": 332
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "p-salt",
+      "title": "Salt & Iron",
+      "language": "en",
+      "goal": null,
+      "folders": [
+        {
+          "id": "f-ep",
+          "name": "Episodes",
+          "sheets": []
+        },
+        {
+          "id": "f-lo",
+          "name": "Lore",
+          "sheets": []
+        },
+        {
+          "id": "f-no",
+          "name": "Notes",
+          "sheets": []
+        }
+      ]
+    }
   ],
-  "episodes": [
-    { "id": "ep-1", "number": 1, "title": "꺼지지 않는 불", "status": "published", "excerpt": "서윤은 오늘도 불빛의 횟수를 셌다." },
-    { "id": "ep-2", "number": 2, "title": "Castaway", "status": "published", "excerpt": "At the dawn ebb, a strange boat ran aground on the reef." },
-    { "id": "ep-3", "number": 3, "title": "다시 그리는 지도", "status": "draft", "excerpt": "엘리엇의 지도에는 섬이 하나 더 있었다." },
-    { "id": "ep-4", "number": 4, "title": "The Eleventh Signal · 열한 번째 신호", "status": "ready", "excerpt": "불빛은 열 번이 아니라 열한 번 깜박였다." }
-  ],
-  "ideas": [
-    { "id": "idea-1", "title": "렌즈에 새겨진 이름", "summary": "What if the former keepers' names are etched on the lens rim?" }
-  ],
-  "openEpisode": {
-    "id": "ep-3",
+  "open": {
+    "project": "p-keeper",
+    "folder": "f-serial",
+    "sheet": "s-3",
+    "reference": "l-1"
+  },
+  "openSheet": {
     "paragraphs": [
       "# 다시 그리는 지도",
       "엘리엇의 지도에는 섬이 하나 더 있었다. 서윤은 그 점을 손끝으로 눌러 보았다. 잉크가 아직 덜 말라 있었다.",
       "\"여기는 바다예요. 아무것도 없어요.\"",
       "\"There was something last night,\" Elliot said, tapping the chart. \"When the light flashed the eleventh time.\"",
       "서윤은 대답하지 않았다. 아버지의 logbook 마지막 장에도 같은 숫자가 적혀 있었기 때문이다 — 11, 그리고 그 옆에 낯선 좌표 하나."
+    ]
+  },
+  "branch": {
+    "sheet": "s-4",
+    "device": "iPhone",
+    "minutesAgo": 42,
+    "main": [
+      "# The Eleventh Signal · 열한 번째 신호",
+      "불빛은 열 번이 아니라 열한 번 깜박였다.",
+      "서윤은 기록장을 펼쳤다. 펜 끝이 떨렸다.",
+      null,
+      "\"Did you see that?\" Elliot whispered."
     ],
-    "charCount": 4812
+    "copy": [
+      "# The Eleventh Signal · 열한 번째 신호",
+      "불빛은 열 번이 아니라, 분명히 열한 번 깜박였다.",
+      "서윤은 기록장을 펼쳤다. 펜 끝이 떨렸다.",
+      "바다 저편, 지도에 없던 섬 위로 작은 불이 하나 켜졌다.",
+      "\"Did you see that?\" Elliot whispered."
+    ]
+  },
+  "devices": [
+    {
+      "name": "MacBook Air",
+      "platform": "macos",
+      "minutesAgo": 0
+    },
+    {
+      "name": "iPhone 15",
+      "platform": "ios",
+      "minutesAgo": 42
+    },
+    {
+      "name": "Galaxy Tab S9",
+      "platform": "android",
+      "minutesAgo": 1440
+    }
+  ],
+  "sync": {
+    "relay": "https://relay.example.org",
+    "icloud": true,
+    "p2p": true
+  },
+  "mcp": {
+    "enabled": true,
+    "address": "http://127.0.0.1:7421/mcp",
+    "token": "ith_6f2c…9a1e"
   }
 }

@@ -1,5 +1,5 @@
 import { Component, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { FrameContext, sample, sizeClassFor, type FrameInfo, type Locale, type Theme } from "@ithaca/kit";
+import { FrameContext, sample, sizeClassFor, type FrameInfo, type Locale, type Platform, type Theme } from "@ithaca/kit";
 import { viewportById, viewports, type Viewport } from "./registry";
 
 // ── Device: the bare box a prototype renders into ───────────────────────
@@ -7,6 +7,7 @@ import { viewportById, viewports, type Viewport } from "./registry";
 interface DeviceProps {
   width: number;
   height: number;
+  platform: Platform;
   theme: Theme;
   locale: Locale;
   className?: string;
@@ -15,8 +16,8 @@ interface DeviceProps {
 }
 
 /** Stands in for one device/window. The prototype derives its size class from `width` (logical px). */
-export function Device({ width, height, theme, locale, className, style, children }: DeviceProps) {
-  const info: FrameInfo = { sizeClass: sizeClassFor(width), width, height, theme, locale, sample };
+export function Device({ width, height, platform, theme, locale, className, style, children }: DeviceProps) {
+  const info: FrameInfo = { sizeClass: sizeClassFor(width), width, height, platform, theme, locale, sample };
   return (
     <div data-theme={theme} lang={locale} className={`wb-device ${className ?? ""}`} style={{ width, height, ...style }}>
       <FrameContext.Provider value={info}>
@@ -42,6 +43,8 @@ export interface FrameSpec {
   id: string;
   /** Preset id, or null once the user drags to a custom size. */
   preset: string | null;
+  /** Kept from the last preset when the size becomes custom. */
+  platform: Platform;
   w: number;
   h: number;
 }
@@ -102,7 +105,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, onChange, onRemove,
           value={frame.preset ?? ""}
           onChange={(e) => {
             const v = viewportById[e.target.value];
-            if (v) onChange({ ...frame, preset: v.id, w: v.width, h: v.height });
+            if (v) onChange({ ...frame, preset: v.id, platform: v.os, w: v.width, h: v.height });
           }}
         >
           <option value="">사용자 지정</option>
@@ -121,6 +124,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, onChange, onRemove,
           <input type="number" value={frame.h} onChange={(e) => setSize(frame.w, Number(e.target.value))} />
         </span>
         <span className={`wb-class wb-class-${sizeClass}`}>{sizeClass}</span>
+        <span className="wb-muted">{frame.platform}</span>
         {preset?.scale && preset.physical && (
           <span className="wb-muted">
             {preset.physical.join("×")} ÷ {preset.scale * 100}%
@@ -131,7 +135,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, onChange, onRemove,
       </figcaption>
 
       <div className="wb-resize-box">
-        <Device width={frame.w} height={frame.h} theme={theme} locale={locale}>
+        <Device width={frame.w} height={frame.h} platform={frame.platform} theme={theme} locale={locale}>
           {children}
         </Device>
         <span className="wb-handle wb-handle-x" onPointerDown={startDrag("x")} />

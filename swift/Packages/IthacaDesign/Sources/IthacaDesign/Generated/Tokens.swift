@@ -92,6 +92,9 @@ public enum Tokens {
         public static let strokeFocus: Double = 2
         public static let rowSheet: Double = 72
         public static let barTop: Double = 52
+        public static let toggleWidth: Double = 44
+        public static let toggleHeight: Double = 26
+        public static let toggleKnob: Double = 22
     }
 
     public enum Radius {
@@ -149,6 +152,9 @@ public enum Tokens {
             public static let inspectorDefault: Double = 320
             public static let inspectorMin: Double = 280
             public static let inspectorMax: Double = 400
+            public static let dialogDefault: Double = 560
+            public static let dialogMin: Double = 480
+            public static let dialogMax: Double = 640
         }
 
         public enum Editor {

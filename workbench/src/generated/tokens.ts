@@ -60,6 +60,9 @@ export const size = {
   strokeFocus: "var(--size-stroke-focus)",
   rowSheet: "var(--size-row-sheet)",
   barTop: "var(--size-bar-top)",
+  toggleWidth: "var(--size-toggle-width)",
+  toggleHeight: "var(--size-toggle-height)",
+  toggleKnob: "var(--size-toggle-knob)",
 } as const;
 
 export const radius = {
@@ -90,6 +93,7 @@ export const pane = {
   library: "var(--pane-library)",
   sheetList: "var(--pane-sheet-list)",
   inspector: "var(--pane-inspector)",
+  dialog: "var(--pane-dialog)",
 } as const;
 
 export const editor = { measure: "var(--editor-measure)", paddingX: {

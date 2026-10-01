@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import { format, type Locale, type StringKey } from "../generated/strings";
 import type { SizeClass } from "../generated/tokens";
-import type { Sample } from "./samples";
+import type { Platform, Sample } from "./samples";
 
 export type Theme = "light" | "dark";
 
@@ -10,6 +10,8 @@ export interface FrameInfo {
   sizeClass: SizeClass;
   width: number;
   height: number;
+  /** Which OS this frame pretends to be — decides desktop-only features (MCP) and platform conventions. */
+  platform: Platform;
   theme: Theme;
   locale: Locale;
   sample: Sample;

@@ -1,9 +1,14 @@
 {
   "title": { "ko": "앱 뼈대", "en": "App shell" },
-  "description": "라이브러리 / 시트 목록 / 에디터 3단이 size class 에 따라 접히는 방식",
-  "version": "0.1.0",
+  "description": "라이브러리(작품 → 폴더) / 시트 목록 / 에디터 3단이 size class 에 따라 접히는 방식",
+  "version": "0.2.0",
   "links": [
+    { "from": "default", "to": "app-shell#reference", "label": { "ko": "참조 패널 열기", "en": "Open reference" } },
+    { "from": "reference", "to": "app-shell#default", "label": { "ko": "닫기", "en": "Close" } },
     { "from": "default", "to": "app-shell#readonly", "label": { "ko": "다른 기기가 점유", "en": "Another device takes over" } },
-    { "from": "readonly", "to": "app-shell#default", "label": { "ko": "점유하기", "en": "Take over" } }
+    { "from": "readonly", "to": "app-shell#default", "label": { "ko": "점유하기", "en": "Take over" } },
+    { "from": "default", "to": "branch-resolve", "label": { "ko": "⚠ 갈라진 시트 열기", "en": "Open a diverged sheet" } },
+    { "from": "default", "to": "project-settings", "label": { "ko": "작품 설정", "en": "Project settings" } },
+    { "from": "default", "to": "preferences#general", "label": { "ko": "환경설정", "en": "Settings" } }
   ]
 }

@@ -76,6 +76,9 @@ object Tokens {
         const val strokeFocus = 2f
         const val rowSheet = 72f
         const val barTop = 52f
+        const val toggleWidth = 44f
+        const val toggleHeight = 26f
+        const val toggleKnob = 22f
     }
 
     object Radius {
@@ -124,6 +127,9 @@ object Tokens {
             const val inspectorDefault = 320f
             const val inspectorMin = 280f
             const val inspectorMax = 400f
+            const val dialogDefault = 560f
+            const val dialogMin = 480f
+            const val dialogMax = 640f
         }
 
         object Editor {

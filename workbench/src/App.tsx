@@ -25,7 +25,7 @@ const toHash = (r: Route) =>
 let frameSeq = 0;
 const newFrame = (presetId: string): FrameSpec => {
   const v = viewportById[presetId];
-  return { id: `f${Date.now()}-${frameSeq++}`, preset: v.id, w: v.width, h: v.height };
+  return { id: `f${Date.now()}-${frameSeq++}`, preset: v.id, platform: v.os, w: v.width, h: v.height };
 };
 const defaultFrames = () => detailDefaults.filter((id) => viewportById[id]).map(newFrame);
 
@@ -98,7 +98,9 @@ function ScreenDetail({ screen, state, themes, locale, onState, onOpen }: {
   onOpen: (slug: string, state: string) => void;
 }) {
   const [zoom, setZoom] = usePref("detail.zoom", 0.5);
-  const [frames, setFrames] = usePref<FrameSpec[]>("detail.frames", defaultFrames());
+  const [stored, setFrames] = usePref<FrameSpec[]>("detail.frames", defaultFrames());
+  // Frames saved before `platform` existed get it back from their preset.
+  const frames = stored.map((f) => (f.platform ? f : { ...f, platform: viewportById[f.preset ?? ""]?.os ?? "ios" }));
   const update = (f: FrameSpec) => setFrames((list) => list.map((x) => (x.id === f.id ? f : x)));
 
   return (

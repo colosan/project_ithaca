@@ -5,23 +5,83 @@ export type Locale = (typeof locales)[number];
 
 export type StringKey =
   | "app.name"
+  | "action.done"
+  | "action.cancel"
+  | "action.close"
+  | "nav.back"
   | "library.title"
   | "library.show"
-  | "section.lore"
-  | "section.episodes"
-  | "section.ideas"
+  | "library.newProject"
+  | "folder.new"
+  | "folder.defaultSerial"
+  | "folder.defaultLore"
+  | "folder.defaultMaterial"
+  | "folder.rename"
+  | "folder.delete"
+  | "sheet.new"
+  | "sheet.branched"
   | "sheetList.count"
-  | "episode.number"
-  | "episode.status.draft"
-  | "episode.status.ready"
-  | "episode.status.published"
-  | "editor.charCount"
-  | "editor.wordCount"
+  | "count.withSpaces"
+  | "count.withoutSpaces"
+  | "count.words"
+  | "goal.progress"
+  | "reference.title"
+  | "reference.open"
   | "lease.banner"
   | "lease.takeOver"
   | "lease.readOnly"
-  | "nav.back"
+  | "branch.title"
+  | "branch.subtitle"
+  | "branch.main"
+  | "branch.copy"
+  | "branch.bringOver"
+  | "branch.changed"
+  | "branch.onlyHere"
+  | "branch.progress"
+  | "branch.resolve"
+  | "branch.later"
+  | "projectSettings.title"
+  | "projectSettings.name"
+  | "projectSettings.language"
+  | "projectSettings.goal"
+  | "projectSettings.goalHint"
+  | "projectSettings.goalNone"
+  | "projectSettings.folders"
+  | "projectSettings.folderHint"
+  | "language.ko"
+  | "language.en"
+  | "goal.basis.withSpaces"
+  | "goal.basis.withoutSpaces"
+  | "goal.basis.words"
   | "prefs.title"
+  | "prefs.general"
+  | "prefs.uiLanguage"
+  | "prefs.languageSystem"
+  | "prefs.theme"
+  | "theme.system"
+  | "theme.light"
+  | "theme.dark"
+  | "prefs.sync"
+  | "sync.relay"
+  | "sync.relayHint"
+  | "sync.icloud"
+  | "sync.icloudHint"
+  | "sync.p2p"
+  | "sync.p2pHint"
+  | "sync.devices"
+  | "sync.pair"
+  | "sync.justNow"
+  | "sync.minutesAgo"
+  | "prefs.claude"
+  | "mcp.toggle"
+  | "mcp.hint"
+  | "mcp.address"
+  | "mcp.token"
+  | "mcp.copy"
+  | "mcp.desktopOnly"
+  | "uiLanguage.ko"
+  | "uiLanguage.en"
+  | "link.openReference"
   ;
 
 type Value = string | { one: string; other: string };
@@ -29,52 +89,175 @@ type Value = string | { one: string; other: string };
 export const strings: Record<Locale, Record<StringKey, Value>> = {
   "ko": {
     "app.name": "Ithaca",
+    "action.done": "완료",
+    "action.cancel": "취소",
+    "action.close": "닫기",
+    "nav.back": "뒤로",
     "library.title": "작품",
     "library.show": "라이브러리 열기",
-    "section.lore": "설정",
-    "section.episodes": "연재",
-    "section.ideas": "아이디어",
+    "library.newProject": "새 작품",
+    "folder.new": "새 폴더",
+    "folder.defaultSerial": "연재",
+    "folder.defaultLore": "설정",
+    "folder.defaultMaterial": "자료",
+    "folder.rename": "이름 바꾸기",
+    "folder.delete": "삭제",
+    "sheet.new": "새 시트",
+    "sheet.branched": "갈라진 사본 있음",
     "sheetList.count": "{count}개",
-    "episode.number": "{n}화",
-    "episode.status.draft": "초고",
-    "episode.status.ready": "퇴고 완료",
-    "episode.status.published": "발행됨",
-    "editor.charCount": "공백 포함 {count}자",
-    "editor.wordCount": "{count}단어",
+    "count.withSpaces": "공백 포함 {count}자",
+    "count.withoutSpaces": "공백 제외 {count}자",
+    "count.words": "{count}단어",
+    "goal.progress": "목표 {goal} · {percent}%",
+    "reference.title": "참조",
+    "reference.open": "참조 패널",
     "lease.banner": "{device}에서 편집 중 · 마지막 활동 {minutes}분 전",
     "lease.takeOver": "점유하기",
     "lease.readOnly": "읽기 전용",
-    "nav.back": "뒤로",
-    "prefs.title": "환경설정"
+    "branch.title": "갈라진 사본 정리",
+    "branch.subtitle": "{device}에서 오프라인으로 쓴 내용이 있어요 · {minutes}분 전",
+    "branch.main": "본문",
+    "branch.copy": "갈라진 사본",
+    "branch.bringOver": "← 가져오기",
+    "branch.changed": "바뀜",
+    "branch.onlyHere": "이쪽에만 있음",
+    "branch.progress": "{done}/{total} 정리됨",
+    "branch.resolve": "정리 완료",
+    "branch.later": "나중에",
+    "projectSettings.title": "작품 설정",
+    "projectSettings.name": "제목",
+    "projectSettings.language": "원고 언어",
+    "projectSettings.goal": "시트 목표 분량",
+    "projectSettings.goalHint": "정해두면 에디터 아래에 진행률이 보여요.",
+    "projectSettings.goalNone": "없음",
+    "projectSettings.folders": "폴더",
+    "projectSettings.folderHint": "폴더 이름은 자유롭게 바꾸고 지우고 새로 만들 수 있어요.",
+    "language.ko": "한국어",
+    "language.en": "영어",
+    "goal.basis.withSpaces": "공백 포함",
+    "goal.basis.withoutSpaces": "공백 제외",
+    "goal.basis.words": "단어",
+    "prefs.title": "환경설정",
+    "prefs.general": "일반",
+    "prefs.uiLanguage": "화면 언어",
+    "prefs.languageSystem": "시스템",
+    "prefs.theme": "테마",
+    "theme.system": "시스템",
+    "theme.light": "라이트",
+    "theme.dark": "다크",
+    "prefs.sync": "동기화",
+    "sync.relay": "중계 서버",
+    "sync.relayHint": "직접 띄운 서버 주소. 내용은 기기에서 암호화돼서 서버는 읽을 수 없어요.",
+    "sync.icloud": "iCloud Drive",
+    "sync.icloudHint": "iPhone · iPad · Mac 사이",
+    "sync.p2p": "기기 간 직접 연결",
+    "sync.p2pHint": "두 기기가 동시에 켜져 있을 때 바로 주고받아요.",
+    "sync.devices": "연결된 기기",
+    "sync.pair": "기기 추가",
+    "sync.justNow": "방금 동기화",
+    "sync.minutesAgo": "{minutes}분 전 동기화",
+    "prefs.claude": "Claude 연동 (MCP)",
+    "mcp.toggle": "MCP 서버 켜기",
+    "mcp.hint": "켜면 이 컴퓨터의 Claude가 모든 작품을 읽고 고칠 수 있어요. 고친 내용은 전부 기록되고 되돌릴 수 있어요.",
+    "mcp.address": "주소",
+    "mcp.token": "토큰",
+    "mcp.copy": "복사",
+    "mcp.desktopOnly": "Claude 연동은 Mac · Windows 앱에서 켤 수 있어요.",
+    "uiLanguage.ko": "한국어",
+    "uiLanguage.en": "English",
+    "link.openReference": "참조 패널 열기"
   },
   "en": {
     "app.name": "Ithaca",
-    "library.title": "Library",
+    "action.done": "Done",
+    "action.cancel": "Cancel",
+    "action.close": "Close",
+    "nav.back": "Back",
+    "library.title": "Projects",
     "library.show": "Show library",
-    "section.lore": "Lore",
-    "section.episodes": "Episodes",
-    "section.ideas": "Ideas",
+    "library.newProject": "New project",
+    "folder.new": "New folder",
+    "folder.defaultSerial": "Episodes",
+    "folder.defaultLore": "Lore",
+    "folder.defaultMaterial": "Notes",
+    "folder.rename": "Rename",
+    "folder.delete": "Delete",
+    "sheet.new": "New sheet",
+    "sheet.branched": "Diverged copy",
     "sheetList.count": {
       "one": "{count} sheet",
       "other": "{count} sheets"
     },
-    "episode.number": "Ep. {n}",
-    "episode.status.draft": "Draft",
-    "episode.status.ready": "Ready",
-    "episode.status.published": "Published",
-    "editor.charCount": {
-      "one": "{count} character",
-      "other": "{count} characters"
+    "count.withSpaces": {
+      "one": "{count} char with spaces",
+      "other": "{count} chars with spaces"
     },
-    "editor.wordCount": {
+    "count.withoutSpaces": {
+      "one": "{count} char without spaces",
+      "other": "{count} chars without spaces"
+    },
+    "count.words": {
       "one": "{count} word",
       "other": "{count} words"
     },
+    "goal.progress": "Goal {goal} · {percent}%",
+    "reference.title": "Reference",
+    "reference.open": "Reference panel",
     "lease.banner": "Being edited on {device} · last active {minutes} min ago",
     "lease.takeOver": "Take over",
     "lease.readOnly": "Read only",
-    "nav.back": "Back",
-    "prefs.title": "Settings"
+    "branch.title": "Resolve diverged copy",
+    "branch.subtitle": "{device} edited this offline · {minutes} min ago",
+    "branch.main": "Current",
+    "branch.copy": "Offline copy",
+    "branch.bringOver": "← Bring over",
+    "branch.changed": "Changed",
+    "branch.onlyHere": "Only here",
+    "branch.progress": "{done} of {total} resolved",
+    "branch.resolve": "Mark resolved",
+    "branch.later": "Later",
+    "projectSettings.title": "Project settings",
+    "projectSettings.name": "Title",
+    "projectSettings.language": "Manuscript language",
+    "projectSettings.goal": "Length goal per sheet",
+    "projectSettings.goalHint": "Shows progress under the editor.",
+    "projectSettings.goalNone": "None",
+    "projectSettings.folders": "Folders",
+    "projectSettings.folderHint": "Rename, delete or add folders freely.",
+    "language.ko": "Korean",
+    "language.en": "English",
+    "goal.basis.withSpaces": "With spaces",
+    "goal.basis.withoutSpaces": "Without spaces",
+    "goal.basis.words": "Words",
+    "prefs.title": "Settings",
+    "prefs.general": "General",
+    "prefs.uiLanguage": "Language",
+    "prefs.languageSystem": "System",
+    "prefs.theme": "Appearance",
+    "theme.system": "System",
+    "theme.light": "Light",
+    "theme.dark": "Dark",
+    "prefs.sync": "Sync",
+    "sync.relay": "Relay server",
+    "sync.relayHint": "Your own server. Content is encrypted on device, so the server cannot read it.",
+    "sync.icloud": "iCloud Drive",
+    "sync.icloudHint": "Between iPhone, iPad and Mac",
+    "sync.p2p": "Peer-to-peer",
+    "sync.p2pHint": "Syncs directly while both devices are online.",
+    "sync.devices": "Paired devices",
+    "sync.pair": "Pair a device",
+    "sync.justNow": "Synced just now",
+    "sync.minutesAgo": "Synced {minutes} min ago",
+    "prefs.claude": "Claude (MCP)",
+    "mcp.toggle": "Enable MCP server",
+    "mcp.hint": "Lets Claude on this computer read and edit every project. Every edit is recorded and can be reverted.",
+    "mcp.address": "Address",
+    "mcp.token": "Token",
+    "mcp.copy": "Copy",
+    "mcp.desktopOnly": "Claude integration can be turned on in the Mac and Windows apps.",
+    "uiLanguage.ko": "한국어",
+    "uiLanguage.en": "English",
+    "link.openReference": "Open reference"
   }
 };
 

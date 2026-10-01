@@ -111,6 +111,9 @@
   --size-stroke-focus: 2px;
   --size-row-sheet: 72px;
   --size-bar-top: 52px;
+  --size-toggle-width: 44px;
+  --size-toggle-height: 26px;
+  --size-toggle-knob: 22px;
   --radius-none: 0px;
   --radius-piece: 4px;
   --radius-panel: 8px;
@@ -129,6 +132,7 @@
   --pane-library: 240px;
   --pane-sheet-list: 300px;
   --pane-inspector: 320px;
+  --pane-dialog: 560px;
   --editor-measure: 680px;
   --editor-padding-x-compact: 20px;
   --editor-padding-x-medium: 32px;

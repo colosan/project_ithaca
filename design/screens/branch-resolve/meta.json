@@ -1,0 +1,8 @@
+{
+  "title": { "ko": "갈라진 사본 정리", "en": "Resolve diverged copy" },
+  "description": "오프라인 분기 사본을 좌우로 보며 직접 고쳐 합치는 화면 (ADR-0002)",
+  "version": "0.1.0",
+  "links": [
+    { "from": "default", "to": "app-shell#default", "label": { "ko": "정리 완료 · 나중에", "en": "Mark resolved · Later" } }
+  ]
+}

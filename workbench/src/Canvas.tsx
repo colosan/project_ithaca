@@ -21,16 +21,19 @@ function cardSize(vp: Viewport) {
   return { w, h: Math.round(vp.height * k) + HEADER_H, k };
 }
 
-/** Layered layout: BFS depth from entry nodes becomes the column, order within a depth becomes the row. */
+/**
+ * Layered layout: BFS depth from one entry node becomes the column, order within a depth becomes the row.
+ * Screens usually link back to the main shell, so "no incoming edges" finds nothing; the entry is the hub —
+ * the node with the most outgoing links. Nodes it cannot reach start a column-0 stack of their own.
+ */
 function autoLayout(nodes: GraphNode[], edges: GraphEdge[], size: { w: number; h: number }): Positions {
-  const indegree = new Map(nodes.map((n) => [n.id, 0]));
-  for (const e of edges) indegree.set(e.to, (indegree.get(e.to) ?? 0) + 1);
-  let seeds = nodes.filter((n) => indegree.get(n.id) === 0).map((n) => n.id);
-  // A pure cycle has no entry node: start from each screen's first state instead.
-  if (seeds.length === 0) seeds = nodes.filter((n) => n.state === n.screen.states[0]).map((n) => n.id);
+  if (nodes.length === 0) return {};
+  const outdegree = new Map(nodes.map((n) => [n.id, 0]));
+  for (const e of edges) outdegree.set(e.from, (outdegree.get(e.from) ?? 0) + 1);
+  const entry = [...nodes].sort((a, b) => outdegree.get(b.id)! - outdegree.get(a.id)!)[0].id;
 
-  const depth = new Map(seeds.map((id) => [id, 0]));
-  const queue = [...seeds];
+  const depth = new Map([[entry, 0]]);
+  const queue = [entry];
   while (queue.length) {
     const id = queue.shift()!;
     for (const e of edges)
@@ -47,6 +50,12 @@ function autoLayout(nodes: GraphNode[], edges: GraphEdge[], size: { w: number; h
     const r = rowsUsed.get(d) ?? 0;
     rowsUsed.set(d, r + 1);
     pos[n.id] = { x: d * (size.w + GAP_X), y: r * (size.h + GAP_Y) };
+  }
+  // Center every column against the tallest one so the flow reads as a fan, not a staircase.
+  const tallest = Math.max(...rowsUsed.values());
+  for (const n of nodes) {
+    const rows = rowsUsed.get(depth.get(n.id) ?? 0)!;
+    pos[n.id].y += ((tallest - rows) * (size.h + GAP_Y)) / 2;
   }
   return pos;
 }
@@ -242,7 +251,7 @@ export function Canvas({ theme, locale, onOpen }: {
               </header>
               <div className="wb-card-preview" style={{ height: size.h - HEADER_H }}>
                 <div style={{ transform: `scale(${size.k})`, transformOrigin: "0 0" }}>
-                  <Device width={vp.width} height={vp.height} theme={theme} locale={locale} className="wb-device-flat">
+                  <Device width={vp.width} height={vp.height} platform={vp.os} theme={theme} locale={locale} className="wb-device-flat">
                     <n.screen.Prototype state={n.state} />
                   </Device>
                 </div>

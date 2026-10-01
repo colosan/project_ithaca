@@ -11,6 +11,9 @@
     "stroke.hairline": 1,
     "stroke.focus": 2,
     "row.sheet": 72,
-    "bar.top": 52
+    "bar.top": 52,
+    "toggle.width": 44,
+    "toggle.height": 26,
+    "toggle.knob": 22
   }
 }

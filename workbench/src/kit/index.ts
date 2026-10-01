@@ -3,4 +3,7 @@
 export * from "../generated/tokens";
 export { format, locales, type Locale, type StringKey } from "../generated/strings";
 export { FrameContext, useFrame, useT, type FrameInfo, type Theme } from "./frame";
-export { sample, type ManuscriptLanguage, type Sample } from "./samples";
+export {
+  isDesktop, openContext, sample,
+  type Folder, type ManuscriptLanguage, type Platform, type Project, type Sample, type SheetSummary,
+} from "./samples";

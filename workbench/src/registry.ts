@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import type { Platform } from "@ithaca/kit";
 import viewportsJson from "../../design/viewports.json";
 
 // ── Screens ──────────────────────────────────────────────────────────────
@@ -105,7 +106,9 @@ export function buildGraph(): { nodes: GraphNode[]; edges: GraphEdge[] } {
 
 export interface Viewport {
   id: string;
+  /** Display name from viewports.json ("iOS", "Windows", …). */
   platform: string;
+  os: Platform;
   label: string;
   /** Logical size (pt · dp · CSS px). For Windows presets this is physical ÷ scale. */
   width: number;
@@ -113,6 +116,8 @@ export interface Viewport {
   physical?: readonly [number, number];
   scale?: number;
 }
+
+const OS: Record<string, Platform> = { iOS: "ios", iPadOS: "ipados", Android: "android", macOS: "macos", Windows: "windows" };
 
 type RawPreset = { id: string; platform: string; label: string; logical?: number[]; physical?: number[]; scale?: number };
 
@@ -122,6 +127,7 @@ export const viewports: Viewport[] = (viewportsJson.presets as RawPreset[]).map(
   return {
     id: p.id,
     platform: p.platform,
+    os: OS[p.platform] ?? "ios",
     label: p.label,
     width: w,
     height: h,
