@@ -42,6 +42,8 @@ for (const [k, s] of Object.entries(tokens.typography.styles)) {
   if (classes.at(-1)[1].max !== null) block("tokens/layout", `마지막 size class 의 max 는 null 이어야 한다`);
   for (const [k] of classes)
     if (!(k in tokens.layout.editor.paddingX)) block("tokens/layout", `editor.paddingX 에 ${k} 가 없다`);
+  const win = tokens.layout.window;
+  if (!win || !Number.isFinite(win.minWidth) || !Number.isFinite(win.minHeight)) block("tokens/layout", `window.minWidth / minHeight 가 없다`);
 }
 
 // 2. Strings ─────────────────────────────────────────────────────────────

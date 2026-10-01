@@ -111,7 +111,7 @@ function LibraryPane({ shell, full }: { shell: Shell; full?: boolean }) {
   return (
     <aside style={{ width: full ? "100%" : pane.library, flex: "none", display: "flex", flexDirection: "column", background: color.surfaceSidebar, borderRight: full ? undefined : hairline(color.lineSubtle) }}>
       <div style={{ ...type.label, color: color.inkTertiary, padding: `${space[200]} ${space[200]} ${space[100]}` }}>{t("library.title")}</div>
-      <div style={{ flex: 1, overflow: "hidden", padding: `0 ${space[100]}` }}>
+      <div style={{ flex: 1, overflow: "auto", padding: `0 ${space[100]}` }}>
         {sample.projects.map((p) => (
           <div key={p.id} style={{ marginBottom: space[150] }}>
             <Row muted={p.id !== open.id}>
@@ -152,7 +152,7 @@ function Row({ children, active, muted, indent, onClick }: { children: ReactNode
       onClick={onClick}
       style={{
         display: "flex", alignItems: "center", gap: space[100],
-        height: size.controlMd, padding: `0 ${space[100]}`, paddingLeft: indent ? space[300] : space[100],
+        minHeight: size.controlMd, padding: `0 ${space[100]}`, paddingLeft: indent ? space[300] : space[100],
         borderRadius: radius.piece,
         background: active ? color.surfaceSelected : "transparent",
         color: muted ? color.inkTertiary : active ? color.inkPrimary : color.inkSecondary,
@@ -173,13 +173,13 @@ function SheetListPane({ shell, full }: { shell: Shell; full?: boolean }) {
   const folder = project.folders.find((f) => f.id === shell.folderId)!;
   return (
     <section style={{ width: full ? "100%" : pane.sheetList, flex: "none", display: "flex", flexDirection: "column", background: color.surfaceList, borderRight: full ? undefined : hairline(color.lineSubtle) }}>
-      <header style={{ height: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[100], padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
+      <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[100], padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
         {full && <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} onClick={shell.showLibrary}>‹</span>}
         <span style={{ ...type.heading, flex: 1 }}>{folder.name}</span>
         <span style={{ ...type.caption, color: color.inkTertiary }}>{t("sheetList.count", { count: folder.sheets.length })}</span>
         <span style={{ ...type.label, color: color.inkSecondary }} title={t("sheet.new")}>＋</span>
       </header>
-      <div style={{ flex: 1, overflow: "hidden" }}>
+      <div style={{ flex: 1, overflow: "auto" }}>
         {folder.sheets.map((s) => (
           <SheetRow key={s.id} sheet={s} active={s.id === shell.sheetId} onClick={() => shell.selectSheet(s)} />
         ))}
@@ -217,7 +217,7 @@ function EditorPane({ shell }: { shell: Shell }) {
   const paragraphs = sheet.id === openSheet.id ? sample.openSheet.paragraphs : sheet.body ?? [`# ${sheet.title}`, sheet.excerpt];
   return (
     <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-      <header style={{ height: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[150], padding: `0 ${space[200]}`, color: color.inkSecondary, ...type.label }}>
+      <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[150], padding: `0 ${space[200]}`, color: color.inkSecondary, ...type.label }}>
         {sizeClass === "compact" && <span style={clickable} onClick={shell.showList}>‹ {folder.name}</span>}
         {sizeClass === "medium" && <span style={clickable} title={t("library.show")} onClick={shell.toggleLibrary}>☰</span>}
         <span style={{ flex: 1 }} />
@@ -243,7 +243,7 @@ function EditorPane({ shell }: { shell: Shell }) {
         </div>
       )}
 
-      <article style={{ flex: 1, overflow: "hidden", padding: `${space[300]} ${editor.paddingX[sizeClass]}`, opacity: shell.readOnly ? opacity.readOnly : undefined }}>
+      <article style={{ flex: 1, overflow: "auto", padding: `${space[300]} ${editor.paddingX[sizeClass]}`, opacity: shell.readOnly ? opacity.readOnly : undefined }}>
         <Manuscript paragraphs={paragraphs} />
       </article>
 
@@ -289,7 +289,7 @@ function EditorFooter({ sheet, readOnly }: { sheet: SheetSummary; readOnly: bool
           <div style={{ height: "100%", width: `${percent}%`, background: percent >= 100 ? color.stateSuccess : color.accentPrimary }} />
         </div>
       )}
-      <div style={{ height: size.controlMd, display: "flex", alignItems: "center", justifyContent: "center", gap: space[150], flexWrap: "wrap" }}>
+      <div style={{ minHeight: size.controlMd, display: "flex", alignItems: "center", justifyContent: "center", gap: space[150], flexWrap: "wrap" }}>
         {readOnly && <span style={{ color: color.stateWarning }}>{t("lease.readOnly")}</span>}
         <span>{t("count.withSpaces", { count: sheet.chars })}</span>
         <span>{t("count.withoutSpaces", { count: sheet.charsNoSpace })}</span>
@@ -315,12 +315,12 @@ function ReferencePanel({ mode, onClose }: { mode: "docked" | "overlay" | "sheet
     <>
       {mode === "sheet" && <div style={{ position: "absolute", inset: 0, background: color.surfaceScrim, ...clickable }} onClick={onClose} />}
       <aside style={{ ...frameStyle, display: "flex", flexDirection: "column", background: color.surfaceRaised, overflow: "hidden" }}>
-        <header style={{ height: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[100], padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
+        <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[100], padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
           <span style={{ ...type.label, color: color.inkTertiary }}>{t("reference.title")}</span>
           <span style={{ ...type.heading, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{reference.title}</span>
           <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} title={t("action.close")} onClick={onClose}>✕</span>
         </header>
-        <div style={{ flex: 1, overflow: "hidden", padding: space[200] }}>
+        <div style={{ flex: 1, overflow: "auto", padding: space[200] }}>
           {(reference.body ?? [reference.excerpt]).filter((p) => !p.startsWith("# ")).map((p, i) => (
             <p key={i} style={{ ...type.body, margin: `0 0 ${space[100]}`, color: color.inkPrimary }}>
               {p.startsWith("- ") ? <><span style={{ color: color.inkMarkup }}>- </span>{p.slice(2)}</> : p}

@@ -8,13 +8,14 @@ const RANGE = { min: 320, max: 2560 };
 const PLATFORMS: Platform[] = ["ios", "ipados", "android", "macos", "windows"];
 
 /** J2: scrub one frame's width continuously to watch every size-class transition, instead of guessing presets. */
-export function Sweep({ screen, state, theme, locale, availWidth, onNavigate }: {
+export function Sweep({ screen, state, theme, locale, availWidth, onNavigate, textScale }: {
   screen: Screen;
   state: string;
   theme: Theme;
   locale: Locale;
   availWidth: number;
   onNavigate?: (to: string) => void;
+  textScale?: number;
 }) {
   const [w, setW] = usePref("sweep.w", 390);
   const [h, setH] = usePref("sweep.h", 760);
@@ -72,7 +73,7 @@ export function Sweep({ screen, state, theme, locale, availWidth, onNavigate }: 
         <span className="wb-muted">{Math.round(zoom * 100)}%</span>
       </div>
       <div className="wb-sweep-stage" style={{ zoom }}>
-        <Device width={w} height={h} platform={platform} theme={theme} locale={locale} onNavigate={onNavigate}>
+        <Device width={w} height={h} platform={platform} theme={theme} locale={locale} onNavigate={onNavigate} textScale={textScale}>
           <screen.Prototype key={state} state={state} />
         </Device>
       </div>

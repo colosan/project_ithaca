@@ -157,6 +157,12 @@ public enum Tokens {
             public static let dialogMax: Double = 640
         }
 
+        /// Smallest desktop window (macOS). iOS and iPadOS windows are sized by the system.
+        public enum Window {
+            public static let minWidth: Double = 480
+            public static let minHeight: Double = 560
+        }
+
         public enum Editor {
             public static let measure: Double = 680
             public static func paddingX(_ sizeClass: SizeClass) -> Double {

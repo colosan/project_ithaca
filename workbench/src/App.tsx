@@ -230,6 +230,8 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
   const [showIssues, setShowIssues] = usePref("detail.issues", true);
   const [sweep, setSweep] = usePref("detail.sweep", false);
   const [info, setInfo] = usePref("detail.info", true);
+  // OS text size to simulate: users with larger text are where layouts break first.
+  const [textScale, setTextScale] = usePref("detail.textScale", 1);
   // null = fit (recomputed whenever the stage changes); a View once you pan or zoom yourself.
   const [manual, setManual] = usePref<View | null>("detail.view", null);
   const [stageRef, stage] = useSize<HTMLDivElement>();
@@ -402,6 +404,7 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
       fixedTitle={base ? baseTitle(f) : undefined}
       onNavigate={navigate}
       onFocus={focused ? undefined : () => focus(f.id)}
+      textScale={textScale}
     >
       <screen.Prototype key={state} state={state} />
     </ResizableFrame>
@@ -447,6 +450,12 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
             ))}
             <span className="wb-muted wb-zoom">{Math.round(k * 100)}%</span>
           </div>
+          <Seg
+            label="글자"
+            value={String(textScale)}
+            options={[["1", "기본"], ["1.3", "130%"], ["2", "200%"]]}
+            onChange={(v) => setTextScale(Number(v))}
+          />
           <button onClick={() => commit(framesStore, normalizeDevices([]), "기기 초기화")} title="기기별 프레임을 대표 모델로 (Ctrl+Z 로 되돌림)">기기 초기화</button>
           <label className="wb-check" title="잘림 · 넘침 · 화면 밖 텍스트를 빨간 테두리로, 말줄임을 점선으로">
             <input type="checkbox" checked={showIssues} onChange={(e) => setShowIssues(e.target.checked)} /> 문제 표시
@@ -464,7 +473,7 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
           </span>
         </div>
 
-        {sweep && <Sweep screen={screen} state={state} theme={themes[0]} locale={locale} availWidth={stage.w} onNavigate={navigate} />}
+        {sweep && <Sweep screen={screen} state={state} theme={themes[0]} locale={locale} availWidth={stage.w} onNavigate={navigate} textScale={textScale} />}
 
         <div ref={stageRef} className={spaceDown ? "wb-stage wb-stage-pan" : "wb-stage"} onPointerDown={onStageDown}>
           <div className="wb-stage-layer" style={{ transform: `translate(${view.x}px, ${view.y}px)` }}>

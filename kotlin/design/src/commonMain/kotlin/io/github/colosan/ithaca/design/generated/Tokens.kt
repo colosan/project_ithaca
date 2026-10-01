@@ -132,6 +132,12 @@ object Tokens {
             const val dialogMax = 640f
         }
 
+        /** Smallest desktop window (Windows). Android windows are sized by the system. */
+        object Window {
+            const val minWidth = 480f
+            const val minHeight = 560f
+        }
+
         object Editor {
             const val measure = 680f
             fun paddingX(sizeClass: SizeClass): Float = when (sizeClass) {

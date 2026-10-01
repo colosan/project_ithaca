@@ -17,6 +17,8 @@ export interface FrameInfo {
   sample: Sample;
   /** Follow a link to another screen ("slug" or "slug#state"). A no-op in thumbnails. */
   navigate?: (to: string) => void;
+  /** OS text size setting the frame simulates (1 = default). Type tokens already apply it. */
+  textScale: number;
 }
 
 export const FrameContext = createContext<FrameInfo | null>(null);

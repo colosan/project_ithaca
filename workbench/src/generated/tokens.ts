@@ -103,6 +103,9 @@ export const editor = { measure: "var(--editor-measure)", paddingX: {
     large: "var(--editor-padding-x-large)",
   } } as const;
 
+/** Smallest desktop window (Mac, Windows). Raw numbers — for frame limits, not styles. */
+export const windowMin = { width: 480, height: 560 } as const;
+
 export type SizeClass = "compact" | "medium" | "expanded" | "large";
 
 /** Raw numbers from layout.json — for layout branching logic only (do not use as style values). */

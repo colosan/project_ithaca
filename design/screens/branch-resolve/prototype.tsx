@@ -129,7 +129,7 @@ function SideBySide({ r }: { r: Resolver }) {
   const t = useT();
   const col = { flex: 1, minWidth: 0 };
   return (
-    <div style={{ flex: 1, overflow: "hidden", padding: `${space[200]} ${space[300]}` }}>
+    <div style={{ flex: 1, overflow: "auto", padding: `${space[200]} ${space[300]}` }}>
       <div style={{ display: "flex", gap: space[300], ...type.label, color: color.inkTertiary, marginBottom: space[150] }}>
         <div style={col}>{t("branch.main")}</div>
         <div style={col}>{t("branch.copy")}</div>
@@ -188,22 +188,22 @@ function SwipeCards({ r }: { r: Resolver }) {
   const tab = (s: "main" | "copy", label: string) => (
     <span
       onClick={() => setSide(s)}
-      style={{ flex: 1, textAlign: "center", padding: space[100], background: side === s ? color.surfaceSelected : "transparent", color: side === s ? color.inkPrimary : color.inkSecondary, ...clickable }}
+      style={{ flex: "1 1 auto", textAlign: "center", padding: space[100], background: side === s ? color.surfaceSelected : "transparent", color: side === s ? color.inkPrimary : color.inkSecondary, ...clickable }}
     >
       {label}
     </span>
   );
   return (
-    <div style={{ flex: 1, overflow: "hidden", padding: space[200], display: "flex", flexDirection: "column", gap: space[200] }}>
-      <div style={{ display: "flex", ...type.label, borderRadius: radius.piece, border: hairline(color.lineStrong), overflow: "hidden" }}>
+    <div style={{ flex: 1, overflow: "auto", padding: space[200], display: "flex", flexDirection: "column", gap: space[200] }}>
+      <div style={{ flex: "none", display: "flex", flexWrap: "wrap", ...type.label, borderRadius: radius.piece, border: hairline(color.lineStrong), overflow: "hidden" }}>
         {tab("main", t("branch.main"))}
         {tab("copy", t("branch.copy"))}
       </div>
-      <div style={{ padding: space[200], borderRadius: radius.panel, border: hairline(r.resolved.has(i) ? color.stateSuccess : color.stateWarning), background: side === "main" ? color.surfaceRaised : color.surfaceList, ...type.editorBody }}>
+      <div style={{ flex: "none", padding: space[200], borderRadius: radius.panel, border: hairline(r.resolved.has(i) ? color.stateSuccess : color.stateWarning), background: side === "main" ? color.surfaceRaised : color.surfaceList, ...type.editorBody }}>
         {shown !== null ? <Highlighted text={shown} other={r.resolved.has(i) ? shown : other} tone={color.accentSoft} /> : <span style={{ color: color.inkTertiary }}>—</span>}
         <Actions r={r} i={i} />
       </div>
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: space[150], color: color.inkTertiary }}>
+      <div style={{ flex: "none", display: "flex", justifyContent: "center", alignItems: "center", gap: space[150], color: color.inkTertiary }}>
         <span style={{ ...clickable, opacity: at === 0 ? opacity.disabled : undefined }} onClick={() => setAt((a) => Math.max(0, a - 1))}>‹</span>
         {r.changed.map((ci, k) => (
           <span key={ci} style={{ color: k === at ? color.accentPrimary : r.resolved.has(ci) ? color.stateSuccess : color.inkMarkup, ...clickable }} onClick={() => setAt(k)}>

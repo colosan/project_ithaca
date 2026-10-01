@@ -288,3 +288,7 @@ code { font: 12px ui-monospace, "JetBrains Mono", monospace; }
 .wb-planned-banner button { margin-right: 8px; }
 .wb-cap-title { white-space: nowrap; }
 .wb-fold-btn { border: 0; padding: 0 4px; color: var(--wb-muted); background: none; }
+
+/* Scroll regions inside prototypes scroll, but without scrollbars (like phones; keeps frames clean). */
+.wb-device * { scrollbar-width: none; }
+.wb-device *::-webkit-scrollbar { display: none; }

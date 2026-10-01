@@ -82,14 +82,16 @@ function buildCss({ tokens }) {
   const fam = (f) => [`"${f.name}"`, ...f.fallback].join(", ");
   const lines = [];
   for (const [k, f] of Object.entries(typography.families)) lines.push(`  --font-${kebab(k)}: ${fam(f)};`);
+  // Sizes are the default-text-size values; --text-scale mimics the OS text size setting (Dynamic Type, font scale).
+  // Custom properties resolve var() where they are declared, so these live in their own block that is redeclared
+  // on every themed element (each workbench frame) — a frame can then set its own --text-scale.
+  const typeLines = [];
   for (const [k, s] of Object.entries(typography.styles)) {
     const p = `--type-${kebab(k)}`;
-    lines.push(
-      `  ${p}-family: var(--font-${kebab(s.family)});`,
-      `  ${p}-size: ${s.size}px;`,
-      `  ${p}-line-height: ${s.lineHeight}px;`,
-      `  ${p}-tracking: ${s.tracking}em;`,
-      `  ${p}-weight: ${s.weight};`,
+    lines.push(`  ${p}-family: var(--font-${kebab(s.family)});`, `  ${p}-tracking: ${s.tracking}em;`, `  ${p}-weight: ${s.weight};`);
+    typeLines.push(
+      `  ${p}-size: calc(${s.size}px * var(--text-scale, 1));`,
+      `  ${p}-line-height: calc(${s.lineHeight}px * var(--text-scale, 1));`,
     );
   }
   for (const [k, v] of Object.entries(spacing.scale)) lines.push(`  --space-${k}: ${v}px;`);
@@ -105,6 +107,7 @@ function buildCss({ tokens }) {
     );
   for (const [k, v] of Object.entries(layout.panes)) lines.push(`  --pane-${kebab(k)}: ${v.default}px;`);
   lines.push(`  --editor-measure: ${layout.editor.measure}px;`);
+  lines.push(`  --window-min-width: ${layout.window.minWidth}px;`, `  --window-min-height: ${layout.window.minHeight}px;`);
   for (const [k, v] of Object.entries(layout.editor.paddingX)) lines.push(`  --editor-padding-x-${k}: ${v}px;`);
 
   return [
@@ -117,6 +120,11 @@ function buildCss({ tokens }) {
     ``,
     `[data-theme="dark"] {`,
     modeBlock("dark"),
+    `}`,
+    ``,
+    `:root,`,
+    `[data-theme] {`,
+    ...typeLines,
     `}`,
     ``,
     `:root {`,
@@ -178,6 +186,9 @@ function buildTs({ tokens }) {
     `export const pane = ${paneTs} as const;`,
     ``,
     `export const editor = { measure: "var(--editor-measure)", paddingX: ${padTs.replace(/\n/g, "\n  ")} } as const;`,
+    ``,
+    `/** Smallest desktop window (Mac, Windows). Raw numbers — for frame limits, not styles. */`,
+    `export const windowMin = { width: ${layout.window.minWidth}, height: ${layout.window.minHeight} } as const;`,
     ``,
     `export type SizeClass = ${classes.map(([k]) => tsStr(k)).join(" | ")};`,
     ``,
@@ -431,6 +442,12 @@ function buildSwiftTokens({ tokens }) {
     ]),
     `        }`,
     ``,
+    `        /// Smallest desktop window (macOS). iOS and iPadOS windows are sized by the system.`,
+    `        public enum Window {`,
+    `            public static let minWidth: Double = ${layout.window.minWidth}`,
+    `            public static let minHeight: Double = ${layout.window.minHeight}`,
+    `        }`,
+    ``,
     `        public enum Editor {`,
     `            public static let measure: Double = ${layout.editor.measure}`,
     `            public static func paddingX(_ sizeClass: SizeClass) -> Double {`,
@@ -523,6 +540,12 @@ function buildKtTokens({ tokens }) {
       `            const val ${camel(k)}Min = ${ktFloat(v.min)}`,
       `            const val ${camel(k)}Max = ${ktFloat(v.max)}`,
     ]),
+    `        }`,
+    ``,
+    `        /** Smallest desktop window (Windows). Android windows are sized by the system. */`,
+    `        object Window {`,
+    `            const val minWidth = ${ktFloat(layout.window.minWidth)}`,
+    `            const val minHeight = ${ktFloat(layout.window.minHeight)}`,
     `        }`,
     ``,
     `        object Editor {`,

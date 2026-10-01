@@ -45,48 +45,52 @@
   --color-state-info: #7AA8D3;
 }
 
+:root,
+[data-theme] {
+  --type-display-size: calc(28px * var(--text-scale, 1));
+  --type-display-line-height: calc(36px * var(--text-scale, 1));
+  --type-title-size: calc(20px * var(--text-scale, 1));
+  --type-title-line-height: calc(28px * var(--text-scale, 1));
+  --type-heading-size: calc(16px * var(--text-scale, 1));
+  --type-heading-line-height: calc(24px * var(--text-scale, 1));
+  --type-body-size: calc(15px * var(--text-scale, 1));
+  --type-body-line-height: calc(22px * var(--text-scale, 1));
+  --type-label-size: calc(13px * var(--text-scale, 1));
+  --type-label-line-height: calc(18px * var(--text-scale, 1));
+  --type-caption-size: calc(12px * var(--text-scale, 1));
+  --type-caption-line-height: calc(16px * var(--text-scale, 1));
+  --type-editor-body-size: calc(18px * var(--text-scale, 1));
+  --type-editor-body-line-height: calc(32px * var(--text-scale, 1));
+  --type-editor-heading-size: calc(24px * var(--text-scale, 1));
+  --type-editor-heading-line-height: calc(36px * var(--text-scale, 1));
+}
+
 :root {
   --font-ui: "Pretendard", system-ui, sans-serif;
   --font-editor: "Pretendard", serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --type-display-family: var(--font-ui);
-  --type-display-size: 28px;
-  --type-display-line-height: 36px;
   --type-display-tracking: -0.02em;
   --type-display-weight: 700;
   --type-title-family: var(--font-ui);
-  --type-title-size: 20px;
-  --type-title-line-height: 28px;
   --type-title-tracking: -0.01em;
   --type-title-weight: 600;
   --type-heading-family: var(--font-ui);
-  --type-heading-size: 16px;
-  --type-heading-line-height: 24px;
   --type-heading-tracking: -0.01em;
   --type-heading-weight: 600;
   --type-body-family: var(--font-ui);
-  --type-body-size: 15px;
-  --type-body-line-height: 22px;
   --type-body-tracking: 0em;
   --type-body-weight: 400;
   --type-label-family: var(--font-ui);
-  --type-label-size: 13px;
-  --type-label-line-height: 18px;
   --type-label-tracking: 0em;
   --type-label-weight: 500;
   --type-caption-family: var(--font-ui);
-  --type-caption-size: 12px;
-  --type-caption-line-height: 16px;
   --type-caption-tracking: 0em;
   --type-caption-weight: 400;
   --type-editor-body-family: var(--font-editor);
-  --type-editor-body-size: 18px;
-  --type-editor-body-line-height: 32px;
   --type-editor-body-tracking: 0em;
   --type-editor-body-weight: 400;
   --type-editor-heading-family: var(--font-editor);
-  --type-editor-heading-size: 24px;
-  --type-editor-heading-line-height: 36px;
   --type-editor-heading-tracking: -0.01em;
   --type-editor-heading-weight: 700;
   --space-0: 0px;
@@ -134,6 +138,8 @@
   --pane-inspector: 320px;
   --pane-dialog: 560px;
   --editor-measure: 680px;
+  --window-min-width: 480px;
+  --window-min-height: 560px;
   --editor-padding-x-compact: 20px;
   --editor-padding-x-medium: 32px;
   --editor-padding-x-expanded: 48px;

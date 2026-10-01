@@ -17,23 +17,23 @@ export default function ProjectSettings({ state: _state }: { state: State }) {
   if (sizeClass === "compact") {
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body }}>
-        <header style={{ height: size.barTop, flex: "none", display: "flex", alignItems: "center", padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle), ...type.label }}>
+        <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle), ...type.label }}>
           <span style={{ color: color.inkSecondary, ...clickable }} onClick={() => go("app-shell")}>‹ {t("nav.back")}</span>
           <span style={{ flex: 1, textAlign: "center", ...type.heading }}>{t("projectSettings.title")}</span>
           <span style={{ color: color.accentPrimary, ...clickable }} onClick={() => go("app-shell")}>{t("action.done")}</span>
         </header>
-        <div style={{ flex: 1, overflow: "hidden", padding: space[200] }}>{body}</div>
+        <div style={{ flex: 1, overflow: "auto", padding: space[200] }}>{body}</div>
       </div>
     );
   }
   return (
     <div style={{ position: "relative", height: "100%", background: color.surfaceScrim, display: "flex", alignItems: "center", justifyContent: "center", color: color.inkPrimary, ...type.body }}>
       <div style={{ width: pane.dialog, maxWidth: "90%", maxHeight: "90%", overflow: "hidden", display: "flex", flexDirection: "column", background: color.surfaceRaised, borderRadius: radius.sheet, boxShadow: shadow.dialog }}>
-        <header style={{ height: size.barTop, flex: "none", display: "flex", alignItems: "center", padding: `0 ${space[300]}`, borderBottom: hairline(color.lineSubtle) }}>
+        <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", padding: `0 ${space[300]}`, borderBottom: hairline(color.lineSubtle) }}>
           <span style={{ ...type.heading, flex: 1 }}>{t("projectSettings.title")}</span>
           <span style={{ ...type.label, color: color.accentPrimary, ...clickable }} onClick={() => go("app-shell")}>{t("action.done")}</span>
         </header>
-        <div style={{ overflow: "hidden", padding: space[300] }}>{body}</div>
+        <div style={{ overflow: "auto", padding: space[300] }}>{body}</div>
       </div>
     </div>
   );
@@ -72,7 +72,7 @@ function Body() {
       <Section label={t("projectSettings.folders")} hint={t("projectSettings.folderHint")}>
         <div style={{ border: hairline(color.lineSubtle), borderRadius: radius.panel, overflow: "hidden" }}>
           {folders.map((f) => (
-            <div key={f.id} style={{ display: "flex", alignItems: "center", gap: space[150], height: size.controlLg, padding: `0 ${space[150]}`, borderBottom: hairline(color.lineSubtle) }}>
+            <div key={f.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: `${space[50]} ${space[150]}`, minHeight: size.controlLg, padding: `${space[50]} ${space[150]}`, borderBottom: hairline(color.lineSubtle) }}>
               <span style={{ color: color.inkMarkup }}>≡</span>
               <span style={{ flex: 1 }}>{f.name}</span>
               <span style={{ ...type.caption, color: color.inkTertiary }}>{t("sheetList.count", { count: f.count })}</span>
@@ -82,7 +82,7 @@ function Body() {
           ))}
           <div
             onClick={() => setFolders((l) => [...l, { id: `new-${l.length}`, name: t("folder.new"), count: 0 }])}
-            style={{ display: "flex", alignItems: "center", height: size.controlLg, padding: `0 ${space[150]}`, ...type.label, color: color.accentPrimary, ...clickable }}
+            style={{ display: "flex", alignItems: "center", minHeight: size.controlLg, padding: `0 ${space[150]}`, ...type.label, color: color.accentPrimary, ...clickable }}
           >
             ＋ {t("folder.new")}
           </div>

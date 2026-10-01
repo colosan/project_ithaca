@@ -21,7 +21,7 @@ export default function Preferences({ state }: { state: State }) {
   const content = section === "general" ? <General /> : section === "sync" ? <Sync /> : <Claude />;
   const root = { display: "flex", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body };
   const sectionRow = (s: State, onClick: () => void) => (
-    <div key={s} onClick={onClick} style={{ height: size.controlMd, display: "flex", alignItems: "center", padding: `0 ${space[100]}`, borderRadius: radius.piece, background: s === section && !compactList ? color.surfaceSelected : "transparent", color: s === section ? color.inkPrimary : color.inkSecondary, ...clickable }}>
+    <div key={s} onClick={onClick} style={{ minHeight: size.controlMd, display: "flex", alignItems: "center", padding: `0 ${space[100]}`, borderRadius: radius.piece, background: s === section && !compactList ? color.surfaceSelected : "transparent", color: s === section ? color.inkPrimary : color.inkSecondary, ...clickable }}>
       {t(SECTION_KEY[s])}
     </div>
   );
@@ -29,7 +29,7 @@ export default function Preferences({ state }: { state: State }) {
   if (sizeClass === "compact") {
     return (
       <div style={{ ...root, flexDirection: "column" }}>
-        <header style={{ height: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[150], padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
+        <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[150], padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
           {compactList ? (
             <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} onClick={() => go("app-shell")}>✕</span>
           ) : (
@@ -38,7 +38,7 @@ export default function Preferences({ state }: { state: State }) {
           <span style={{ ...type.heading, flex: 1, textAlign: "center" }}>{compactList ? t("prefs.title") : t(SECTION_KEY[section])}</span>
           <span style={{ ...type.label, visibility: "hidden" }}>‹ {t("prefs.title")}</span>
         </header>
-        <div style={{ flex: 1, overflow: "hidden", padding: space[200] }}>
+        <div style={{ flex: 1, overflow: "auto", padding: space[200] }}>
           {compactList ? states.map((s) => sectionRow(s, () => { setSection(s); setCompactList(false); })) : content}
         </div>
       </div>
@@ -50,7 +50,7 @@ export default function Preferences({ state }: { state: State }) {
         <div style={{ ...type.title, marginBottom: space[200] }}>{t("prefs.title")}</div>
         {states.map((s) => sectionRow(s, () => setSection(s)))}
       </nav>
-      <div style={{ flex: 1, minWidth: 0, overflow: "hidden", padding: `${space[300]} ${space[400]}` }}>
+      <div style={{ flex: 1, minWidth: 0, overflow: "auto", padding: `${space[300]} ${space[400]}` }}>
         <div style={{ display: "flex", alignItems: "center", marginBottom: space[300] }}>
           <span style={{ ...type.title, flex: 1 }}>{t(SECTION_KEY[section])}</span>
           <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} title={t("action.close")} onClick={() => go("app-shell")}>✕</span>
@@ -63,9 +63,10 @@ export default function Preferences({ state }: { state: State }) {
 
 function General() {
   const t = useT();
-  const { locale, theme, sizeClass } = useFrame();
+  const { locale, theme, sizeClass, textScale } = useFrame();
   // A three-way segmented control leaves no room for the label on a phone — stack them there.
-  const stacked = sizeClass === "compact";
+  // Like iOS accessibility text sizes: very large text stacks label and control too.
+  const stacked = sizeClass === "compact" || textScale >= 1.5;
   return (
     <Stack>
       <Row label={t("prefs.uiLanguage")} column={stacked}>
@@ -102,7 +103,7 @@ function Sync() {
         <div style={{ ...type.label, color: color.inkSecondary, marginBottom: space[100] }}>{t("sync.devices")}</div>
         <div style={{ border: hairline(color.lineSubtle), borderRadius: radius.panel, overflow: "hidden" }}>
           {sample.devices.map((d) => (
-            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: space[150], height: size.controlLg, padding: `0 ${space[150]}`, borderBottom: hairline(color.lineSubtle) }}>
+            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: space[150], minHeight: size.controlLg, padding: `0 ${space[150]}`, borderBottom: hairline(color.lineSubtle) }}>
               <span style={{ flex: 1 }}>{d.name}</span>
               <span style={{ ...type.caption, color: color.inkTertiary }}>{d.platform}</span>
               <span style={{ ...type.caption, color: d.minutesAgo === 0 ? color.stateSuccess : color.inkTertiary }}>
@@ -110,7 +111,7 @@ function Sync() {
               </span>
             </div>
           ))}
-          <div onClick={() => go("pair-device")} style={{ display: "flex", alignItems: "center", height: size.controlLg, padding: `0 ${space[150]}`, ...type.label, color: color.accentPrimary, ...clickable }}>＋ {t("sync.pair")}</div>
+          <div onClick={() => go("pair-device")} style={{ display: "flex", alignItems: "center", minHeight: size.controlLg, padding: `0 ${space[150]}`, ...type.label, color: color.accentPrimary, ...clickable }}>＋ {t("sync.pair")}</div>
         </div>
       </div>
     </Stack>
@@ -177,7 +178,7 @@ function Toggle({ on: initial }: { on?: boolean }) {
 
 function Field({ children, mono }: { children: ReactNode; mono?: boolean }) {
   return (
-    <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", height: size.controlMd, padding: `0 ${space[150]}`, border: hairline(color.lineStrong), borderRadius: radius.piece, background: color.surfaceCanvas, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", ...(mono ? type.caption : {}) }}>
+    <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", minHeight: size.controlMd, padding: `0 ${space[150]}`, border: hairline(color.lineStrong), borderRadius: radius.piece, background: color.surfaceCanvas, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis", ...(mono ? type.caption : {}) }}>
       {children}
     </div>
   );
@@ -185,7 +186,7 @@ function Field({ children, mono }: { children: ReactNode; mono?: boolean }) {
 
 function SmallButton({ children }: { children: ReactNode }) {
   return (
-    <span style={{ flex: "none", display: "flex", alignItems: "center", height: size.controlMd, padding: `0 ${space[150]}`, border: hairline(color.lineStrong), borderRadius: radius.piece, ...type.label, color: color.inkSecondary }}>
+    <span style={{ flex: "none", display: "flex", alignItems: "center", minHeight: size.controlMd, padding: `0 ${space[150]}`, border: hairline(color.lineStrong), borderRadius: radius.piece, ...type.label, color: color.inkSecondary }}>
       {children}
     </span>
   );

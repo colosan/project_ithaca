@@ -69,5 +69,10 @@
       "large": 64
     },
     "description": "measure = 본문 줄 길이 상한. 창이 아무리 넓어도 원고 폭은 여기서 멈춘다"
+  },
+  "window": {
+    "minWidth": 480,
+    "minHeight": 560,
+    "description": "데스크톱(Mac · Windows) 앱 창의 최소 크기. 이보다 작게는 줄어들지 않는다. 480 이면 1단(compact) 레이아웃이 여유 있게 들어가고, 560 이면 에디터에 원고가 10줄 남짓 보인다."
   }
 }
