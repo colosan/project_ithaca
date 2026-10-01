@@ -2,14 +2,15 @@ import {
   Component, useEffect, useRef, useState,
   type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode,
 } from "react";
-import { FrameContext, sample, sizeClassFor, windowMin, type FrameInfo, type Locale, type Platform, type Theme } from "@ithaca/kit";
+import { FrameContext, sample, sizeClassFor, windowMin, type FrameInfo, type Insets, type Locale, type Platform, type Theme } from "@ithaca/kit";
 import { presetLabel, viewportById, viewports, type Viewport } from "./registry";
 
 // ── Issue detection (J3) ─────────────────────────────────────────────────
 
-export type IssueKind = "clip" | "spill" | "ellipsis" | "offscreen";
+export type IssueKind = "clip" | "spill" | "ellipsis" | "offscreen" | "unsafe";
 export type Issues = Record<IssueKind, number>;
-const NO_ISSUES: Issues = { clip: 0, spill: 0, ellipsis: 0, offscreen: 0 };
+const NO_ISSUES: Issues = { clip: 0, spill: 0, ellipsis: 0, offscreen: 0, unsafe: 0 };
+export const NO_INSETS: Insets = { top: 0, right: 0, bottom: 0, left: 0 };
 
 const holdsText = (el: Element) => [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent!.trim());
 /**
@@ -24,11 +25,30 @@ const isTextBox = (el: Element) => holdsText(el) || (el.children.length > 0 && [
  * - spill     — runs out of its own box (e.g. wraps to two lines inside a fixed-height field)
  * - ellipsis  — truncated with "…" (usually intentional; reported muted)
  * - offscreen — pushed outside the device
+ * - unsafe    — under the status bar, home indicator or a camera cutout (safe area)
  * Only boxes of text are checked (see isTextBox), so big clipping containers (panes, lists) stay quiet.
  */
-function scanIssues(root: HTMLElement): Issues {
+/** The part of el actually on screen: its rect cut by every clipping ancestor (scroll regions, hidden overflow). */
+function visibleRect(el: HTMLElement, root: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  let top = r.top, bottom = r.bottom, left = r.left, right = r.right;
+  for (let a = el.parentElement; a && a !== root.parentElement; a = a.parentElement) {
+    const cs = getComputedStyle(a);
+    if (cs.overflowX === "visible" && cs.overflowY === "visible") continue;
+    const ar = a.getBoundingClientRect();
+    top = Math.max(top, ar.top);
+    bottom = Math.min(bottom, ar.bottom);
+    left = Math.max(left, ar.left);
+    right = Math.min(right, ar.right);
+  }
+  return bottom - top > 1 && right - left > 1 ? { top, bottom, left, right } : null;
+}
+
+function scanIssues(root: HTMLElement, logicalWidth: number, safe: Insets): Issues {
   const found = { ...NO_ISSUES };
   const box = root.getBoundingClientRect();
+  const s = box.width / logicalWidth; // screen px per logical px (the stage zoom)
+  const inside = { top: box.top + safe.top * s, bottom: box.bottom - safe.bottom * s, left: box.left + safe.left * s, right: box.right - safe.right * s };
   root.querySelectorAll<HTMLElement>("[data-wb-issue]").forEach((el) => delete el.dataset.wbIssue);
   root.querySelectorAll<HTMLElement>("*").forEach((el) => {
     if (!isTextBox(el)) return;
@@ -48,7 +68,10 @@ function scanIssues(root: HTMLElement): Issues {
       kind = "spill";
     } else {
       const r = el.getBoundingClientRect();
-      if (r.width > 0 && (r.right > box.right + 1 || r.left < box.left - 1)) kind = "offscreen";
+      // Content scrolled out of view is not a defect; judge only what is on screen.
+      const v = visibleRect(el, root);
+      if (r.width > 0 && v && (r.right > box.right + 1 || r.left < box.left - 1)) kind = "offscreen";
+      else if (v && (v.top < inside.top - 1 || v.bottom > inside.bottom + 1 || v.left < inside.left - 1 || v.right > inside.right + 1)) kind = "unsafe";
     }
     if (kind) {
       el.dataset.wbIssue = kind;
@@ -75,18 +98,22 @@ interface DeviceProps {
   showIssues?: boolean;
   /** OS text size setting to simulate (1 = default). */
   textScale?: number;
+  safeArea?: Insets;
+  /** Draw the safe-area bands (and a Dynamic Island) over the screen. */
+  showSafe?: boolean;
+  island?: boolean;
   children: ReactNode;
 }
 
 /** Stands in for one device/window. The prototype derives its size class from `width` (logical px). */
-export function Device({ width, height, platform, theme, locale, className, style, onIssues, onNavigate, showIssues, textScale = 1, children }: DeviceProps) {
+export function Device({ width, height, platform, theme, locale, className, style, onIssues, onNavigate, showIssues, textScale = 1, safeArea = NO_INSETS, showSafe, island, children }: DeviceProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const info: FrameInfo = { sizeClass: sizeClassFor(width), width, height, platform, theme, locale, sample, navigate: onNavigate, textScale };
+  const info: FrameInfo = { sizeClass: sizeClassFor(width), width, height, platform, theme, locale, sample, navigate: onNavigate, textScale, safeArea };
 
   // Scan after each commit. A timeout (not rAF) so it also runs when the window is not painting.
   useEffect(() => {
     if (!onIssues || !ref.current) return;
-    const id = setTimeout(() => ref.current && onIssues(scanIssues(ref.current)), 60);
+    const id = setTimeout(() => ref.current && onIssues(scanIssues(ref.current, width, safeArea)), 60);
     return () => clearTimeout(id);
   });
 
@@ -101,8 +128,30 @@ export function Device({ width, height, platform, theme, locale, className, styl
       <FrameContext.Provider value={info}>
         <Boundary>{children}</Boundary>
       </FrameContext.Provider>
+      {showSafe && <SafeOverlay insets={safeArea} island={island} landscape={width > height} />}
     </div>
   );
+}
+
+/** Translucent bands where the OS draws (status bar, home indicator, cutouts), plus the island pill. */
+function SafeOverlay({ insets, island, landscape }: { insets: Insets; island?: boolean; landscape: boolean }) {
+  return (
+    <div className="wb-safe" aria-hidden>
+      {insets.top > 0 && <i style={{ top: 0, left: 0, right: 0, height: insets.top }} />}
+      {insets.bottom > 0 && <i style={{ bottom: 0, left: 0, right: 0, height: insets.bottom }} />}
+      {insets.left > 0 && <i style={{ top: 0, bottom: 0, left: 0, width: insets.left }} />}
+      {insets.right > 0 && <i style={{ top: 0, bottom: 0, right: 0, width: insets.right }} />}
+      {island && <b className="wb-island" style={landscape ? { left: 11, top: "50%", width: 37, height: 126, marginTop: -63 } : { top: 11, left: "50%", width: 126, height: 37, marginLeft: -63 }} />}
+    </div>
+  );
+}
+
+/** Insets of the preset a frame shows (or started from), in its current orientation. */
+export function insetsFor(frame: FrameSpec): { insets: Insets; island: boolean } {
+  const v = viewportById[frame.preset ?? frame.base ?? ""];
+  if (!v?.safe) return { insets: NO_INSETS, island: false };
+  const [top, right, bottom, left] = frame.w > frame.h ? v.safe.landscape : v.safe.portrait;
+  return { insets: { top, right, bottom, left }, island: !!v.island };
 }
 
 class Boundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -220,6 +269,7 @@ interface ResizableFrameProps {
   /** Show only this frame, large. Undefined when already focused. */
   onFocus?: () => void;
   textScale?: number;
+  showSafe?: boolean;
   /**
    * A fixed reference frame (one per layout size class): shows this title instead of the device picker and has no
    * resize, rotate or size inputs.
@@ -228,13 +278,14 @@ interface ResizableFrameProps {
   children: ReactNode;
 }
 
-export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues, edit, onNavigate, onFocus, fixedTitle, textScale = 1, children }: ResizableFrameProps) {
+export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues, edit, onNavigate, onFocus, fixedTitle, textScale = 1, showSafe = true, children }: ResizableFrameProps) {
+  const { insets, island } = insetsFor(frame);
   const preset = frame.preset ? viewportById[frame.preset] : undefined;
   const base = frame.base ? viewportById[frame.base] : undefined;
   const [issues, setIssues] = useState<Issues>(NO_ISSUES);
   const [copied, setCopied] = useState(false);
   // Hard clips and offscreen text are defects; ellipsis is usually intentional and shown muted.
-  const severe = issues.clip + issues.spill + issues.offscreen;
+  const severe = issues.clip + issues.spill + issues.offscreen + issues.unsafe;
 
   const report = (next: Issues) =>
     setIssues((prev) => ((Object.keys(next) as IssueKind[]).every((k) => prev[k] === next[k]) ? prev : next));
@@ -287,7 +338,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
             <span className="wb-muted">{frame.w}×{frame.h}</span>
             <span
               className="wb-issues"
-              title={`잘림 ${issues.clip} · 넘침 ${issues.spill} · 화면 밖 ${issues.offscreen} · 말줄임 ${issues.ellipsis} (말줄임은 의도된 경우가 많음)`}
+              title={`잘림 ${issues.clip} · 넘침 ${issues.spill} · 화면 밖 ${issues.offscreen} · 가림 ${issues.unsafe} · 말줄임 ${issues.ellipsis} (말줄임은 의도된 경우가 많음)`}
             >
               {severe ? <b className="wb-issues-on">⚠ {severe}</b> : <span className="wb-ok">✓</span>}
             </span>
@@ -328,7 +379,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
           )}
           <span
             className="wb-issues"
-            title={`잘림 ${issues.clip} · 넘침 ${issues.spill} · 화면 밖 ${issues.offscreen} · 말줄임 ${issues.ellipsis} (말줄임은 의도된 경우가 많음)`}
+            title={`잘림 ${issues.clip} · 넘침 ${issues.spill} · 화면 밖 ${issues.offscreen} · 가림 ${issues.unsafe} · 말줄임 ${issues.ellipsis} (말줄임은 의도된 경우가 많음)`}
           >
             {severe ? <b className="wb-issues-on">⚠ {severe}</b> : <span className="wb-ok">✓</span>}
             {issues.ellipsis > 0 && <span className="wb-muted"> …{issues.ellipsis}</span>}
@@ -353,7 +404,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
       </figcaption>
 
       <div className="wb-resize-box">
-        <Device width={frame.w} height={frame.h} platform={frame.platform} theme={theme} locale={locale} onIssues={report} onNavigate={onNavigate} showIssues={showIssues} textScale={textScale}>
+        <Device width={frame.w} height={frame.h} platform={frame.platform} theme={theme} locale={locale} onIssues={report} onNavigate={onNavigate} showIssues={showIssues} textScale={textScale} safeArea={insets} showSafe={showSafe} island={island}>
           {children}
         </Device>
         {!fixedTitle && (

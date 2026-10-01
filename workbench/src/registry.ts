@@ -151,11 +151,19 @@ export interface Viewport {
   scale?: number;
   /** Sources disagree on this size; shown with "≈". */
   approx?: boolean;
+  /** Safe-area insets [top, right, bottom, left] per orientation; approx when only platform defaults are known. */
+  safe?: { portrait: number[]; landscape: number[]; approx?: boolean };
+  /** Draw a Dynamic Island pill. */
+  island?: boolean;
 }
 
 const OS: Record<string, Platform> = { iOS: "ios", iPadOS: "ipados", Android: "android", macOS: "macos", Windows: "windows" };
 
-type RawPreset = { id: string; platform: string; group?: string; label: string; logical?: number[]; physical?: number[]; scale?: number; approx?: boolean };
+type RawPreset = {
+  id: string; platform: string; group?: string; label: string;
+  logical?: number[]; physical?: number[]; scale?: number; approx?: boolean;
+  safe?: { portrait: number[]; landscape: number[]; approx?: boolean }; island?: boolean;
+};
 
 export const viewports: Viewport[] = (viewportsJson.presets as RawPreset[]).map((p) => {
   const scale = p.scale ?? 1;
@@ -171,6 +179,8 @@ export const viewports: Viewport[] = (viewportsJson.presets as RawPreset[]).map(
     physical: p.physical ? [p.physical[0], p.physical[1]] : undefined,
     scale: p.scale,
     approx: p.approx,
+    safe: p.safe,
+    island: p.island,
   };
 });
 

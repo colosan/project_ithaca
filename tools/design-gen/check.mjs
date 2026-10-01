@@ -185,6 +185,10 @@ try {
     if (hasLogical === hasPhysical) block(at, `logical 또는 (physical + scale) 중 정확히 하나`);
     if (p.group !== undefined && typeof p.group !== "string") block(at, `group 은 문자열`);
     if (p.approx !== undefined && typeof p.approx !== "boolean") block(at, `approx 는 true/false`);
+    if (p.safe !== undefined) {
+      const ok = (q) => Array.isArray(q) && q.length === 4 && q.every((n) => Number.isFinite(n) && n >= 0);
+      if (!ok(p.safe.portrait) || !ok(p.safe.landscape)) block(at, `safe.portrait / safe.landscape 는 [top, right, bottom, left] 숫자 4개`);
+    }
   }
   for (const spec of vp.detailDefaults ?? []) {
     const [id, orientation] = spec.split(":");

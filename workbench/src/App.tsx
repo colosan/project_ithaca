@@ -201,9 +201,12 @@ const ZOOM = { min: 0.05, max: 2 };
 /** The four base screens: one per layout size class, at its reference size (design/tokens/layout.json). */
 const BASE_LABEL: Record<SizeClass, string> = { compact: "폰", medium: "태블릿 세로", expanded: "태블릿 가로", large: "데스크톱" };
 const BASE_OS: Record<SizeClass, Platform> = { compact: "ios", medium: "ipados", expanded: "ipados", large: "macos" };
+/** Representative device per base screen — only its safe area is borrowed (the size stays the class reference). */
+const BASE_DEVICE: Record<SizeClass, string | null> = { compact: "iphone-14", medium: "ipad-air-11", expanded: "ipad-air-11", large: null };
 const baseFrames: FrameSpec[] = sizeClasses.map((c) => ({
   id: `base-${c.name}`,
   preset: null,
+  base: BASE_DEVICE[c.name],
   platform: BASE_OS[c.name],
   w: c.referenceViewport[0],
   h: c.referenceViewport[1],
@@ -232,6 +235,7 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
   const [info, setInfo] = usePref("detail.info", true);
   // OS text size to simulate: users with larger text are where layouts break first.
   const [textScale, setTextScale] = usePref("detail.textScale", 1);
+  const [showSafe, setShowSafe] = usePref("detail.safe", true);
   // null = fit (recomputed whenever the stage changes); a View once you pan or zoom yourself.
   const [manual, setManual] = usePref<View | null>("detail.view", null);
   const [stageRef, stage] = useSize<HTMLDivElement>();
@@ -405,6 +409,7 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
       onNavigate={navigate}
       onFocus={focused ? undefined : () => focus(f.id)}
       textScale={textScale}
+      showSafe={showSafe}
     >
       <screen.Prototype key={state} state={state} />
     </ResizableFrame>
@@ -457,7 +462,10 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
             onChange={(v) => setTextScale(Number(v))}
           />
           <button onClick={() => commit(framesStore, normalizeDevices([]), "기기 초기화")} title="기기별 프레임을 대표 모델로 (Ctrl+Z 로 되돌림)">기기 초기화</button>
-          <label className="wb-check" title="잘림 · 넘침 · 화면 밖 텍스트를 빨간 테두리로, 말줄임을 점선으로">
+          <label className="wb-check" title="상태바 · 홈 표시줄 · 카메라 자리(안전 영역)를 겹쳐 보여준다. 그 안의 글자는 ⚠ 가림">
+            <input type="checkbox" checked={showSafe} onChange={(e) => setShowSafe(e.target.checked)} /> 안전 영역
+          </label>
+          <label className="wb-check" title="잘림 · 넘침 · 화면 밖 · 가림 텍스트를 빨간 테두리로, 말줄임을 점선으로">
             <input type="checkbox" checked={showIssues} onChange={(e) => setShowIssues(e.target.checked)} /> 문제 표시
           </label>
           <label className="wb-check" title="한 프레임의 폭을 연속으로 바꿔 레이아웃이 바뀌는 지점을 본다">

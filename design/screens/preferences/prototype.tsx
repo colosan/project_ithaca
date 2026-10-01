@@ -1,7 +1,7 @@
 // preferences prototype — General · Sync · Claude (MCP). MCP is desktop-only by platform, not by width (ADR-0001).
 // Interactive: sections, toggles and segmented controls are local state; "pair a device" and close navigate.
 import { useState, type ReactNode } from "react";
-import { color, pane, radius, size, space, type, isDesktop, useFrame, useNavigate, useT, type Platform, type StringKey } from "@ithaca/kit";
+import { color, pane, radius, safePadding, size, space, type, isDesktop, useFrame, useNavigate, useT, type Platform, type StringKey } from "@ithaca/kit";
 
 export const states = ["general", "sync", "claude"] as const;
 type State = (typeof states)[number];
@@ -15,11 +15,11 @@ const clickable = { cursor: "pointer" } as const;
 export default function Preferences({ state }: { state: State }) {
   const t = useT();
   const go = useNavigate();
-  const { sizeClass } = useFrame();
+  const { sizeClass, safeArea } = useFrame();
   const [section, setSection] = useState<State>(state);
   const [compactList, setCompactList] = useState(false); // compact: showing the section list instead of a section
   const content = section === "general" ? <General /> : section === "sync" ? <Sync /> : <Claude />;
-  const root = { display: "flex", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body };
+  const root = { display: "flex", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body, ...safePadding(safeArea) };
   const sectionRow = (s: State, onClick: () => void) => (
     <div key={s} onClick={onClick} style={{ minHeight: size.controlMd, display: "flex", alignItems: "center", padding: `0 ${space[100]}`, borderRadius: radius.piece, background: s === section && !compactList ? color.surfaceSelected : "transparent", color: s === section ? color.inkPrimary : color.inkSecondary, ...clickable }}>
       {t(SECTION_KEY[s])}

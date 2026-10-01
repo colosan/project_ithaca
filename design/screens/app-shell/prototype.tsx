@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import {
   color, editor, opacity, pane, radius, shadow, size, space, type,
-  openContext, useFrame, useNavigate, useT, type SheetSummary, type SizeClass,
+  openContext, safePadding, useFrame, useNavigate, useT, type SheetSummary, type SizeClass,
 } from "@ithaca/kit";
 
 export const states = ["default", "readonly", "reference"] as const;
@@ -35,7 +35,7 @@ interface Shell {
 }
 
 export default function AppShell({ state }: { state: State }) {
-  const { sizeClass, sample } = useFrame();
+  const { sizeClass, sample, safeArea } = useFrame();
   const go = useNavigate();
   const panes = panesFor(sizeClass);
   const start = openContext(sample);
@@ -71,7 +71,7 @@ export default function AppShell({ state }: { state: State }) {
     showLibrary: () => setCompactView("library"),
   };
 
-  const root = { position: "relative" as const, display: "flex", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body };
+  const root = { position: "relative" as const, display: "flex", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body, ...safePadding(safeArea) };
 
   if (sizeClass === "compact") {
     return (
@@ -92,7 +92,7 @@ export default function AppShell({ state }: { state: State }) {
       {libraryOverlay && !panes.library && (
         <>
           <div style={{ position: "absolute", inset: 0, background: color.surfaceScrim, ...clickable }} onClick={shell.toggleLibrary} />
-          <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, display: "flex", boxShadow: shadow.dialog }}>
+          <div style={{ position: "absolute", top: safeArea.top, bottom: safeArea.bottom, left: safeArea.left, display: "flex", boxShadow: shadow.dialog }}>
             <LibraryPane shell={shell} />
           </div>
         </>
@@ -303,14 +303,14 @@ function EditorFooter({ sheet, readOnly }: { sheet: SheetSummary; readOnly: bool
 
 function ReferencePanel({ mode, onClose }: { mode: "docked" | "overlay" | "sheet"; onClose: () => void }) {
   const t = useT();
-  const { sample } = useFrame();
+  const { sample, safeArea } = useFrame();
   const { reference } = openContext(sample);
   const frameStyle =
     mode === "docked"
       ? { width: pane.inspector, flex: "none", borderLeft: hairline(color.lineSubtle) }
       : mode === "overlay"
-        ? { position: "absolute" as const, top: 0, right: 0, bottom: 0, width: pane.inspector, boxShadow: shadow.dialog, borderLeft: hairline(color.lineSubtle) }
-        : { position: "absolute" as const, left: 0, right: 0, bottom: 0, height: "55%", boxShadow: shadow.dialog, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet };
+        ? { position: "absolute" as const, top: safeArea.top, right: safeArea.right, bottom: safeArea.bottom, width: pane.inspector, boxShadow: shadow.dialog, borderLeft: hairline(color.lineSubtle) }
+        : { position: "absolute" as const, left: 0, right: 0, bottom: 0, height: "55%", paddingBottom: safeArea.bottom, boxShadow: shadow.dialog, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet };
   return (
     <>
       {mode === "sheet" && <div style={{ position: "absolute", inset: 0, background: color.surfaceScrim, ...clickable }} onClick={onClose} />}

@@ -1,6 +1,6 @@
 // project-settings prototype — title, manuscript language, per-sheet length goal, folders.
 import { useState, type ReactNode } from "react";
-import { color, pane, radius, shadow, size, space, type, openContext, useFrame, useNavigate, useT, type StringKey } from "@ithaca/kit";
+import { color, pane, radius, shadow, size, space, type, openContext, safePadding, useFrame, useNavigate, useT, type StringKey } from "@ithaca/kit";
 
 export const states = ["default"] as const;
 type State = (typeof states)[number];
@@ -10,13 +10,13 @@ const clickable = { cursor: "pointer" } as const;
 
 /** compact: full-screen page with a nav bar. medium+: centered dialog over a scrim. */
 export default function ProjectSettings({ state: _state }: { state: State }) {
-  const { sizeClass } = useFrame();
+  const { sizeClass, safeArea } = useFrame();
   const t = useT();
   const go = useNavigate();
   const body = <Body />;
   if (sizeClass === "compact") {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body }}>
+      <div style={{ display: "flex", flexDirection: "column", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body, ...safePadding(safeArea) }}>
         <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle), ...type.label }}>
           <span style={{ color: color.inkSecondary, ...clickable }} onClick={() => go("app-shell")}>‹ {t("nav.back")}</span>
           <span style={{ flex: 1, textAlign: "center", ...type.heading }}>{t("projectSettings.title")}</span>
@@ -27,7 +27,7 @@ export default function ProjectSettings({ state: _state }: { state: State }) {
     );
   }
   return (
-    <div style={{ position: "relative", height: "100%", background: color.surfaceScrim, display: "flex", alignItems: "center", justifyContent: "center", color: color.inkPrimary, ...type.body }}>
+    <div style={{ position: "relative", height: "100%", background: color.surfaceScrim, display: "flex", alignItems: "center", justifyContent: "center", ...safePadding(safeArea), color: color.inkPrimary, ...type.body }}>
       <div style={{ width: pane.dialog, maxWidth: "90%", maxHeight: "90%", overflow: "hidden", display: "flex", flexDirection: "column", background: color.surfaceRaised, borderRadius: radius.sheet, boxShadow: shadow.dialog }}>
         <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", padding: `0 ${space[300]}`, borderBottom: hairline(color.lineSubtle) }}>
           <span style={{ ...type.heading, flex: 1 }}>{t("projectSettings.title")}</span>

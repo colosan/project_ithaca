@@ -1,84 +1,1403 @@
 {
-  "description": "실제 환경 프리셋. 레이아웃은 논리 크기(pt · dp · CSS px)로 정해지고, Windows 는 '해상도 ÷ 디스플레이 배율' 이 논리 크기다(1920×1080 · 150% → 1280×720). 모든 프리셋은 세로 기준(데스크톱은 가로), 회전은 workbench 의 ⟲. approx = 출처끼리 값이 달라 확정 못 한 값. 출처: iosref.com/res · useyourloaf.com · Chrome DevTools EmulatedDevices · Android Studio device defs · blisk.io · yesviz.com · MacRumors (2026-10 조사).",
+  "description": "실제 환경 프리셋. 레이아웃은 논리 크기(pt · dp · CSS px)로 정해지고, Windows 는 '해상도 ÷ 디스플레이 배율' 이 논리 크기다(1920×1080 · 150% → 1280×720). 모든 프리셋은 세로 기준(데스크톱은 가로), 회전은 workbench 의 ⟲. approx = 출처끼리 값이 달라 확정 못 한 값. 출처: iosref.com/res · useyourloaf.com · Chrome DevTools EmulatedDevices · Android Studio device defs · blisk.io · yesviz.com · MacRumors (2026-10 조사). safe = 안전 영역 [top, right, bottom, left] (세로 · 가로), island = Dynamic Island 그림.",
   "presets": [
-    { "id": "iphone-17", "platform": "iOS", "group": "iPhone 17", "label": "iPhone 17", "logical": [402, 874] },
-    { "id": "iphone-air", "platform": "iOS", "group": "iPhone 17", "label": "iPhone Air", "logical": [420, 912] },
-    { "id": "iphone-17-pro", "platform": "iOS", "group": "iPhone 17", "label": "iPhone 17 Pro", "logical": [402, 874] },
-    { "id": "iphone-17-pro-max", "platform": "iOS", "group": "iPhone 17", "label": "iPhone 17 Pro Max", "logical": [440, 956] },
-    { "id": "iphone-16e", "platform": "iOS", "group": "iPhone 16", "label": "iPhone 16e", "logical": [390, 844] },
-    { "id": "iphone-16", "platform": "iOS", "group": "iPhone 16", "label": "iPhone 16", "logical": [393, 852] },
-    { "id": "iphone-16-plus", "platform": "iOS", "group": "iPhone 16", "label": "iPhone 16 Plus", "logical": [430, 932] },
-    { "id": "iphone-16-pro", "platform": "iOS", "group": "iPhone 16", "label": "iPhone 16 Pro", "logical": [402, 874] },
-    { "id": "iphone-16-pro-max", "platform": "iOS", "group": "iPhone 16", "label": "iPhone 16 Pro Max", "logical": [440, 956] },
-    { "id": "iphone-15", "platform": "iOS", "group": "iPhone 15", "label": "iPhone 15 · 15 Pro", "logical": [393, 852] },
-    { "id": "iphone-15-max", "platform": "iOS", "group": "iPhone 15", "label": "iPhone 15 Plus · 15 Pro Max", "logical": [430, 932] },
-    { "id": "iphone-14", "platform": "iOS", "group": "이전 모델", "label": "iPhone 13 · 14", "logical": [390, 844] },
-    { "id": "iphone-14-plus", "platform": "iOS", "group": "이전 모델", "label": "iPhone 14 Plus", "logical": [428, 926] },
-    { "id": "iphone-13-mini", "platform": "iOS", "group": "이전 모델", "label": "iPhone 12 mini · 13 mini", "logical": [375, 812] },
-    { "id": "iphone-se", "platform": "iOS", "group": "이전 모델", "label": "iPhone SE (2·3세대)", "logical": [375, 667] },
-
-    { "id": "galaxy-s25", "platform": "Android", "group": "Galaxy S", "label": "Galaxy S25", "logical": [360, 780] },
-    { "id": "galaxy-s25-ultra", "platform": "Android", "group": "Galaxy S", "label": "Galaxy S25 Ultra", "logical": [412, 891], "approx": true },
-    { "id": "galaxy-s24", "platform": "Android", "group": "Galaxy S", "label": "Galaxy S24", "logical": [360, 780] },
-    { "id": "galaxy-s24-plus", "platform": "Android", "group": "Galaxy S", "label": "Galaxy S24+", "logical": [384, 832] },
-    { "id": "galaxy-s24-ultra", "platform": "Android", "group": "Galaxy S", "label": "Galaxy S24 Ultra", "logical": [384, 832] },
-    { "id": "galaxy-a55", "platform": "Android", "group": "Galaxy A", "label": "Galaxy A55", "logical": [412, 892], "approx": true },
-    { "id": "galaxy-a54", "platform": "Android", "group": "Galaxy A", "label": "Galaxy A54", "logical": [412, 892], "approx": true },
-    { "id": "pixel-9", "platform": "Android", "group": "Pixel", "label": "Pixel 9", "logical": [412, 924] },
-    { "id": "pixel-9-pro", "platform": "Android", "group": "Pixel", "label": "Pixel 9 Pro", "logical": [427, 952] },
-    { "id": "pixel-9-pro-xl", "platform": "Android", "group": "Pixel", "label": "Pixel 9 Pro XL", "logical": [448, 997] },
-    { "id": "android-phone", "platform": "Android", "group": "Pixel", "label": "Pixel 8", "logical": [412, 915] },
-    { "id": "pixel-8-pro", "platform": "Android", "group": "Pixel", "label": "Pixel 8 Pro", "logical": [448, 997] },
-    { "id": "fold5-cover", "platform": "Android", "group": "폴더블", "label": "Galaxy Z Fold5 · 접은 화면", "logical": [344, 882] },
-    { "id": "fold5-inner", "platform": "Android", "group": "폴더블", "label": "Galaxy Z Fold5 · 펼친 화면", "logical": [690, 829] },
-    { "id": "fold6-cover", "platform": "Android", "group": "폴더블", "label": "Galaxy Z Fold6 · 접은 화면", "logical": [369, 905], "approx": true },
-    { "id": "fold6-inner", "platform": "Android", "group": "폴더블", "label": "Galaxy Z Fold6 · 펼친 화면", "logical": [707, 823], "approx": true },
-    { "id": "flip6", "platform": "Android", "group": "폴더블", "label": "Galaxy Z Flip6", "logical": [360, 880], "approx": true },
-    { "id": "pixel-fold-inner", "platform": "Android", "group": "폴더블", "label": "Pixel Fold · 펼친 화면", "logical": [701, 841] },
-    { "id": "android-tablet", "platform": "Android", "group": "태블릿", "label": "Galaxy Tab S9 (11\")", "logical": [800, 1280], "approx": true },
-    { "id": "tab-s9-ultra", "platform": "Android", "group": "태블릿", "label": "Galaxy Tab S9 Ultra", "logical": [924, 1480], "approx": true },
-
-    { "id": "ipad-pro-11-m4", "platform": "iPadOS", "group": "iPad Pro", "label": "iPad Pro 11\" (M4)", "logical": [834, 1210] },
-    { "id": "ipad-pro-13-m4", "platform": "iPadOS", "group": "iPad Pro", "label": "iPad Pro 13\" (M4)", "logical": [1032, 1376] },
-    { "id": "ipad-pro-12-9", "platform": "iPadOS", "group": "iPad Pro", "label": "iPad Pro 12.9\" (이전)", "logical": [1024, 1366] },
-    { "id": "ipad-air-11", "platform": "iPadOS", "group": "iPad Air · iPad", "label": "iPad Air 11\"", "logical": [820, 1180] },
-    { "id": "ipad-air-13", "platform": "iPadOS", "group": "iPad Air · iPad", "label": "iPad Air 13\"", "logical": [1024, 1366] },
-    { "id": "ipad-a16", "platform": "iPadOS", "group": "iPad Air · iPad", "label": "iPad (A16 · 10세대)", "logical": [820, 1180] },
-    { "id": "ipad-mini", "platform": "iPadOS", "group": "iPad mini", "label": "iPad mini (6 · 7세대)", "logical": [744, 1133] },
-
-    { "id": "mac-air-13", "platform": "macOS", "group": "MacBook", "label": "MacBook Air 13\"", "logical": [1470, 956] },
-    { "id": "mac-air-15", "platform": "macOS", "group": "MacBook", "label": "MacBook Air 15\"", "logical": [1710, 1107] },
-    { "id": "mac-pro-14", "platform": "macOS", "group": "MacBook", "label": "MacBook Pro 14\"", "logical": [1512, 982] },
-    { "id": "mac-pro-16", "platform": "macOS", "group": "MacBook", "label": "MacBook Pro 16\"", "logical": [1728, 1117] },
-    { "id": "imac-24", "platform": "macOS", "group": "데스크톱 Mac", "label": "iMac 24\"", "logical": [2240, 1260] },
-    { "id": "studio-display", "platform": "macOS", "group": "데스크톱 Mac", "label": "Studio Display 27\"", "logical": [2560, 1440] },
-    { "id": "mac-ext-fhd", "platform": "macOS", "group": "외부 모니터", "label": "FHD 모니터 · 1920×1080", "logical": [1920, 1080] },
-    { "id": "mac-ext-qhd", "platform": "macOS", "group": "외부 모니터", "label": "QHD 모니터 · 2560×1440", "logical": [2560, 1440] },
-    { "id": "mac-ext-4k-hidpi", "platform": "macOS", "group": "외부 모니터", "label": "4K 모니터 · 1920×1080처럼 (HiDPI)", "logical": [1920, 1080] },
-    { "id": "mac-ext-4k-native", "platform": "macOS", "group": "외부 모니터", "label": "4K 모니터 · 원본 3840×2160", "logical": [3840, 2160] },
-    { "id": "mac-air-13-half", "platform": "macOS", "group": "창 반쪽", "label": "MacBook Air 13\" · 화면 반쪽", "logical": [735, 956] },
-    { "id": "mac-pro-14-half", "platform": "macOS", "group": "창 반쪽", "label": "MacBook Pro 14\" · 화면 반쪽", "logical": [756, 982] },
-
-    { "id": "win-1920-100", "platform": "Windows", "group": "FHD 1920×1080", "label": "1920×1080 · 100%", "physical": [1920, 1080], "scale": 1 },
-    { "id": "win-1920-125", "platform": "Windows", "group": "FHD 1920×1080", "label": "1920×1080 · 125%", "physical": [1920, 1080], "scale": 1.25 },
-    { "id": "win-1920-150", "platform": "Windows", "group": "FHD 1920×1080", "label": "1920×1080 · 150%", "physical": [1920, 1080], "scale": 1.5 },
-    { "id": "win-2560-100", "platform": "Windows", "group": "QHD (2K) 2560×1440", "label": "2560×1440 · 100%", "physical": [2560, 1440], "scale": 1 },
-    { "id": "win-2560-125", "platform": "Windows", "group": "QHD (2K) 2560×1440", "label": "2560×1440 · 125%", "physical": [2560, 1440], "scale": 1.25 },
-    { "id": "win-2560-150", "platform": "Windows", "group": "QHD (2K) 2560×1440", "label": "2560×1440 · 150%", "physical": [2560, 1440], "scale": 1.5 },
-    { "id": "win-3840-100", "platform": "Windows", "group": "4K UHD 3840×2160", "label": "3840×2160 · 100%", "physical": [3840, 2160], "scale": 1 },
-    { "id": "win-3840-150", "platform": "Windows", "group": "4K UHD 3840×2160", "label": "3840×2160 · 150%", "physical": [3840, 2160], "scale": 1.5 },
-    { "id": "win-3840-200", "platform": "Windows", "group": "4K UHD 3840×2160", "label": "3840×2160 · 200%", "physical": [3840, 2160], "scale": 2 },
-    { "id": "win-1366-100", "platform": "Windows", "group": "노트북", "label": "1366×768 · 100%", "physical": [1366, 768], "scale": 1 },
-    { "id": "win-1920x1200-125", "platform": "Windows", "group": "노트북", "label": "1920×1200 · 125%", "physical": [1920, 1200], "scale": 1.25 },
-    { "id": "win-1920x1200-150", "platform": "Windows", "group": "노트북", "label": "1920×1200 · 150%", "physical": [1920, 1200], "scale": 1.5 },
-    { "id": "win-2560x1600-150", "platform": "Windows", "group": "노트북", "label": "2560×1600 · 150%", "physical": [2560, 1600], "scale": 1.5 },
-    { "id": "win-2880x1800-200", "platform": "Windows", "group": "노트북", "label": "2880×1800 · 200%", "physical": [2880, 1800], "scale": 2 },
-    { "id": "win-2880x1920-200", "platform": "Windows", "group": "노트북", "label": "2880×1920 · 200% (Surface Pro 류)", "physical": [2880, 1920], "scale": 2 },
-    { "id": "win-uw-2560x1080", "platform": "Windows", "group": "울트라와이드", "label": "2560×1080 · 100%", "physical": [2560, 1080], "scale": 1 },
-    { "id": "win-uw-3440x1440", "platform": "Windows", "group": "울트라와이드", "label": "3440×1440 · 100%", "physical": [3440, 1440], "scale": 1 },
-    { "id": "win-1920-100-half", "platform": "Windows", "group": "창 반쪽 (스냅)", "label": "1920×1080 · 100% · 반쪽", "physical": [960, 1080], "scale": 1 },
-    { "id": "win-1920-125-half", "platform": "Windows", "group": "창 반쪽 (스냅)", "label": "1920×1080 · 125% · 반쪽", "physical": [960, 1080], "scale": 1.25 },
-    { "id": "win-2560-100-half", "platform": "Windows", "group": "창 반쪽 (스냅)", "label": "2560×1440 · 100% · 반쪽", "physical": [1280, 1440], "scale": 1 }
+    {
+      "id": "iphone-17",
+      "platform": "iOS",
+      "group": "iPhone 17",
+      "label": "iPhone 17",
+      "logical": [
+        402,
+        874
+      ],
+      "safe": {
+        "portrait": [
+          62,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          20,
+          62,
+          20,
+          62
+        ]
+      },
+      "island": true
+    },
+    {
+      "id": "iphone-air",
+      "platform": "iOS",
+      "group": "iPhone 17",
+      "label": "iPhone Air",
+      "logical": [
+        420,
+        912
+      ],
+      "safe": {
+        "portrait": [
+          68,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          20,
+          68,
+          29,
+          68
+        ]
+      },
+      "island": true
+    },
+    {
+      "id": "iphone-17-pro",
+      "platform": "iOS",
+      "group": "iPhone 17",
+      "label": "iPhone 17 Pro",
+      "logical": [
+        402,
+        874
+      ],
+      "safe": {
+        "portrait": [
+          62,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          20,
+          62,
+          20,
+          62
+        ]
+      },
+      "island": true
+    },
+    {
+      "id": "iphone-17-pro-max",
+      "platform": "iOS",
+      "group": "iPhone 17",
+      "label": "iPhone 17 Pro Max",
+      "logical": [
+        440,
+        956
+      ],
+      "safe": {
+        "portrait": [
+          62,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          20,
+          62,
+          20,
+          62
+        ]
+      },
+      "island": true
+    },
+    {
+      "id": "iphone-16e",
+      "platform": "iOS",
+      "group": "iPhone 16",
+      "label": "iPhone 16e",
+      "logical": [
+        390,
+        844
+      ],
+      "safe": {
+        "portrait": [
+          47,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          0,
+          47,
+          21,
+          47
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "iphone-16",
+      "platform": "iOS",
+      "group": "iPhone 16",
+      "label": "iPhone 16",
+      "logical": [
+        393,
+        852
+      ],
+      "safe": {
+        "portrait": [
+          59,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          0,
+          59,
+          21,
+          59
+        ]
+      },
+      "island": true
+    },
+    {
+      "id": "iphone-16-plus",
+      "platform": "iOS",
+      "group": "iPhone 16",
+      "label": "iPhone 16 Plus",
+      "logical": [
+        430,
+        932
+      ],
+      "safe": {
+        "portrait": [
+          59,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          0,
+          59,
+          21,
+          59
+        ]
+      },
+      "island": true
+    },
+    {
+      "id": "iphone-16-pro",
+      "platform": "iOS",
+      "group": "iPhone 16",
+      "label": "iPhone 16 Pro",
+      "logical": [
+        402,
+        874
+      ],
+      "safe": {
+        "portrait": [
+          62,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          0,
+          62,
+          21,
+          62
+        ]
+      },
+      "island": true
+    },
+    {
+      "id": "iphone-16-pro-max",
+      "platform": "iOS",
+      "group": "iPhone 16",
+      "label": "iPhone 16 Pro Max",
+      "logical": [
+        440,
+        956
+      ],
+      "safe": {
+        "portrait": [
+          62,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          0,
+          62,
+          21,
+          62
+        ]
+      },
+      "island": true
+    },
+    {
+      "id": "iphone-15",
+      "platform": "iOS",
+      "group": "iPhone 15",
+      "label": "iPhone 15 · 15 Pro",
+      "logical": [
+        393,
+        852
+      ],
+      "safe": {
+        "portrait": [
+          59,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          0,
+          59,
+          21,
+          59
+        ]
+      },
+      "island": true
+    },
+    {
+      "id": "iphone-15-max",
+      "platform": "iOS",
+      "group": "iPhone 15",
+      "label": "iPhone 15 Plus · 15 Pro Max",
+      "logical": [
+        430,
+        932
+      ],
+      "safe": {
+        "portrait": [
+          59,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          0,
+          59,
+          21,
+          59
+        ]
+      },
+      "island": true
+    },
+    {
+      "id": "iphone-14",
+      "platform": "iOS",
+      "group": "이전 모델",
+      "label": "iPhone 13 · 14",
+      "logical": [
+        390,
+        844
+      ],
+      "safe": {
+        "portrait": [
+          47,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          0,
+          47,
+          21,
+          47
+        ]
+      }
+    },
+    {
+      "id": "iphone-14-plus",
+      "platform": "iOS",
+      "group": "이전 모델",
+      "label": "iPhone 14 Plus",
+      "logical": [
+        428,
+        926
+      ],
+      "safe": {
+        "portrait": [
+          47,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          0,
+          47,
+          21,
+          47
+        ]
+      }
+    },
+    {
+      "id": "iphone-13-mini",
+      "platform": "iOS",
+      "group": "이전 모델",
+      "label": "iPhone 12 mini · 13 mini",
+      "logical": [
+        375,
+        812
+      ],
+      "safe": {
+        "portrait": [
+          50,
+          0,
+          34,
+          0
+        ],
+        "landscape": [
+          0,
+          50,
+          21,
+          50
+        ]
+      }
+    },
+    {
+      "id": "iphone-se",
+      "platform": "iOS",
+      "group": "이전 모델",
+      "label": "iPhone SE (2·3세대)",
+      "logical": [
+        375,
+        667
+      ],
+      "safe": {
+        "portrait": [
+          20,
+          0,
+          0,
+          0
+        ],
+        "landscape": [
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "id": "galaxy-s25",
+      "platform": "Android",
+      "group": "Galaxy S",
+      "label": "Galaxy S25",
+      "logical": [
+        360,
+        780
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "galaxy-s25-ultra",
+      "platform": "Android",
+      "group": "Galaxy S",
+      "label": "Galaxy S25 Ultra",
+      "logical": [
+        412,
+        891
+      ],
+      "approx": true,
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "galaxy-s24",
+      "platform": "Android",
+      "group": "Galaxy S",
+      "label": "Galaxy S24",
+      "logical": [
+        360,
+        780
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "galaxy-s24-plus",
+      "platform": "Android",
+      "group": "Galaxy S",
+      "label": "Galaxy S24+",
+      "logical": [
+        384,
+        832
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "galaxy-s24-ultra",
+      "platform": "Android",
+      "group": "Galaxy S",
+      "label": "Galaxy S24 Ultra",
+      "logical": [
+        384,
+        832
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "galaxy-a55",
+      "platform": "Android",
+      "group": "Galaxy A",
+      "label": "Galaxy A55",
+      "logical": [
+        412,
+        892
+      ],
+      "approx": true,
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "galaxy-a54",
+      "platform": "Android",
+      "group": "Galaxy A",
+      "label": "Galaxy A54",
+      "logical": [
+        412,
+        892
+      ],
+      "approx": true,
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "pixel-9",
+      "platform": "Android",
+      "group": "Pixel",
+      "label": "Pixel 9",
+      "logical": [
+        412,
+        924
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "pixel-9-pro",
+      "platform": "Android",
+      "group": "Pixel",
+      "label": "Pixel 9 Pro",
+      "logical": [
+        427,
+        952
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "pixel-9-pro-xl",
+      "platform": "Android",
+      "group": "Pixel",
+      "label": "Pixel 9 Pro XL",
+      "logical": [
+        448,
+        997
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "android-phone",
+      "platform": "Android",
+      "group": "Pixel",
+      "label": "Pixel 8",
+      "logical": [
+        412,
+        915
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "pixel-8-pro",
+      "platform": "Android",
+      "group": "Pixel",
+      "label": "Pixel 8 Pro",
+      "logical": [
+        448,
+        997
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "fold5-cover",
+      "platform": "Android",
+      "group": "폴더블",
+      "label": "Galaxy Z Fold5 · 접은 화면",
+      "logical": [
+        344,
+        882
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "fold5-inner",
+      "platform": "Android",
+      "group": "폴더블",
+      "label": "Galaxy Z Fold5 · 펼친 화면",
+      "logical": [
+        690,
+        829
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "fold6-cover",
+      "platform": "Android",
+      "group": "폴더블",
+      "label": "Galaxy Z Fold6 · 접은 화면",
+      "logical": [
+        369,
+        905
+      ],
+      "approx": true,
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "fold6-inner",
+      "platform": "Android",
+      "group": "폴더블",
+      "label": "Galaxy Z Fold6 · 펼친 화면",
+      "logical": [
+        707,
+        823
+      ],
+      "approx": true,
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "flip6",
+      "platform": "Android",
+      "group": "폴더블",
+      "label": "Galaxy Z Flip6",
+      "logical": [
+        360,
+        880
+      ],
+      "approx": true,
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "pixel-fold-inner",
+      "platform": "Android",
+      "group": "폴더블",
+      "label": "Pixel Fold · 펼친 화면",
+      "logical": [
+        701,
+        841
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "android-tablet",
+      "platform": "Android",
+      "group": "태블릿",
+      "label": "Galaxy Tab S9 (11\")",
+      "logical": [
+        800,
+        1280
+      ],
+      "approx": true,
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "tab-s9-ultra",
+      "platform": "Android",
+      "group": "태블릿",
+      "label": "Galaxy Tab S9 Ultra",
+      "logical": [
+        924,
+        1480
+      ],
+      "approx": true,
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          24,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "ipad-pro-11-m4",
+      "platform": "iPadOS",
+      "group": "iPad Pro",
+      "label": "iPad Pro 11\" (M4)",
+      "logical": [
+        834,
+        1210
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          20,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          20,
+          0
+        ]
+      }
+    },
+    {
+      "id": "ipad-pro-13-m4",
+      "platform": "iPadOS",
+      "group": "iPad Pro",
+      "label": "iPad Pro 13\" (M4)",
+      "logical": [
+        1032,
+        1376
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          20,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          20,
+          0
+        ]
+      }
+    },
+    {
+      "id": "ipad-pro-12-9",
+      "platform": "iPadOS",
+      "group": "iPad Pro",
+      "label": "iPad Pro 12.9\" (이전)",
+      "logical": [
+        1024,
+        1366
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          20,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          20,
+          0
+        ]
+      }
+    },
+    {
+      "id": "ipad-air-11",
+      "platform": "iPadOS",
+      "group": "iPad Air · iPad",
+      "label": "iPad Air 11\"",
+      "logical": [
+        820,
+        1180
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          20,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          20,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "ipad-air-13",
+      "platform": "iPadOS",
+      "group": "iPad Air · iPad",
+      "label": "iPad Air 13\"",
+      "logical": [
+        1024,
+        1366
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          20,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          20,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "ipad-a16",
+      "platform": "iPadOS",
+      "group": "iPad Air · iPad",
+      "label": "iPad (A16 · 10세대)",
+      "logical": [
+        820,
+        1180
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          20,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          20,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "ipad-mini",
+      "platform": "iPadOS",
+      "group": "iPad mini",
+      "label": "iPad mini (6 · 7세대)",
+      "logical": [
+        744,
+        1133
+      ],
+      "safe": {
+        "portrait": [
+          24,
+          0,
+          20,
+          0
+        ],
+        "landscape": [
+          24,
+          0,
+          20,
+          0
+        ],
+        "approx": true
+      }
+    },
+    {
+      "id": "mac-air-13",
+      "platform": "macOS",
+      "group": "MacBook",
+      "label": "MacBook Air 13\"",
+      "logical": [
+        1470,
+        956
+      ]
+    },
+    {
+      "id": "mac-air-15",
+      "platform": "macOS",
+      "group": "MacBook",
+      "label": "MacBook Air 15\"",
+      "logical": [
+        1710,
+        1107
+      ]
+    },
+    {
+      "id": "mac-pro-14",
+      "platform": "macOS",
+      "group": "MacBook",
+      "label": "MacBook Pro 14\"",
+      "logical": [
+        1512,
+        982
+      ]
+    },
+    {
+      "id": "mac-pro-16",
+      "platform": "macOS",
+      "group": "MacBook",
+      "label": "MacBook Pro 16\"",
+      "logical": [
+        1728,
+        1117
+      ]
+    },
+    {
+      "id": "imac-24",
+      "platform": "macOS",
+      "group": "데스크톱 Mac",
+      "label": "iMac 24\"",
+      "logical": [
+        2240,
+        1260
+      ]
+    },
+    {
+      "id": "studio-display",
+      "platform": "macOS",
+      "group": "데스크톱 Mac",
+      "label": "Studio Display 27\"",
+      "logical": [
+        2560,
+        1440
+      ]
+    },
+    {
+      "id": "mac-ext-fhd",
+      "platform": "macOS",
+      "group": "외부 모니터",
+      "label": "FHD 모니터 · 1920×1080",
+      "logical": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "id": "mac-ext-qhd",
+      "platform": "macOS",
+      "group": "외부 모니터",
+      "label": "QHD 모니터 · 2560×1440",
+      "logical": [
+        2560,
+        1440
+      ]
+    },
+    {
+      "id": "mac-ext-4k-hidpi",
+      "platform": "macOS",
+      "group": "외부 모니터",
+      "label": "4K 모니터 · 1920×1080처럼 (HiDPI)",
+      "logical": [
+        1920,
+        1080
+      ]
+    },
+    {
+      "id": "mac-ext-4k-native",
+      "platform": "macOS",
+      "group": "외부 모니터",
+      "label": "4K 모니터 · 원본 3840×2160",
+      "logical": [
+        3840,
+        2160
+      ]
+    },
+    {
+      "id": "mac-air-13-half",
+      "platform": "macOS",
+      "group": "창 반쪽",
+      "label": "MacBook Air 13\" · 화면 반쪽",
+      "logical": [
+        735,
+        956
+      ]
+    },
+    {
+      "id": "mac-pro-14-half",
+      "platform": "macOS",
+      "group": "창 반쪽",
+      "label": "MacBook Pro 14\" · 화면 반쪽",
+      "logical": [
+        756,
+        982
+      ]
+    },
+    {
+      "id": "win-1920-100",
+      "platform": "Windows",
+      "group": "FHD 1920×1080",
+      "label": "1920×1080 · 100%",
+      "physical": [
+        1920,
+        1080
+      ],
+      "scale": 1
+    },
+    {
+      "id": "win-1920-125",
+      "platform": "Windows",
+      "group": "FHD 1920×1080",
+      "label": "1920×1080 · 125%",
+      "physical": [
+        1920,
+        1080
+      ],
+      "scale": 1.25
+    },
+    {
+      "id": "win-1920-150",
+      "platform": "Windows",
+      "group": "FHD 1920×1080",
+      "label": "1920×1080 · 150%",
+      "physical": [
+        1920,
+        1080
+      ],
+      "scale": 1.5
+    },
+    {
+      "id": "win-2560-100",
+      "platform": "Windows",
+      "group": "QHD (2K) 2560×1440",
+      "label": "2560×1440 · 100%",
+      "physical": [
+        2560,
+        1440
+      ],
+      "scale": 1
+    },
+    {
+      "id": "win-2560-125",
+      "platform": "Windows",
+      "group": "QHD (2K) 2560×1440",
+      "label": "2560×1440 · 125%",
+      "physical": [
+        2560,
+        1440
+      ],
+      "scale": 1.25
+    },
+    {
+      "id": "win-2560-150",
+      "platform": "Windows",
+      "group": "QHD (2K) 2560×1440",
+      "label": "2560×1440 · 150%",
+      "physical": [
+        2560,
+        1440
+      ],
+      "scale": 1.5
+    },
+    {
+      "id": "win-3840-100",
+      "platform": "Windows",
+      "group": "4K UHD 3840×2160",
+      "label": "3840×2160 · 100%",
+      "physical": [
+        3840,
+        2160
+      ],
+      "scale": 1
+    },
+    {
+      "id": "win-3840-150",
+      "platform": "Windows",
+      "group": "4K UHD 3840×2160",
+      "label": "3840×2160 · 150%",
+      "physical": [
+        3840,
+        2160
+      ],
+      "scale": 1.5
+    },
+    {
+      "id": "win-3840-200",
+      "platform": "Windows",
+      "group": "4K UHD 3840×2160",
+      "label": "3840×2160 · 200%",
+      "physical": [
+        3840,
+        2160
+      ],
+      "scale": 2
+    },
+    {
+      "id": "win-1366-100",
+      "platform": "Windows",
+      "group": "노트북",
+      "label": "1366×768 · 100%",
+      "physical": [
+        1366,
+        768
+      ],
+      "scale": 1
+    },
+    {
+      "id": "win-1920x1200-125",
+      "platform": "Windows",
+      "group": "노트북",
+      "label": "1920×1200 · 125%",
+      "physical": [
+        1920,
+        1200
+      ],
+      "scale": 1.25
+    },
+    {
+      "id": "win-1920x1200-150",
+      "platform": "Windows",
+      "group": "노트북",
+      "label": "1920×1200 · 150%",
+      "physical": [
+        1920,
+        1200
+      ],
+      "scale": 1.5
+    },
+    {
+      "id": "win-2560x1600-150",
+      "platform": "Windows",
+      "group": "노트북",
+      "label": "2560×1600 · 150%",
+      "physical": [
+        2560,
+        1600
+      ],
+      "scale": 1.5
+    },
+    {
+      "id": "win-2880x1800-200",
+      "platform": "Windows",
+      "group": "노트북",
+      "label": "2880×1800 · 200%",
+      "physical": [
+        2880,
+        1800
+      ],
+      "scale": 2
+    },
+    {
+      "id": "win-2880x1920-200",
+      "platform": "Windows",
+      "group": "노트북",
+      "label": "2880×1920 · 200% (Surface Pro 류)",
+      "physical": [
+        2880,
+        1920
+      ],
+      "scale": 2
+    },
+    {
+      "id": "win-uw-2560x1080",
+      "platform": "Windows",
+      "group": "울트라와이드",
+      "label": "2560×1080 · 100%",
+      "physical": [
+        2560,
+        1080
+      ],
+      "scale": 1
+    },
+    {
+      "id": "win-uw-3440x1440",
+      "platform": "Windows",
+      "group": "울트라와이드",
+      "label": "3440×1440 · 100%",
+      "physical": [
+        3440,
+        1440
+      ],
+      "scale": 1
+    },
+    {
+      "id": "win-1920-100-half",
+      "platform": "Windows",
+      "group": "창 반쪽 (스냅)",
+      "label": "1920×1080 · 100% · 반쪽",
+      "physical": [
+        960,
+        1080
+      ],
+      "scale": 1
+    },
+    {
+      "id": "win-1920-125-half",
+      "platform": "Windows",
+      "group": "창 반쪽 (스냅)",
+      "label": "1920×1080 · 125% · 반쪽",
+      "physical": [
+        960,
+        1080
+      ],
+      "scale": 1.25
+    },
+    {
+      "id": "win-2560-100-half",
+      "platform": "Windows",
+      "group": "창 반쪽 (스냅)",
+      "label": "2560×1440 · 100% · 반쪽",
+      "physical": [
+        1280,
+        1440
+      ],
+      "scale": 1
+    }
   ],
-  "detailDefaults": ["iphone-17-pro", "galaxy-s25", "ipad-pro-11-m4:landscape", "mac-air-13", "win-1920-100"]
+  "detailDefaults": [
+    "iphone-17-pro",
+    "galaxy-s25",
+    "ipad-pro-11-m4:landscape",
+    "mac-air-13",
+    "win-1920-100"
+  ]
 }

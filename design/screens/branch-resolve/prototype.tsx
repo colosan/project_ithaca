@@ -1,7 +1,7 @@
 // branch-resolve prototype — ADR-0002 §5: resolve an offline branch copy by editing both sides, not by picking one.
 // Interactive: bring a copy paragraph over or keep the current one; finishing is enabled once every pair is resolved.
 import { useState, type ReactNode } from "react";
-import { color, editor, opacity, radius, size, space, type, useFrame, useNavigate, useT } from "@ithaca/kit";
+import { color, editor, opacity, radius, safePadding, size, space, type, useFrame, useNavigate, useT } from "@ithaca/kit";
 
 export const states = ["default"] as const;
 type State = (typeof states)[number];
@@ -48,7 +48,7 @@ interface Resolver {
 }
 
 export default function BranchResolve({ state: _state }: { state: State }) {
-  const { sizeClass, sample } = useFrame();
+  const { sizeClass, sample, safeArea } = useFrame();
   const [main, setMain] = useState(sample.branch.main);
   const [resolved, setResolved] = useState<Set<number>>(new Set());
   const pairs: Pair[] = main.map((m, i) => ({ main: m, copy: sample.branch.copy[i] }));
@@ -64,7 +64,7 @@ export default function BranchResolve({ state: _state }: { state: State }) {
     keepMain: (i) => setResolved((r) => new Set(r).add(i)),
   };
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body, ...safePadding(safeArea) }}>
       <Header done={resolved.size} total={changed.length} />
       {sizeClass === "compact" ? <SwipeCards r={resolver} /> : <SideBySide r={resolver} />}
     </div>
