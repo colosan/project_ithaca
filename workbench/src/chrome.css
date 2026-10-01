@@ -286,3 +286,5 @@ code { font: 12px ui-monospace, "JetBrains Mono", monospace; }
 .wb-offstage-down { bottom: 12px; }
 .wb-back { padding: 4px 9px; }
 .wb-planned-banner button { margin-right: 8px; }
+.wb-cap-title { white-space: nowrap; }
+.wb-fold-btn { border: 0; padding: 0 4px; color: var(--wb-muted); background: none; }

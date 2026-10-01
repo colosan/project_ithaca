@@ -12,6 +12,8 @@ export function ScreenList({ theme, locale, onOpen }: {
   onOpen: (slug: string, state: string | null) => void;
 }) {
   const [previewId, setPreviewId] = usePref("list.preview", "iphone-15");
+  const [collapsed, setCollapsed] = usePref<string[]>("canvas.collapsed", ["app-shell"]);
+  const toggle = (slug: string) => setCollapsed((l) => (l.includes(slug) ? l.filter((s) => s !== slug) : [...l, slug]));
   const vp = viewportById[previewId] ?? viewports[0];
   const w = vp.width <= 600 ? CARD_W.phone : CARD_W.wide;
   const k = w / vp.width;
@@ -46,13 +48,18 @@ export function ScreenList({ theme, locale, onOpen }: {
         return (
           <section key={s.slug} className="wb-list-screen">
             <header>
+              {s.states.length > 1 && (
+                <button className="wb-fold-btn" onClick={() => toggle(s.slug)} title={collapsed.includes(s.slug) ? "펴기 — 모든 상태 보기" : "접기 — 대표 상태만"}>
+                  {collapsed.includes(s.slug) ? "▸" : "▾"}
+                </button>
+              )}
               <h2>{s.meta.title[locale]}</h2>
               <code>{s.slug}</code>
               <span className="wb-muted">v{s.meta.version} · 상태 {s.states.length} · 나가는 경로 {out} · 들어오는 경로 {inn}</span>
             </header>
             {s.meta.description && <p className="wb-muted">{s.meta.description}</p>}
             <div className="wb-list-cards">
-              {s.states.map((state) => (
+              {(collapsed.includes(s.slug) ? s.states.slice(0, 1) : s.states).map((state) => (
                 <button key={state} className="wb-list-card" onClick={() => onOpen(s.slug, state)} style={{ width: w }}>
                   <div className="wb-list-thumb" style={{ width: w, height: h }}>
                     <div style={{ transform: `scale(${k})`, transformOrigin: "0 0" }}>
@@ -61,7 +68,10 @@ export function ScreenList({ theme, locale, onOpen }: {
                       </Device>
                     </div>
                   </div>
-                  <span className="wb-chip">{state}</span>
+                  <span className="wb-chip">
+                    {state}
+                    {collapsed.includes(s.slug) && s.states.length > 1 ? ` +${s.states.length - 1}` : ""}
+                  </span>
                 </button>
               ))}
             </div>

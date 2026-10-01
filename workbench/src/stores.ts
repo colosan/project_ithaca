@@ -1,5 +1,5 @@
 // Undoable workbench state: the detail view's frames and the canvas card positions.
-import type { FrameSpec } from "./Frame";
+import { SECTORS, type FrameSpec } from "./Frame";
 import { record } from "./history";
 import { resetPrefs, restorePrefs, snapshotPrefs } from "./prefs";
 import { detailDefaults, viewportById } from "./registry";
@@ -10,20 +10,31 @@ import { createStore } from "./store";
 const FRAMES_KEY = "ithaca.workbench.detail.frames";
 
 let frameSeq = 0;
-export const newFrame = (presetId: string): FrameSpec => {
+/** "ipad-pro-11-m4" or "ipad-pro-11-m4:landscape". */
+export const newFrame = (spec: string): FrameSpec => {
+  const [presetId, orientation] = spec.split(":");
   const v = viewportById[presetId];
-  return { id: `f${Date.now()}-${frameSeq++}`, preset: v.id, platform: v.os, w: v.width, h: v.height };
+  const rotate = orientation === "landscape" ? v.width < v.height : orientation === "portrait" ? v.width > v.height : false;
+  return { id: `f${Date.now()}-${frameSeq++}`, preset: v.id, platform: v.os, w: rotate ? v.height : v.width, h: rotate ? v.width : v.height };
 };
-export const defaultFrames = () => detailDefaults.filter((id) => viewportById[id]).map(newFrame);
+export const defaultFrames = () => detailDefaults.filter((spec) => viewportById[spec.split(":")[0]]).map(newFrame);
+
+/** The device row holds exactly one frame per platform, in sector order; missing platforms get their default. */
+export function normalizeDevices(list: FrameSpec[]): FrameSpec[] {
+  const defaults = defaultFrames();
+  return SECTORS.map((s) => list.find((f) => f.platform === s.os) ?? defaults.find((f) => f.platform === s.os)).filter(
+    (f): f is FrameSpec => !!f,
+  );
+}
 
 function loadFrames(): FrameSpec[] {
   try {
     const raw = localStorage.getItem(FRAMES_KEY);
-    if (!raw) return defaultFrames();
+    if (!raw) return normalizeDevices([]);
     // Frames saved before `platform` existed get it back from their preset.
-    return (JSON.parse(raw) as FrameSpec[]).map((f) => (f.platform ? f : { ...f, platform: viewportById[f.preset ?? ""]?.os ?? "ios" }));
+    return normalizeDevices((JSON.parse(raw) as FrameSpec[]).map((f) => (f.platform ? f : { ...f, platform: viewportById[f.preset ?? ""]?.os ?? "ios" })));
   } catch {
-    return defaultFrames();
+    return normalizeDevices([]);
   }
 }
 
@@ -50,7 +61,7 @@ export const positionsStore = createStore<Positions | null>(null, (positions) =>
 /** Frames, canvas positions and every view setting back to their defaults. Undo restores all of it. */
 export function resetAll() {
   const before = { prefs: snapshotPrefs(), frames: framesStore.get(), positions: positionsStore.get() };
-  const frames = defaultFrames();
+  const frames = normalizeDevices([]);
   const apply = () => {
     resetPrefs();
     framesStore.set(frames);

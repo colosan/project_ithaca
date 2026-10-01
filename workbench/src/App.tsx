@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import type { Locale, Platform, Theme } from "@ithaca/kit";
+import { sizeClasses, type Locale, type Platform, type SizeClass, type Theme } from "@ithaca/kit";
 import { Canvas } from "./Canvas";
-import { CAPTION_H, CAPTION_W, presetsOf, ResizableFrame, SECTORS, type FrameEdit, type FrameSpec } from "./Frame";
+import { captionSize, ResizableFrame, type FrameEdit, type FrameSpec } from "./Frame";
 import { redo, undo, useHistory } from "./history";
 import { InfoPanel } from "./InfoPanel";
 import { clamp, drag, useWheelPanZoom, zoomAround, type View } from "./panzoom";
@@ -9,7 +9,7 @@ import { usePref } from "./prefs";
 import { planned, plannedBySlug, screenBySlug, screens, viewportById, type PlannedScreen, type Screen } from "./registry";
 import { ScreenList } from "./ScreenList";
 import { commit, gesture, useStore } from "./store";
-import { defaultFrames, framesStore, newFrame, resetAll } from "./stores";
+import { framesStore, normalizeDevices, resetAll } from "./stores";
 import { Sweep } from "./Sweep";
 import { TokensPage } from "./TokensPage";
 
@@ -187,105 +187,87 @@ function ScreenSwitcher({ current, locale }: { current: string; locale: Locale }
   );
 }
 
-// ── Screen detail: device sectors on a pannable stage ────────────────────
+// ── Screen detail: four base screens on top, one device per family below ─
 
 // All spacing is in screen px, so gaps stay generous whatever the zoom.
 const FRAME_GAP = 48;
-const SECTOR_GAP = 80;
-const SECTOR_PAD = 20;
-const SECTOR_HEAD = 40;
-const EMPTY_SECTOR_H = 120;
+const SECTION_GAP = 80;
+const SECTION_PAD = 20;
+const SECTION_HEAD = 40;
 const MARGIN = 48;
 const ROW_LABEL = 28;
 const ZOOM = { min: 0.05, max: 2 };
 
-type SectorGroup = { os: Platform; name: string; frames: FrameSpec[] };
+/** The four base screens: one per layout size class, at its reference size (design/tokens/layout.json). */
+const BASE_LABEL: Record<SizeClass, string> = { compact: "폰", medium: "태블릿 세로", expanded: "태블릿 가로", large: "데스크톱" };
+const BASE_OS: Record<SizeClass, Platform> = { compact: "ios", medium: "ipados", expanded: "ipados", large: "macos" };
+const baseFrames: FrameSpec[] = sizeClasses.map((c) => ({
+  id: `base-${c.name}`,
+  preset: null,
+  platform: BASE_OS[c.name],
+  w: c.referenceViewport[0],
+  h: c.referenceViewport[1],
+}));
+const baseTitle = (f: FrameSpec) => BASE_LABEL[f.id.replace("base-", "") as SizeClass];
 
-/** Size of one sector box in layout px at zoom z (frames in a single row, captions counter-zoomed). */
-function sectorBox(g: SectorGroup, z: number) {
-  const inner = g.frames.length
-    ? g.frames.reduce((n, f) => n + Math.max(f.w, CAPTION_W / z), 0) + (FRAME_GAP / z) * (g.frames.length - 1)
-    : CAPTION_W / z;
-  const tallest = g.frames.length ? Math.max(...g.frames.map((f) => f.h + CAPTION_H / z)) : EMPTY_SECTOR_H / z;
-  return { w: inner + (SECTOR_PAD * 2) / z, h: tallest + (SECTOR_PAD * 2 + SECTOR_HEAD) / z };
-}
-
-/** Sector boxes wrapped into rows within wrapW (layout px). Returns the content size in layout px. */
-function layoutSectors(groups: SectorGroup[], wrapW: number, z: number) {
-  const gap = SECTOR_GAP / z;
-  let height = 0;
-  let line = 0;
-  let maxLine = 0;
-  let rowH = 0;
-  for (const g of groups) {
-    const b = sectorBox(g, z);
-    if (line > 0 && line + gap + b.w > wrapW) {
-      height += rowH + gap;
-      maxLine = Math.max(maxLine, line);
-      line = 0;
-      rowH = 0;
-    }
-    line += (line > 0 ? gap : 0) + b.w;
-    rowH = Math.max(rowH, b.h);
+/** Frames in rows of `perRow` inside a section box, in layout px at zoom z (captions are counter-zoomed). */
+function gridBox(frames: FrameSpec[], perRow: number, z: number) {
+  const cap = (f: FrameSpec) => captionSize(f.id.startsWith("base-"));
+  let w = 0;
+  let h = 0;
+  for (let i = 0; i < frames.length; i += perRow) {
+    const row = frames.slice(i, i + perRow);
+    const rowW = row.reduce((n, f) => n + Math.max(f.w, cap(f).w / z), 0) + (FRAME_GAP / z) * (row.length - 1);
+    w = Math.max(w, rowW);
+    h += Math.max(...row.map((f) => f.h + cap(f).h / z + 6 / z)) + (i > 0 ? FRAME_GAP / z : 0);
   }
-  return { w: Math.max(maxLine, line), h: height + rowH };
+  // Padding plus the 1px border on each side (box-sizing: border-box), so wrapping matches this math.
+  return { w: w + (SECTION_PAD * 2 + 2) / z, h: h + (SECTION_PAD * 2 + SECTION_HEAD + 2) / z };
 }
 
 function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state: string; themes: Theme[]; locale: Locale }) {
-  const frames = useStore(framesStore);
-  const [visible, setVisible] = usePref<Platform[]>("detail.sectors", SECTORS.map((s) => s.os));
+  const devices = useStore(framesStore);
   const [showIssues, setShowIssues] = usePref("detail.issues", true);
   const [sweep, setSweep] = usePref("detail.sweep", false);
   const [info, setInfo] = usePref("detail.info", true);
-  // null = fit (recomputed whenever the stage or frames change); a View once you pan or zoom yourself.
+  // null = fit (recomputed whenever the stage changes); a View once you pan or zoom yourself.
   const [manual, setManual] = usePref<View | null>("detail.view", null);
   const [stageRef, stage] = useSize<HTMLDivElement>();
 
-  // Focus: one frame alone, large, still interactive. Esc or the exit button returns.
-  // A pref (not local state) so focus survives clicking through to another screen.
+  // Focus: one frame alone, large, still interactive. A pref so it survives clicking through to another screen.
   const [focusId, setFocusId] = usePref<string | null>("detail.focus", null);
-  const focused = frames.find((f) => f.id === focusId) ?? null;
+  const focused = [...baseFrames, ...devices].find((f) => f.id === focusId) ?? null;
   const focus = (id: string | null) => {
     setFocusId(id);
-    setManual(null); // re-fit for the new set of frames
+    setManual(null);
   };
 
-  const groups: SectorGroup[] = focused
-    ? SECTORS.filter((s) => s.os === focused.platform).map((s) => ({ ...s, frames: [focused] }))
-    : SECTORS.filter((s) => visible.includes(s.os)).map((s) => ({ ...s, frames: frames.filter((f) => f.platform === s.os) }));
-
   /**
-   * Fit: show everything if that is still readable (zoom ≥ FIT_READABLE). Otherwise fit the widest sector to the
-   * width and let the rest continue below — wheel scrolls down. Captions, headers and gaps keep their screen size,
-   * so in a small window "everything at once" would only be reachable at an unreadable zoom.
+   * Fit: the four base screens in one row, filling the stage. The device row continues below (wheel / chip).
+   * In focus, width decides up to actual size and a tall frame continues below.
    */
   const fit = (() => {
-    const FIT_READABLE = 0.22;
     const availW = Math.max(1, stage.w - MARGIN * 2);
     const availH = Math.max(1, stage.h - MARGIN * 2);
-    const rowLabels = themes.length > 1 ? themes.length * ROW_LABEL : 0;
-    const totalH = (box: { h: number }, z: number) => (box.h * themes.length + (SECTOR_GAP / z) * (themes.length - 1)) * z + rowLabels;
-    let z = 1;
-    let box = layoutSectors(groups, availW / z, z);
-    if (focused) {
-      // Focus is for looking closely: width decides, up to actual size; a tall frame continues below (wheel).
-      while (z > ZOOM.min && sectorBox(groups[0], z).w * z > availW) z *= 0.96;
-      box = layoutSectors(groups, availW / z, z);
-      return { wrapW: availW / z, view: { k: z, x: (stage.w - box.w * z) / 2, y: Math.max(MARGIN, (stage.h - totalH(box, z)) / 2) } as View };
+    const rowLabel = themes.length > 1 ? ROW_LABEL : 0;
+    const top = focused ? [focused] : baseFrames;
+    const fits = (perRow: number, z: number) => {
+      const b = gridBox(top, perRow, z);
+      return b.w * z <= availW && (focused || b.h * z + rowLabel <= availH);
+    };
+    // Base screens: one row of four, or 2×2 — whichever shows them larger.
+    let best = { perRow: top.length, z: ZOOM.min };
+    for (const perRow of focused ? [1] : [top.length, 2]) {
+      let z = 1;
+      while (z > ZOOM.min && !fits(perRow, z)) z *= 0.96;
+      if (z > best.z) best = { perRow, z };
     }
-    while (z > FIT_READABLE && totalH(box, z) > availH) {
-      z *= 0.96;
-      box = layoutSectors(groups, availW / z, z);
-    }
-    if (totalH(box, z) > availH) {
-      // Width-only: the largest zoom at which no single sector is wider than the stage.
-      z = 1;
-      while (z > ZOOM.min && Math.max(...groups.map((g) => sectorBox(g, z).w)) * z > availW) z *= 0.96;
-      box = layoutSectors(groups, availW / z, z);
-    }
+    const z = best.z;
+    const box = gridBox(top, best.perRow, z);
     return {
-      wrapW: availW / z,
-      view: { k: z, x: (stage.w - box.w * z) / 2, y: Math.max(MARGIN, (stage.h - totalH(box, z)) / 2) } as View,
+      z,
+      sectionW: box.w,
+      view: { k: z, x: (stage.w - box.w * z) / 2, y: focused ? MARGIN : Math.max(MARGIN, (stage.h - box.h * z - rowLabel) / 2) } as View,
     };
   })();
   const view = manual ?? fit.view;
@@ -296,7 +278,7 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
 
   useWheelPanZoom(stageRef, () => viewRef.current, setView, ZOOM);
 
-  // Sectors scrolled out of the stage, so you know there is more above or below (and can jump there).
+  // Sections scrolled out of the stage, so you know there is more above or below (and can jump there).
   const [offstage, setOffstage] = useState<{ above: string[]; below: string[] }>({ above: [], below: [] });
   useEffect(() => {
     const id = setTimeout(() => {
@@ -315,7 +297,7 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
     }, 80);
     return () => clearTimeout(id);
   });
-  /** Pan so the named sector's top sits at the margin. */
+  /** Pan so the named section's top sits at the margin. */
   const reveal = (name: string) => {
     const el = stageRef.current?.querySelector<HTMLElement>(`.wb-sector[data-name="${name}"]`);
     if (!el || !stageRef.current) return;
@@ -341,10 +323,7 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
     };
   }, []);
 
-  /**
-   * Pan by dragging the empty stage or sector boxes, with Space held, or with the middle button.
-   * Prototypes keep their own clicks; captions and resize handles keep theirs.
-   */
+  /** Pan by dragging the empty stage or section boxes, with Space held, or with the middle button. */
   const onStageDown = (e: ReactPointerEvent) => {
     const t = e.target as HTMLElement;
     const forced = spaceDown || e.button === 1;
@@ -362,7 +341,7 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
 
   const zoomTo = (z: number) => setView(zoomAround(view, clamp(z, ZOOM.min, ZOOM.max), stage.w / 2, stage.h / 2));
 
-  // ── Frame edits (all undoable) ──
+  // Device frame edits (swap, rotate, resize) are undoable; a resize drag is one step.
   const replace = (list: FrameSpec[], f: FrameSpec) => list.map((x) => (x.id === f.id ? f : x));
   const dragRef = useRef<ReturnType<typeof gesture<FrameSpec[]>> | null>(null);
   const edit: FrameEdit = {
@@ -376,23 +355,9 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
       dragRef.current = null;
     },
   };
-  const sectorName = (os: Platform) => SECTORS.find((s) => s.os === os)!.name;
-  /** Swap with the previous/next frame of the same sector. */
-  const move = (f: FrameSpec, dir: -1 | 1) => {
-    const list = framesStore.get();
-    const same = list.map((x, i) => [x, i] as const).filter(([x]) => x.platform === f.platform);
-    const at = same.findIndex(([x]) => x.id === f.id);
-    const other = same[at + dir];
-    if (!other) return;
-    const next = [...list];
-    [next[same[at][1]], next[other[1]]] = [next[other[1]], next[same[at][1]]];
-    commit(framesStore, next, `${sectorName(f.platform)} 프레임 순서`);
-  };
-  const add = (presetId: string) => {
-    const f = newFrame(presetId);
-    commit(framesStore, [...framesStore.get(), f], `${sectorName(f.platform)} 프레임 추가`);
-  };
+  const noEdit: FrameEdit = { commit: () => {}, dragStart: () => {}, dragMove: () => {}, dragEnd: () => {} };
 
+  // Esc leaves focus before the app-level Esc goes home (capture phase runs first).
   useEffect(() => {
     const onEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape" && focusId && !isTyping(e)) {
@@ -424,6 +389,41 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
 
   const zoomOptions: [string, string][] = [["fit", "맞춤"], ["0.25", "25%"], ["0.5", "50%"], ["1", "100%"]];
 
+  const frameFor = (f: FrameSpec, theme: Theme, base: boolean) => (
+    <ResizableFrame
+      key={f.id}
+      frame={f}
+      zoom={k}
+      theme={theme}
+      locale={locale}
+      nodeRef={`${screen.slug}#${state}`}
+      showIssues={showIssues}
+      edit={base ? noEdit : edit}
+      fixedTitle={base ? baseTitle(f) : undefined}
+      onNavigate={navigate}
+      onFocus={focused ? undefined : () => focus(f.id)}
+    >
+      <screen.Prototype key={state} state={state} />
+    </ResizableFrame>
+  );
+
+  const section = (name: string, frames: FrameSpec[], theme: Theme, base: boolean, hint?: string) => (
+    <section
+      key={name}
+      className="wb-sector"
+      data-name={name}
+      style={{ width: fit.sectionW + 2 / k, padding: SECTION_PAD / k, paddingTop: 0, borderRadius: 14 / k, borderWidth: 1 / k, marginBottom: SECTION_GAP / k }}
+    >
+      <header className="wb-sector-head" style={{ zoom: 1 / k, height: SECTION_HEAD }}>
+        <b>{name}</b>
+        {hint && <span className="wb-muted">{hint}</span>}
+      </header>
+      <div className="wb-sector-frames" style={{ gap: FRAME_GAP / k, flexWrap: "wrap" }}>
+        {frames.map((f) => frameFor(f, theme, base))}
+      </div>
+    </section>
+  );
+
   return (
     <div className="wb-detail" style={{ gridTemplateColumns: info ? "1fr auto" : "1fr" }}>
       <main className="wb-detail-main">
@@ -431,21 +431,9 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
           <Seg label="상태" value={state} options={screen.states.map((s) => [s, s] as const)} onChange={(s) => open(screen.slug, s)} />
           {focused && (
             <button className="wb-focus-exit" onClick={() => focus(null)} title="모든 프레임 보기 (Esc)">
-              ◱ 전체 보기 <span className="wb-muted">— {viewportById[focused.base ?? focused.preset ?? ""]?.label ?? "직접 조절"} 만 보는 중</span>
+              ◱ 전체 보기 <span className="wb-muted">— {focused.id.startsWith("base-") ? baseTitle(focused) : viewportById[focused.preset ?? focused.base ?? ""]?.label ?? "직접 조절"} 만 보는 중</span>
             </button>
           )}
-          <div className="wb-seg" title="보고 싶은 기기 구역만 켠다" style={focused ? { display: "none" } : undefined}>
-            <span>기기</span>
-            {SECTORS.map((s) => (
-              <button
-                key={s.os}
-                className={visible.includes(s.os) ? "wb-active" : undefined}
-                onClick={() => setVisible((v) => (v.includes(s.os) ? v.filter((x) => x !== s.os) : SECTORS.map((x) => x.os).filter((x) => x === s.os || v.includes(x))))}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
           <div className="wb-seg">
             <span>배율</span>
             {zoomOptions.map(([v, text]) => (
@@ -459,7 +447,7 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
             ))}
             <span className="wb-muted wb-zoom">{Math.round(k * 100)}%</span>
           </div>
-          <button onClick={() => commit(framesStore, defaultFrames(), "프레임 초기화")} title="모든 구역을 기본 프레임으로 (Ctrl+Z 로 되돌림)">프레임 초기화</button>
+          <button onClick={() => commit(framesStore, normalizeDevices([]), "기기 초기화")} title="기기별 프레임을 대표 모델로 (Ctrl+Z 로 되돌림)">기기 초기화</button>
           <label className="wb-check" title="잘림 · 넘침 · 화면 밖 텍스트를 빨간 테두리로, 말줄임을 점선으로">
             <input type="checkbox" checked={showIssues} onChange={(e) => setShowIssues(e.target.checked)} /> 문제 표시
           </label>
@@ -470,7 +458,7 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
           <button onClick={() => setInfo((v) => !v)} title="정보 패널 (I)">{info ? "정보 ⟩" : "⟨ 정보"}</button>
           <span
             className="wb-hint"
-            title="빈 곳·프레임 드래그 / 휠: 이동 · Ctrl+휠: 확대 · ← →: 상태 · [ ]: 화면 · F: 맞춤 · I: 정보 · Esc: 홈 · Ctrl+Z / Ctrl+Shift+Z: 되돌리기 / 다시 · 프레임 모서리 끌기: 크기 · ‹ ›: 순서 · ⧉: 참조 복사"
+            title="빈 곳 드래그 · 휠: 이동 · Space+드래그: 어디서나 이동 · Ctrl+휠: 확대 · ← →: 상태 · [ ]: 화면 · F: 맞춤 · I: 정보 · Esc: 홈 · Ctrl+Z: 되돌리기 · ⤢: 크게 · ⟲: 회전 · ⧉: 참조 복사"
           >
             ?
           </span>
@@ -482,57 +470,14 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
           <div className="wb-stage-layer" style={{ transform: `translate(${view.x}px, ${view.y}px)` }}>
             <div className="wb-matrix" style={{ zoom: k, ["--wb-z" as string]: k }}>
               {themes.map((theme) => (
-                <section key={theme} className="wb-row" style={{ marginBottom: SECTOR_GAP / k }}>
+                <section key={theme} className="wb-row">
                   {themes.length > 1 && <h4 style={{ zoom: 1 / k }}>{theme === "light" ? "라이트" : "다크"}</h4>}
-                  <div className="wb-sectors" style={{ width: fit.wrapW, gap: SECTOR_GAP / k }}>
-                    {groups.map((g) => (
-                      <section
-                        key={g.os}
-                        className="wb-sector"
-                        data-name={g.name}
-                        style={{ padding: SECTOR_PAD / k, paddingTop: 0, borderRadius: 14 / k, borderWidth: 1 / k }}
-                      >
-                        <header className="wb-sector-head" style={{ zoom: 1 / k, height: SECTOR_HEAD }}>
-                          <b>{g.name}</b>
-                          <span className="wb-muted">{g.frames.length}</span>
-                          {!focused && <select value="" onChange={(e) => e.target.value && add(e.target.value)} title={`${g.name} 기기 추가`}>
-                            <option value="">＋ 추가</option>
-                            {presetsOf(g.os).map((v) => (
-                              <option key={v.id} value={v.id}>
-                                {v.label} ({v.width}×{v.height})
-                              </option>
-                            ))}
-                          </select>}
-                        </header>
-                        <div className="wb-sector-frames" style={{ gap: FRAME_GAP / k }}>
-                          {g.frames.length === 0 && (
-                            <div className="wb-sector-empty" style={{ zoom: 1 / k, width: CAPTION_W, height: EMPTY_SECTOR_H }}>
-                              비어 있음 — ＋ 추가
-                            </div>
-                          )}
-                          {g.frames.map((f, i) => (
-                            <ResizableFrame
-                              key={f.id}
-                              frame={f}
-                              zoom={k}
-                              theme={theme}
-                              locale={locale}
-                              nodeRef={`${screen.slug}#${state}`}
-                              showIssues={showIssues}
-                              edit={edit}
-                              onNavigate={navigate}
-                              onFocus={focused ? undefined : () => focus(f.id)}
-                              onMoveLeft={i > 0 ? () => move(f, -1) : undefined}
-                              onMoveRight={i < g.frames.length - 1 ? () => move(f, 1) : undefined}
-                              onRemove={() => commit(framesStore, framesStore.get().filter((x) => x.id !== f.id), `${g.name} 프레임 빼기`)}
-                            >
-                              <screen.Prototype key={state} state={state} />
-                            </ResizableFrame>
-                          ))}
-                        </div>
-                      </section>
-                    ))}
-                  </div>
+                  {focused
+                    ? section(focused.id.startsWith("base-") ? "기본 화면" : "기기별", [focused], theme, focused.id.startsWith("base-"))
+                    : [
+                        section("기본 4화면", baseFrames, theme, true, "레이아웃이 바뀌는 4구간의 대표 크기"),
+                        section("기기별", devices, theme, false, "제품군마다 대표 1개 · 이름을 눌러 다른 모델로"),
+                      ]}
                 </section>
               ))}
             </div>

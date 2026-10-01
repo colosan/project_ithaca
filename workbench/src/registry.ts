@@ -141,6 +141,8 @@ export interface Viewport {
   /** Display name from viewports.json ("iOS", "Windows", …). */
   platform: string;
   os: Platform;
+  /** Family heading in pickers ("iPhone 17", "QHD 2560×1440", …). */
+  group: string;
   label: string;
   /** Logical size (pt · dp · CSS px). For Windows presets this is physical ÷ scale. */
   width: number;
@@ -151,7 +153,7 @@ export interface Viewport {
 
 const OS: Record<string, Platform> = { iOS: "ios", iPadOS: "ipados", Android: "android", macOS: "macos", Windows: "windows" };
 
-type RawPreset = { id: string; platform: string; label: string; logical?: number[]; physical?: number[]; scale?: number };
+type RawPreset = { id: string; platform: string; group?: string; label: string; logical?: number[]; physical?: number[]; scale?: number };
 
 export const viewports: Viewport[] = (viewportsJson.presets as RawPreset[]).map((p) => {
   const scale = p.scale ?? 1;
@@ -160,6 +162,7 @@ export const viewports: Viewport[] = (viewportsJson.presets as RawPreset[]).map(
     id: p.id,
     platform: p.platform,
     os: OS[p.platform] ?? "ios",
+    group: p.group ?? p.platform,
     label: p.label,
     width: w,
     height: h,
@@ -169,4 +172,5 @@ export const viewports: Viewport[] = (viewportsJson.presets as RawPreset[]).map(
 });
 
 export const viewportById = Object.fromEntries(viewports.map((v) => [v.id, v]));
+/** Default frames: preset ids, optionally suffixed ":landscape". */
 export const detailDefaults: string[] = viewportsJson.detailDefaults;

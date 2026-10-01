@@ -3,7 +3,7 @@ import {
   type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode,
 } from "react";
 import { FrameContext, sample, sizeClassFor, type FrameInfo, type Locale, type Platform, type Theme } from "@ithaca/kit";
-import { viewportById, viewports } from "./registry";
+import { viewportById, viewports, type Viewport } from "./registry";
 
 // ── Issue detection (J3) ─────────────────────────────────────────────────
 
@@ -118,10 +118,11 @@ export interface FrameSpec {
   h: number;
 }
 
-/** Minimum on-screen width of a frame slot, so its caption controls always fit (screen px). */
-export const CAPTION_W = 220;
-/** Two caption rows (screen px). */
-export const CAPTION_H = 60;
+/**
+ * On-screen caption size (screen px): a frame slot is at least this wide so the controls fit.
+ * Device frames carry a picker and size inputs on two rows; fixed base frames need one short row.
+ */
+export const captionSize = (fixed: boolean) => (fixed ? { w: 190, h: 30 } : { w: 220, h: 60 });
 
 /** Device sectors of the detail view. A frame lives in exactly one and is edited only within it. */
 export const SECTORS: { os: Platform; name: string }[] = [
@@ -159,12 +160,27 @@ export function resized(frame: FrameSpec, w: number, h: number, rotate = false):
   // Only the rotate button flips orientation; dragging or typing keeps it.
   const portrait = rotate ? w <= h : frame.w <= frame.h;
   [w, h] = clampSize(frame.platform, w, h, portrait);
-  const match = viewports.find((v) => v.os === frame.platform && v.width === w && v.height === h);
+  // A preset matches in either orientation — a rotated iPhone is still that iPhone.
+  const match = viewports.find((v) => v.os === frame.platform && ((v.width === w && v.height === h) || (v.width === h && v.height === w)));
   if (match) return { ...frame, w, h, preset: match.id, base: null };
   return { ...frame, w, h, preset: null, base: frame.preset ?? frame.base ?? null };
 }
 
 export const presetsOf = (os: Platform) => viewports.filter((v) => v.os === os);
+
+/** A platform's presets grouped by family, in file order, for <optgroup>s. */
+export function presetGroups(os: Platform): [string, Viewport[]][] {
+  const out: [string, Viewport[]][] = [];
+  for (const v of presetsOf(os)) {
+    const g = out.find(([name]) => name === v.group);
+    if (g) g[1].push(v);
+    else out.push([v.group, [v]]);
+  }
+  return out;
+}
+
+/** "iPad Pro 11\" (M4) · 가로" when a portrait preset is shown rotated. */
+export const rotatedSuffix = (v: Viewport, w: number, h: number) => (w > h && v.width < v.height ? " · 가로" : w < h && v.width > v.height ? " · 세로" : "");
 
 // ── ResizableFrame: a Device with its platform's presets, drag handles and tools ──
 
@@ -191,14 +207,15 @@ interface ResizableFrameProps {
   onNavigate?: (to: string) => void;
   /** Show only this frame, large. Undefined when already focused. */
   onFocus?: () => void;
-  /** Reorder within the sector; undefined at that end. */
-  onMoveLeft?: () => void;
-  onMoveRight?: () => void;
-  onRemove: () => void;
+  /**
+   * A fixed reference frame (one per layout size class): shows this title instead of the device picker and has no
+   * resize, rotate or size inputs.
+   */
+  fixedTitle?: string;
   children: ReactNode;
 }
 
-export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues, edit, onNavigate, onFocus, onMoveLeft, onMoveRight, onRemove, children }: ResizableFrameProps) {
+export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues, edit, onNavigate, onFocus, fixedTitle, children }: ResizableFrameProps) {
   const preset = frame.preset ? viewportById[frame.preset] : undefined;
   const base = frame.base ? viewportById[frame.base] : undefined;
   const [issues, setIssues] = useState<Issues>(NO_ISSUES);
@@ -236,7 +253,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
   const setSize = (w: number, h: number, label: string, key?: string, rotate = false) => edit.commit(resized(frame, w, h, rotate), label, key);
 
   const copyRef = async () => {
-    const where = preset ? preset.label : `custom${base ? ` from ${base.label}` : ""}`;
+    const where = fixedTitle ?? (preset ? preset.label + rotatedSuffix(preset, frame.w, frame.h) : `custom${base ? ` from ${base.label}` : ""}`);
     const line = `${nodeRef} · ${frame.platform} ${where} ${frame.w}×${frame.h} (${sizeClassFor(frame.w)}) · ${theme} · ${locale}`;
     try {
       await navigator.clipboard.writeText(line);
@@ -248,25 +265,54 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
   };
 
   return (
-    <figure className="wb-frame" style={{ minWidth: CAPTION_W / zoom }} onDoubleClick={(e) => (e.target as HTMLElement).closest("figcaption") && onFocus?.()}>
+    <figure className="wb-frame" style={{ minWidth: captionSize(!!fixedTitle).w / zoom }} onDoubleClick={(e) => (e.target as HTMLElement).closest("figcaption") && onFocus?.()}>
       {/* Counter-zoomed so it stays at screen size; its screen width matches the slot (frame or CAPTION_W, whichever is wider). */}
-      <figcaption style={{ zoom: 1 / zoom, width: Math.max(frame.w * zoom, CAPTION_W) }}>
+      <figcaption style={{ zoom: 1 / zoom, width: Math.max(frame.w * zoom, captionSize(!!fixedTitle).w) }}>
+        {fixedTitle ? (
+          <div className="wb-cap-row">
+            <b className="wb-cap-title">{fixedTitle}</b>
+            <span className="wb-muted">{frame.w}×{frame.h}</span>
+            <span
+              className="wb-issues"
+              title={`잘림 ${issues.clip} · 넘침 ${issues.spill} · 화면 밖 ${issues.offscreen} · 말줄임 ${issues.ellipsis} (말줄임은 의도된 경우가 많음)`}
+            >
+              {severe ? <b className="wb-issues-on">⚠ {severe}</b> : <span className="wb-ok">✓</span>}
+            </span>
+            <span className="wb-spacer" />
+            {onFocus && <button title="이 프레임만 크게 (더블클릭도 됨)" onClick={onFocus}>⤢</button>}
+            <button title="참조 복사 — agent 에게 붙여넣기" onClick={copyRef}>{copied ? "✓" : "⧉"}</button>
+          </div>
+        ) : (
+        <>
         <div className="wb-cap-row">
+          {fixedTitle ? (
+            <b className="wb-cap-title">{fixedTitle}</b>
+          ) : (
           <select
             value={frame.preset ?? ""}
             onChange={(e) => {
               const v = viewportById[e.target.value];
-              if (v) edit.commit({ ...frame, preset: v.id, w: v.width, h: v.height, base: null }, `기기 · ${v.label}`);
+              if (!v) return;
+              // Keep the frame's current orientation when switching device.
+              const landscape = frame.w > frame.h;
+              const [w, h] = landscape === v.width > v.height ? [v.width, v.height] : [v.height, v.width];
+              edit.commit({ ...frame, preset: v.id, w, h, base: null }, `기기 · ${v.label}`);
             }}
           >
             {/* Only while the size is custom; names the device it started from. */}
             {!preset && <option value="">직접 조절{base ? ` · ${base.label} 기준` : ""}</option>}
-            {presetsOf(frame.platform).map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.label}
-              </option>
+            {presetGroups(frame.platform).map(([group, list]) => (
+              <optgroup key={group} label={group}>
+                {list.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.label}
+                    {v.id === frame.preset ? rotatedSuffix(v, frame.w, frame.h) : ""}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
+          )}
           <span
             className="wb-issues"
             title={`잘림 ${issues.clip} · 넘침 ${issues.spill} · 화면 밖 ${issues.offscreen} · 말줄임 ${issues.ellipsis} (말줄임은 의도된 경우가 많음)`}
@@ -276,27 +322,34 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
           </span>
         </div>
         <div className="wb-cap-row">
-          <span className="wb-size">
-            <input type="number" value={frame.w} onChange={(e) => setSize(Number(e.target.value), frame.h, "폭 입력", `w:${frame.id}`)} />×
-            <input type="number" value={frame.h} onChange={(e) => setSize(frame.w, Number(e.target.value), "높이 입력", `h:${frame.id}`)} />
-          </span>
+          {fixedTitle ? (
+            <span className="wb-muted">{frame.w}×{frame.h}</span>
+          ) : (
+            <span className="wb-size">
+              <input type="number" value={frame.w} onChange={(e) => setSize(Number(e.target.value), frame.h, "폭 입력", `w:${frame.id}`)} />×
+              <input type="number" value={frame.h} onChange={(e) => setSize(frame.w, Number(e.target.value), "높이 입력", `h:${frame.id}`)} />
+            </span>
+          )}
           <span className="wb-spacer" />
           {onFocus && <button title="이 프레임만 크게 (더블클릭도 됨)" onClick={onFocus}>⤢</button>}
-          <button title="왼쪽으로" disabled={!onMoveLeft} onClick={onMoveLeft}>‹</button>
-          <button title="오른쪽으로" disabled={!onMoveRight} onClick={onMoveRight}>›</button>
-          <button title="가로/세로 바꾸기" onClick={() => setSize(frame.h, frame.w, "가로/세로 바꾸기", undefined, true)}>⟲</button>
+          {!fixedTitle && <button title="가로/세로 바꾸기" onClick={() => setSize(frame.h, frame.w, "가로/세로 바꾸기", undefined, true)}>⟲</button>}
           <button title="참조 복사 — agent 에게 붙여넣기" onClick={copyRef}>{copied ? "✓" : "⧉"}</button>
-          <button title="이 프레임 빼기" onClick={onRemove}>✕</button>
         </div>
+        </>
+        )}
       </figcaption>
 
       <div className="wb-resize-box">
         <Device width={frame.w} height={frame.h} platform={frame.platform} theme={theme} locale={locale} onIssues={report} onNavigate={onNavigate} showIssues={showIssues}>
           {children}
         </Device>
-        <span className="wb-handle wb-handle-x" onPointerDown={startDrag("x")} />
-        <span className="wb-handle wb-handle-y" onPointerDown={startDrag("y")} />
-        <span className="wb-handle wb-handle-xy" onPointerDown={startDrag("xy")} />
+        {!fixedTitle && (
+          <>
+            <span className="wb-handle wb-handle-x" onPointerDown={startDrag("x")} />
+            <span className="wb-handle wb-handle-y" onPointerDown={startDrag("y")} />
+            <span className="wb-handle wb-handle-xy" onPointerDown={startDrag("xy")} />
+          </>
+        )}
       </div>
     </figure>
   );

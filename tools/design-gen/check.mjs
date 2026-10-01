@@ -181,8 +181,13 @@ try {
     const hasLogical = Array.isArray(p.logical) && p.logical.length === 2;
     const hasPhysical = Array.isArray(p.physical) && p.physical.length === 2 && typeof p.scale === "number" && p.scale > 0;
     if (hasLogical === hasPhysical) block(at, `logical 또는 (physical + scale) 중 정확히 하나`);
+    if (p.group !== undefined && typeof p.group !== "string") block(at, `group 은 문자열`);
   }
-  for (const id of vp.detailDefaults ?? []) if (!ids.has(id)) block("design/viewports.json detailDefaults", `'${id}' 프리셋이 없다`);
+  for (const spec of vp.detailDefaults ?? []) {
+    const [id, orientation] = spec.split(":");
+    if (!ids.has(id)) block("design/viewports.json detailDefaults", `'${id}' 프리셋이 없다`);
+    if (orientation && !["landscape", "portrait"].includes(orientation)) block("design/viewports.json detailDefaults", `'${spec}' — 방향은 landscape | portrait`);
+  }
 } catch (e) {
   block("design/viewports.json", `읽기 실패 — ${e.message}`);
 }
