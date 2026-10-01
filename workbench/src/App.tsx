@@ -1,14 +1,15 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { Locale, Theme } from "@ithaca/kit";
 import { Canvas } from "./Canvas";
-import { CAPTION_H, CAPTION_W, ResizableFrame, type FrameSpec } from "./Frame";
+import { CAPTION_H, CAPTION_W, ResizableFrame, type FrameEdit, type FrameSpec } from "./Frame";
+import { redo, undo, useHistory } from "./history";
 import { InfoPanel } from "./InfoPanel";
+import { clamp, drag, useWheelPanZoom, zoomAround, type View } from "./panzoom";
 import { usePref } from "./prefs";
-import {
-  detailDefaults, planned, plannedBySlug, screenBySlug, screens, viewportById, viewports,
-  type PlannedScreen, type Screen,
-} from "./registry";
+import { planned, plannedBySlug, screenBySlug, screens, viewports, type PlannedScreen, type Screen } from "./registry";
 import { ScreenList } from "./ScreenList";
+import { commit, gesture, useStore } from "./store";
+import { defaultFrames, framesStore, newFrame, resetAll } from "./stores";
 import { Sweep } from "./Sweep";
 import { TokensPage } from "./TokensPage";
 
@@ -42,15 +43,6 @@ const go = (r: Route) => {
 };
 const open = (slug: string, state: string | null) =>
   go(state ? { view: "screen", slug, state } : { view: "planned", slug });
-
-// ── Frames ───────────────────────────────────────────────────────────────
-
-let frameSeq = 0;
-const newFrame = (presetId: string): FrameSpec => {
-  const v = viewportById[presetId];
-  return { id: `f${Date.now()}-${frameSeq++}`, preset: v.id, platform: v.os, w: v.width, h: v.height };
-};
-const defaultFrames = () => detailDefaults.filter((id) => viewportById[id]).map(newFrame);
 
 /** Element size that follows window resizes too (ResizeObserver alone stalls while the window is not painting). */
 function useSize<T extends HTMLElement>() {
@@ -86,12 +78,22 @@ export function App() {
   const [locale, setLocale] = usePref<Locale>("locale", "ko");
   const [homeView, setHomeView] = usePref<"flow" | "list">("home.view", "flow");
   const singleTheme: Theme = theme === "dark" ? "dark" : "light";
+  const history = useHistory();
 
-  // Global keys: Esc → home.
+  // Global keys: Esc → home, Ctrl/⌘+Z undo, Ctrl/⌘+Shift+Z or Ctrl+Y redo. Fields keep their own text undo.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e)) return;
-      if (e.key === "Escape" && route.view !== "home") go({ view: "home" });
+      const mod = e.ctrlKey || e.metaKey;
+      const k = e.key.toLowerCase();
+      if (mod && k === "z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (mod && k === "y") {
+        e.preventDefault();
+        redo();
+      } else if (e.key === "Escape" && route.view !== "home") go({ view: "home" });
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -115,6 +117,12 @@ export function App() {
           <Seg value={homeView} options={[["flow", "흐름"], ["list", "목록"]]} onChange={setHomeView} />
         )}
         {onScreen && <ScreenSwitcher current={route.slug} locale={locale} />}
+
+        <div className="wb-history">
+          <button disabled={!history.undoLabel} onClick={undo} title={history.undoLabel ? `되돌리기: ${history.undoLabel} (Ctrl+Z)` : "되돌릴 것 없음"}>↶</button>
+          <button disabled={!history.redoLabel} onClick={redo} title={history.redoLabel ? `다시 실행: ${history.redoLabel} (Ctrl+Shift+Z)` : "다시 실행할 것 없음"}>↷</button>
+          <button onClick={resetAll} title="프레임 · 카드 위치 · 보기 설정을 모두 처음 상태로 (Ctrl+Z 로 되돌릴 수 있음)">처음 상태로</button>
+        </div>
 
         <div className="wb-spacer" />
         <Seg label="테마" value={theme} options={[["light", "라이트"], ["dark", "다크"], ["both", "둘 다"]]} onChange={setTheme} />
@@ -142,8 +150,22 @@ export function App() {
         />
       )}
       {route.view === "planned" && <PlannedDetail screen={plannedBySlug[route.slug]} locale={locale} />}
+
+      <Toast flash={history.flash} />
     </div>
   );
+}
+
+/** Brief confirmation after undo/redo, so a change made in another view is not invisible. */
+function Toast({ flash }: { flash: { text: string; at: number } | null }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (!flash) return;
+    setVisible(true);
+    const id = setTimeout(() => setVisible(false), 1800);
+    return () => clearTimeout(id);
+  }, [flash?.at]);
+  return flash && visible ? <div className="wb-toast">{flash.text}</div> : null;
 }
 
 /** Jump to any screen (built or planned) from the top bar. */
@@ -162,57 +184,99 @@ function ScreenSwitcher({ current, locale }: { current: string; locale: Locale }
   );
 }
 
-// ── Screen detail ────────────────────────────────────────────────────────
+// ── Screen detail: frames on a pannable stage ────────────────────────────
 
-const GAP = 56; // .wb-frames gap
-const PAD = 24; // .wb-matrix padding
+const GAP = 56; // between frames (layout px)
+const MARGIN = 48; // around the content at fit (screen px)
+const ROW_LABEL = 28; // theme row label (screen px)
+const ZOOM = { min: 0.05, max: 2 };
+
+/**
+ * Wrap frames into rows within `wrapW` (layout px) at zoom z. A slot is max(frame, caption) wide; rows grow by the
+ * counter-zoomed caption. Returns the content size in layout px.
+ */
+function layoutFrames(frames: FrameSpec[], wrapW: number, z: number) {
+  let height = 0;
+  let line = 0;
+  let maxLine = 0;
+  let rowH = 0;
+  for (const f of frames) {
+    const slot = Math.max(f.w, CAPTION_W / z);
+    if (line > 0 && line + GAP + slot > wrapW) {
+      height += rowH + GAP;
+      maxLine = Math.max(maxLine, line);
+      line = 0;
+      rowH = 0;
+    }
+    line += (line > 0 ? GAP : 0) + slot;
+    rowH = Math.max(rowH, f.h + CAPTION_H / z);
+  }
+  return { w: Math.max(maxLine, line), h: height + rowH };
+}
 
 function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state: string; themes: Theme[]; locale: Locale }) {
-  const [zoomPref, setZoom] = usePref<"fit" | number>("detail.zoom", "fit");
-  const [stored, setFrames] = usePref<FrameSpec[]>("detail.frames", defaultFrames());
+  const frames = useStore(framesStore);
   const [showIssues, setShowIssues] = usePref("detail.issues", true);
   const [sweep, setSweep] = usePref("detail.sweep", false);
   const [info, setInfo] = usePref("detail.info", true);
-  const [mainRef, area] = useSize<HTMLElement>();
-  const [toolbarRef, toolbar] = useSize<HTMLDivElement>();
+  // null = fit (recomputed whenever the stage or frames change); a View once you pan or zoom yourself.
+  const [manual, setManual] = usePref<View | null>("detail.view", null);
+  const [stageRef, stage] = useSize<HTMLDivElement>();
 
-  // Frames saved before `platform` existed get it back from their preset.
-  const frames = stored.map((f) => (f.platform ? f : { ...f, platform: viewportById[f.preset ?? ""]?.os ?? "ios" }));
-  const update = (f: FrameSpec) => setFrames((list) => list.map((x) => (x.id === f.id ? f : x)));
-
-  // "Fit": the largest zoom at which all frames — wrapped into rows across the available width — fit on screen.
-  // A slot is max(frame width, caption width) and rows grow by the (counter-zoomed) caption height.
-  const fitZoom = (() => {
-    if (!area.w || frames.length === 0) return 0.4;
-    const usableH = area.h - toolbar.h - 8 - (themes.length > 1 ? themes.length * 24 : 0);
-    const fits = (z: number) => {
-      const lineMax = area.w / z - PAD * 2;
-      let height = 0;
-      let line = 0;
-      let rowH = 0;
-      for (const f of frames) {
-        const slot = Math.max(f.w, CAPTION_W / z);
-        if (line > 0 && line + GAP + slot > lineMax) {
-          height += rowH + GAP;
-          line = 0;
-          rowH = 0;
-        }
-        line += (line > 0 ? GAP : 0) + slot;
-        rowH = Math.max(rowH, f.h + CAPTION_H / z);
-      }
-      height += rowH;
-      return (height * themes.length + PAD * 2 + GAP * (themes.length - 1)) * z <= usableH;
-    };
+  // Fit: the largest zoom at which every theme row of wrapped frames fits the stage with MARGIN around it.
+  const fit = (() => {
+    const availW = Math.max(1, stage.w - MARGIN * 2);
+    const availH = Math.max(1, stage.h - MARGIN * 2);
+    const rowLabels = themes.length > 1 ? themes.length * ROW_LABEL : 0;
     let z = 1;
-    while (z > 0.05 && !fits(z)) z *= 0.96;
-    return Math.max(0.05, z);
+    let box = { w: 0, h: 0 };
+    while (z > ZOOM.min) {
+      box = layoutFrames(frames, availW / z, z);
+      const totalH = box.h * themes.length + GAP * (themes.length - 1);
+      if (totalH * z + rowLabels <= availH) break;
+      z *= 0.96;
+    }
+    const contentH = (box.h * themes.length + GAP * (themes.length - 1)) * z + rowLabels;
+    return {
+      wrapW: availW / z, // fixed while zooming manually, so frames do not re-wrap under the cursor
+      view: { k: z, x: (stage.w - box.w * z) / 2, y: Math.max(MARGIN, (stage.h - contentH) / 2) } as View,
+    };
   })();
-  const zoom = zoomPref === "fit" ? fitZoom : zoomPref;
+  const view = manual ?? fit.view;
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const setView = (v: View) => setManual(v);
+
+  useWheelPanZoom(stageRef, () => viewRef.current, setView, ZOOM);
+
+  /** Drag anywhere on the stage (frames included) to pan — except on captions and resize handles. */
+  const onStageDown = (e: ReactPointerEvent) => {
+    if ((e.target as HTMLElement).closest("figcaption, .wb-handle, button, select, input")) return;
+    const start = viewRef.current;
+    drag(e, (dx, dy) => setView({ ...start, x: start.x + dx, y: start.y + dy }));
+  };
+
+  const zoomTo = (k: number) => setView(zoomAround(view, clamp(k, ZOOM.min, ZOOM.max), stage.w / 2, stage.h / 2));
+
+  // Frame edits go through the undoable store; a resize drag is one step.
+  const replace = (list: FrameSpec[], f: FrameSpec) => list.map((x) => (x.id === f.id ? f : x));
+  const dragRef = useRef<ReturnType<typeof gesture<FrameSpec[]>> | null>(null);
+  const edit: FrameEdit = {
+    commit: (f, label, key) => commit(framesStore, replace(framesStore.get(), f), label, key),
+    dragStart: () => {
+      dragRef.current = gesture(framesStore);
+    },
+    dragMove: (f) => dragRef.current?.move(replace(framesStore.get(), f)),
+    dragEnd: (f) => {
+      dragRef.current?.end(`프레임 크기 ${f.w}×${f.h}`);
+      dragRef.current = null;
+    },
+  };
 
   // Keys: ←/→ state, [/] screen, F fit, I info panel.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (isTyping(e)) return;
+      if (isTyping(e) || e.ctrlKey || e.metaKey) return;
       const i = screen.states.indexOf(state);
       if (e.key === "ArrowRight") open(screen.slug, screen.states[(i + 1) % screen.states.length]);
       else if (e.key === "ArrowLeft") open(screen.slug, screen.states[(i - 1 + screen.states.length) % screen.states.length]);
@@ -220,25 +284,40 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
         const j = screens.findIndex((s) => s.slug === screen.slug);
         const next = screens[(j + (e.key === "]" ? 1 : -1) + screens.length) % screens.length];
         open(next.slug, next.states[0]);
-      } else if (e.key === "f" || e.key === "F") setZoom("fit");
+      } else if (e.key === "f" || e.key === "F") setManual(null);
       else if (e.key === "i" || e.key === "I") setInfo((v) => !v);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
 
+  const zoomOptions: [string, string][] = [["fit", "맞춤"], ["0.25", "25%"], ["0.5", "50%"], ["1", "100%"]];
+
   return (
     <div className="wb-detail" style={{ gridTemplateColumns: info ? "1fr auto" : "1fr" }}>
-      <main ref={mainRef} className="wb-scroll">
-        <div ref={toolbarRef} className="wb-toolbar">
+      <main className="wb-detail-main">
+        <div className="wb-toolbar">
           <Seg label="상태" value={state} options={screen.states.map((s) => [s, s] as const)} onChange={(s) => open(screen.slug, s)} />
-          <Seg
-            label="배율"
-            value={String(zoomPref)}
-            options={[["fit", `맞춤${zoomPref === "fit" ? ` ${Math.round(fitZoom * 100)}%` : ""}`], ["0.25", "25%"], ["0.5", "50%"], ["0.75", "75%"], ["1", "100%"]]}
-            onChange={(z) => setZoom(z === "fit" ? "fit" : Number(z))}
-          />
-          <select value="" onChange={(e) => e.target.value && setFrames((list) => [...list, newFrame(e.target.value)])}>
+          <div className="wb-seg">
+            <span>배율</span>
+            {zoomOptions.map(([v, text]) => (
+              <button
+                key={v}
+                className={(v === "fit" ? manual === null : manual !== null && Math.abs(manual.k - Number(v)) < 0.001) ? "wb-active" : undefined}
+                onClick={() => (v === "fit" ? setManual(null) : zoomTo(Number(v)))}
+              >
+                {text}
+              </button>
+            ))}
+            <span className="wb-muted wb-zoom">{Math.round(view.k * 100)}%</span>
+          </div>
+          <select
+            value=""
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v) commit(framesStore, [...framesStore.get(), newFrame(v)], `프레임 추가 · ${viewports.find((x) => x.id === v)?.label}`);
+            }}
+          >
             <option value="">＋ 프레임</option>
             {viewports.map((v) => (
               <option key={v.id} value={v.id}>
@@ -246,8 +325,8 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
               </option>
             ))}
           </select>
-          <button onClick={() => setFrames(defaultFrames())} title="기본 프레임 5개로">초기화</button>
-          <label className="wb-check" title="잘림 · 화면 밖 텍스트를 빨간 테두리로, 말줄임을 점선으로">
+          <button onClick={() => commit(framesStore, defaultFrames(), "프레임 초기화")} title="기본 프레임 5개로 (Ctrl+Z 로 되돌림)">프레임 초기화</button>
+          <label className="wb-check" title="잘림 · 넘침 · 화면 밖 텍스트를 빨간 테두리로, 말줄임을 점선으로">
             <input type="checkbox" checked={showIssues} onChange={(e) => setShowIssues(e.target.checked)} /> 문제 표시
           </label>
           <label className="wb-check" title="한 프레임의 폭을 연속으로 바꿔 size class 전환을 본다">
@@ -255,34 +334,43 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
           </label>
           <span className="wb-spacer" />
           <button onClick={() => setInfo((v) => !v)} title="정보 패널 (I)">{info ? "정보 ⟩" : "⟨ 정보"}</button>
-          <span className="wb-hint" title="← →: 상태 · [ ]: 화면 · F: 맞춤 · I: 정보 패널 · Esc: 홈 · 프레임 오른쪽/아래/모서리 끌기: 크기 · ⧉: 참조 복사">?</span>
+          <span
+            className="wb-hint"
+            title="빈 곳·프레임 드래그 / 휠: 이동 · Ctrl+휠: 확대 · ← →: 상태 · [ ]: 화면 · F: 맞춤 · I: 정보 · Esc: 홈 · Ctrl+Z / Ctrl+Shift+Z: 되돌리기 / 다시 · 프레임 모서리 끌기: 크기 · ⧉: 참조 복사"
+          >
+            ?
+          </span>
         </div>
 
-        {sweep && <Sweep screen={screen} state={state} theme={themes[0]} locale={locale} availWidth={area.w} />}
+        {sweep && <Sweep screen={screen} state={state} theme={themes[0]} locale={locale} availWidth={stage.w} />}
 
-        <div className="wb-matrix" style={{ zoom, ["--wb-z" as string]: zoom }}>
-          {themes.map((theme) => (
-            <section key={theme} className="wb-row">
-              {themes.length > 1 && <h4 style={{ zoom: 1 / zoom }}>{theme === "light" ? "라이트" : "다크"}</h4>}
-              <div className="wb-frames" style={{ width: Math.max(0, area.w / zoom - PAD * 2) }}>
-                {frames.map((f) => (
-                  <ResizableFrame
-                    key={f.id}
-                    frame={f}
-                    zoom={zoom}
-                    theme={theme}
-                    locale={locale}
-                    nodeRef={`${screen.slug}#${state}`}
-                    showIssues={showIssues}
-                    onChange={update}
-                    onRemove={() => setFrames((list) => list.filter((x) => x.id !== f.id))}
-                  >
-                    <screen.Prototype state={state} />
-                  </ResizableFrame>
-                ))}
-              </div>
-            </section>
-          ))}
+        <div ref={stageRef} className="wb-stage" onPointerDown={onStageDown}>
+          <div className="wb-stage-layer" style={{ transform: `translate(${view.x}px, ${view.y}px)` }}>
+            <div className="wb-matrix" style={{ zoom: view.k, ["--wb-z" as string]: view.k }}>
+              {themes.map((theme) => (
+                <section key={theme} className="wb-row">
+                  {themes.length > 1 && <h4 style={{ zoom: 1 / view.k }}>{theme === "light" ? "라이트" : "다크"}</h4>}
+                  <div className="wb-frames" style={{ width: fit.wrapW }}>
+                    {frames.map((f) => (
+                      <ResizableFrame
+                        key={f.id}
+                        frame={f}
+                        zoom={view.k}
+                        theme={theme}
+                        locale={locale}
+                        nodeRef={`${screen.slug}#${state}`}
+                        showIssues={showIssues}
+                        edit={edit}
+                        onRemove={() => commit(framesStore, framesStore.get().filter((x) => x.id !== f.id), "프레임 빼기")}
+                      >
+                        <screen.Prototype state={state} />
+                      </ResizableFrame>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </div>
         </div>
       </main>
       {info && (

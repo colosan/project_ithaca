@@ -135,12 +135,22 @@ interface ResizableFrameProps {
   /** "app-shell#reference" — goes into the copied reference line. */
   nodeRef: string;
   showIssues: boolean;
-  onChange: (frame: FrameSpec) => void;
+  edit: FrameEdit;
   onRemove: () => void;
   children: ReactNode;
 }
 
-export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues, onChange, onRemove, children }: ResizableFrameProps) {
+/** How a frame reports changes so each lands as one undo step. */
+export interface FrameEdit {
+  /** A discrete change. Same `key` within a second merges (typing a number). */
+  commit: (frame: FrameSpec, label: string, key?: string) => void;
+  /** A resize drag: previews while moving, one history step at the end. */
+  dragStart: () => void;
+  dragMove: (frame: FrameSpec) => void;
+  dragEnd: (frame: FrameSpec) => void;
+}
+
+export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues, edit, onRemove, children }: ResizableFrameProps) {
   const preset = frame.preset ? viewportById[frame.preset] : undefined;
   const sizeClass = sizeClassFor(frame.w);
   const [issues, setIssues] = useState<Issues>(NO_ISSUES);
@@ -154,29 +164,34 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
   // Pointer deltas are screen px; divide by the matrix zoom to get layout px.
   const startDrag = (axis: "x" | "y" | "xy") => (e: ReactPointerEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // not a stage pan
     const start = { x: e.clientX, y: e.clientY, w: frame.w, h: frame.h };
+    let last = frame;
+    edit.dragStart();
     const move = (ev: PointerEvent) => {
       const dx = (ev.clientX - start.x) / zoom;
       const dy = (ev.clientY - start.y) / zoom;
-      onChange({
+      last = {
         ...frame,
         preset: null,
         w: axis === "y" ? start.w : clamp(start.w + dx, LIMIT.minW, LIMIT.maxW),
         h: axis === "x" ? start.h : clamp(start.h + dy, LIMIT.minH, LIMIT.maxH),
-      });
+      };
+      edit.dragMove(last);
     };
     const up = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       document.body.classList.remove("wb-resizing");
+      edit.dragEnd(last);
     };
     document.body.classList.add("wb-resizing");
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
   };
 
-  const setSize = (w: number, h: number) =>
-    onChange({ ...frame, preset: null, w: clamp(w, LIMIT.minW, LIMIT.maxW), h: clamp(h, LIMIT.minH, LIMIT.maxH) });
+  const setSize = (w: number, h: number, label: string, key?: string) =>
+    edit.commit({ ...frame, preset: null, w: clamp(w, LIMIT.minW, LIMIT.maxW), h: clamp(h, LIMIT.minH, LIMIT.maxH) }, label, key);
 
   const copyRef = async () => {
     const where = preset ? `${preset.platform} ${preset.label}` : "custom";
@@ -199,7 +214,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
             value={frame.preset ?? ""}
             onChange={(e) => {
               const v = viewportById[e.target.value];
-              if (v) onChange({ ...frame, preset: v.id, platform: v.os, w: v.width, h: v.height });
+              if (v) edit.commit({ ...frame, preset: v.id, platform: v.os, w: v.width, h: v.height }, `프리셋 · ${v.label}`);
             }}
           >
             <option value="">사용자 지정</option>
@@ -221,8 +236,8 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
         </div>
         <div className="wb-cap-row">
           <span className="wb-size">
-            <input type="number" value={frame.w} onChange={(e) => setSize(Number(e.target.value), frame.h)} />×
-            <input type="number" value={frame.h} onChange={(e) => setSize(frame.w, Number(e.target.value))} />
+            <input type="number" value={frame.w} onChange={(e) => setSize(Number(e.target.value), frame.h, "폭 입력", `w:${frame.id}`)} />×
+            <input type="number" value={frame.h} onChange={(e) => setSize(frame.w, Number(e.target.value), "높이 입력", `h:${frame.id}`)} />
           </span>
           <span className="wb-muted wb-cap-os" title={preset?.scale && preset.physical ? `물리 ${preset.physical.join("×")} ÷ 배율 ${preset.scale * 100}%` : undefined}>
             {frame.platform}
@@ -230,7 +245,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
           </span>
           <span className="wb-spacer" />
           <button title="참조 복사 — agent 에게 붙여넣기" onClick={copyRef}>{copied ? "✓" : "⧉"}</button>
-          <button title="가로/세로 바꾸기" onClick={() => setSize(frame.h, frame.w)}>⟲</button>
+          <button title="가로/세로 바꾸기" onClick={() => setSize(frame.h, frame.w, "가로/세로 바꾸기")}>⟲</button>
           <button title="프레임 빼기" onClick={onRemove}>✕</button>
         </div>
       </figcaption>

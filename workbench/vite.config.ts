@@ -12,6 +12,7 @@ const slash = (p: string) => p.replace(/\\/g, "/");
  * GET  /__canvas                 → design/canvas.json
  * POST /__canvas { id, x, y }    → store one card position
  * POST /__canvas { reset: true } → drop all positions (back to auto layout)
+ * POST /__canvas { positions }   → replace all positions (undo/redo)
  * The only file the workbench writes.
  */
 function canvasStore(): Plugin {
@@ -31,12 +32,20 @@ function canvasStore(): Plugin {
         req.on("data", (c) => (body += c));
         req.on("end", () => {
           try {
-            const msg = JSON.parse(body) as { id?: string; x?: number; y?: number; reset?: boolean };
+            const msg = JSON.parse(body) as { id?: string; x?: number; y?: number; reset?: boolean; positions?: Record<string, { x: number; y: number }> };
             const doc = JSON.parse(readFileSync(file, "utf8"));
             if (msg.reset) {
               doc.positions = {};
+            } else if (msg.positions) {
+              // Replace-all, used by undo/redo.
+              const next: Record<string, { x: number; y: number }> = {};
+              for (const [id, p] of Object.entries(msg.positions)) {
+                if (!/^[a-z0-9-]+(#[a-z0-9-]+)?$/.test(id) || !Number.isFinite(p?.x) || !Number.isFinite(p?.y)) throw new Error(`bad position: ${id}`);
+                next[id] = { x: Math.round(p.x), y: Math.round(p.y) };
+              }
+              doc.positions = next;
             } else {
-              if (!msg.id || !/^[a-z0-9-]+#[a-z0-9-]+$/.test(msg.id)) throw new Error(`bad id: ${msg.id}`);
+              if (!msg.id || !/^[a-z0-9-]+(#[a-z0-9-]+)?$/.test(msg.id)) throw new Error(`bad id: ${msg.id}`);
               if (!Number.isFinite(msg.x) || !Number.isFinite(msg.y)) throw new Error("x/y must be numbers");
               doc.positions = { ...doc.positions, [msg.id]: { x: Math.round(msg.x!), y: Math.round(msg.y!) } };
             }

@@ -230,3 +230,33 @@ code { font: 12px ui-monospace, "JetBrains Mono", monospace; }
 .wb-cap-row { display: flex; gap: 5px; align-items: center; min-width: 0; }
 .wb-cap-row select { flex: 1; min-width: 0; max-width: none !important; }
 .wb-cap-os { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Foldable lane titles */
+.wb-lane-title.wb-foldable { pointer-events: auto; cursor: pointer; border-radius: 4px; padding: 0 4px; margin-left: -4px; }
+.wb-lane-title.wb-foldable:hover { background: rgba(255, 255, 255, 0.85); color: var(--wb-accent); }
+.wb-fold { display: inline-block; width: 1em; color: var(--wb-muted); }
+
+/* Undo / redo / reset */
+.wb-history { display: flex; gap: 2px; margin-left: 4px; }
+.wb-history button { padding: 4px 9px; }
+.wb-history button:disabled { opacity: 0.35; cursor: default; }
+.wb-toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 50;
+  padding: 8px 14px; border-radius: 8px; background: var(--wb-ink); color: #fff; font-size: 13px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2); pointer-events: none;
+}
+
+/* Detail stage: a pannable work area instead of a scroll box */
+.wb-detail-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.wb-stage {
+  position: relative; flex: 1; min-height: 0; overflow: hidden; cursor: grab; touch-action: none;
+  background-color: var(--wb-canvas);
+  background-image: radial-gradient(circle, #d4d4d8 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.wb-stage:active { cursor: grabbing; }
+.wb-stage-layer { position: absolute; left: 0; top: 0; }
+.wb-stage .wb-matrix { padding: 0; width: max-content; }
+.wb-stage .wb-row:last-child { margin-bottom: 0; }
+.wb-stage figcaption { cursor: default; }
+.wb-sweep { max-height: 50%; overflow: auto; }
