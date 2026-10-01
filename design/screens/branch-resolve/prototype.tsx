@@ -79,7 +79,8 @@ function Header({ done, total }: { done: number; total: number }) {
   const complete = done === total;
   return (
     <header style={{ flex: "none", padding: `${space[150]} ${space[200]}`, borderBottom: hairline(color.lineSubtle), display: "flex", flexWrap: "wrap", alignItems: "center", gap: space[150] }}>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      {/* Keeps its natural width: when space runs out the buttons wrap below instead of squeezing the title. */}
+      <div style={{ flex: "1 1 auto" }}>
         <div style={type.heading}>⚠ {t("branch.title")}</div>
         <div style={{ ...type.caption, color: color.inkSecondary }}>{t("branch.subtitle", { device: b.device, minutes: b.minutesAgo })}</div>
       </div>

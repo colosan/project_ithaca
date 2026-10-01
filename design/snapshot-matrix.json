@@ -1,0 +1,83 @@
+{
+  "description": "pnpm design:snap 이 찍는 고정 매트릭스. 기기를 다 찍지 않는다 — 레이아웃은 논리 폭으로 정해지므로 최소 폭, 대표 폰, size class 경계 양쪽(599/600 · 839/840 · 1199/1200), 큰 모니터만 본다. 글자 200% 는 라이트에서만.",
+  "viewports": [
+    {
+      "id": "w360",
+      "w": 360,
+      "h": 780,
+      "platform": "android",
+      "preset": "galaxy-s25"
+    },
+    {
+      "id": "w402",
+      "w": 402,
+      "h": 874,
+      "platform": "ios",
+      "preset": "iphone-17-pro"
+    },
+    {
+      "id": "w599",
+      "w": 599,
+      "h": 900,
+      "platform": "android",
+      "preset": "fold5-inner"
+    },
+    {
+      "id": "w600",
+      "w": 600,
+      "h": 900,
+      "platform": "android",
+      "preset": "fold5-inner"
+    },
+    {
+      "id": "w839",
+      "w": 839,
+      "h": 1100,
+      "platform": "ipados",
+      "preset": "ipad-air-11"
+    },
+    {
+      "id": "w840",
+      "w": 840,
+      "h": 1100,
+      "platform": "ipados",
+      "preset": "ipad-air-11"
+    },
+    {
+      "id": "w1199",
+      "w": 1199,
+      "h": 800,
+      "platform": "windows"
+    },
+    {
+      "id": "w1200",
+      "w": 1200,
+      "h": 800,
+      "platform": "windows"
+    },
+    {
+      "id": "w1920",
+      "w": 1920,
+      "h": 1080,
+      "platform": "windows"
+    }
+  ],
+  "themes": [
+    "light",
+    "dark"
+  ],
+  "locales": [
+    "ko",
+    "en"
+  ],
+  "largeText": {
+    "scale": 2,
+    "themes": [
+      "light"
+    ]
+  },
+  "diff": {
+    "threshold": 0.02,
+    "maxChangedRatio": 0.001
+  }
+}

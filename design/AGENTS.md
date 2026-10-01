@@ -38,8 +38,15 @@
 - `canvas.json` — 카드 위치. workbench 에서 카드를 끌면 저장된다. 손으로 고칠 일 없음.
 - `viewports.json` — 실제 기기·창 프리셋. Windows 는 `physical` + `scale`(디스플레이 배율)로 적고 논리 크기는 workbench 가 나눠서 쓴다.
 
+## 화면을 고칠 때 (스크린샷 검사)
+1. 고치기 **전**: 기준이 없으면 `pnpm design:snap --update --only <slug>` (기준은 이 기계에만 있다 — git 에 안 올라감)
+2. 고친 **후**: `pnpm design:snap --only <slug>` → `design/snapshots/report.md` 를 읽는다
+   - **Defects** 는 무조건 고친다 (clip · spill · offscreen · unsafe). 글자 200% · 경계 폭(600 · 840 · 1200)에서 자주 나온다
+   - **Changed** 는 diff PNG 를 열어 의도한 변화인지 본다. 의도했으면 `--update`, 아니면 고친다
+3. 매트릭스는 `design/snapshot-matrix.json` — 기기를 다 찍지 않고 폭 경계 양쪽 · 최소 폭 · 큰 모니터만
+
 ## 완료 조건
-`pnpm design:check` BLOCK 0 · `pnpm typecheck` 통과. 하나라도 실패하면 완료가 아니다.
+`pnpm design:check` BLOCK 0 · `pnpm typecheck` 통과 · 고친 화면의 `pnpm design:snap` 결함 0. 하나라도 실패하면 완료가 아니다.
 
 ## 스크롤 · 글자 크기
 - 실제 앱에서 스크롤될 영역은 `overflow: "auto"`. `"hidden"` 은 정말 잘라내는 곳(둥근 모서리 등)에만 — 검출기가 hidden 안의 넘친 글자를 결함으로 본다.

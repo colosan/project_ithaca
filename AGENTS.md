@@ -16,6 +16,7 @@
 | `pnpm design:gen` | design/ → Swift · Kotlin · workbench 생성물 |
 | `pnpm design:check` | 토큰 · 문구 · 드리프트 · 프로토타입 lint (BLOCK 있으면 exit 1) |
 | `pnpm typecheck` | workbench + 프로토타입 타입 검사 |
+| `pnpm design:snap` | 모든 화면 × 상태를 고정 매트릭스로 스크린샷 → 기준과 비교 · 결함 검출 → `design/snapshots/report.md` (`--only <slug>`, `--update`) |
 
 ## 라이선스 (오픈소스 공개 전제)
 - 프로젝트: `MIT OR Apache-2.0`. 의존성은 permissive 만 — GPL · AGPL 금지.

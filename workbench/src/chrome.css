@@ -301,3 +301,5 @@ code { font: 12px ui-monospace, "JetBrains Mono", monospace; }
 }
 .wb-safe .wb-island { position: absolute; display: block; background: #000; border-radius: 999px; }
 .wb-show-issues [data-wb-issue="unsafe"] { outline: calc(2px / var(--wb-z, 1)) solid var(--wb-warn); outline-offset: -1px; }
+
+.wb-capture { display: inline-block; background: #fff; }

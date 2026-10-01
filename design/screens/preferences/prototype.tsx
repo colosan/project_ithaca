@@ -103,7 +103,7 @@ function Sync() {
         <div style={{ ...type.label, color: color.inkSecondary, marginBottom: space[100] }}>{t("sync.devices")}</div>
         <div style={{ border: hairline(color.lineSubtle), borderRadius: radius.panel, overflow: "hidden" }}>
           {sample.devices.map((d) => (
-            <div key={d.name} style={{ display: "flex", alignItems: "center", gap: space[150], minHeight: size.controlLg, padding: `0 ${space[150]}`, borderBottom: hairline(color.lineSubtle) }}>
+            <div key={d.name} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: `${space[25]} ${space[150]}`, minHeight: size.controlLg, padding: `${space[50]} ${space[150]}`, borderBottom: hairline(color.lineSubtle) }}>
               <span style={{ flex: 1 }}>{d.name}</span>
               <span style={{ ...type.caption, color: color.inkTertiary }}>{d.platform}</span>
               <span style={{ ...type.caption, color: d.minutesAgo === 0 ? color.stateSuccess : color.inkTertiary }}>

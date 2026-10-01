@@ -19,3 +19,6 @@ build/
 local.properties
 .idea/
 *.iml
+
+# design:snap output (baselines are per machine; see design/AGENTS.md)
+design/snapshots/

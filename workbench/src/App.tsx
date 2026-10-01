@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { sizeClasses, type Locale, type Platform, type SizeClass, type Theme } from "@ithaca/kit";
 import { Canvas } from "./Canvas";
+import { Capture } from "./Capture";
 import { captionSize, ResizableFrame, type FrameEdit, type FrameSpec } from "./Frame";
 import { redo, undo, useHistory } from "./history";
 import { InfoPanel } from "./InfoPanel";
@@ -19,13 +20,16 @@ const isTyping = (e: KeyboardEvent) => e.target instanceof Element && !!e.target
 // ── Routing (hash) ───────────────────────────────────────────────────────
 
 type Route =
+  | { view: "capture"; slug: string; state: string; query: URLSearchParams }
   | { view: "home" }
   | { view: "tokens" }
   | { view: "screen"; slug: string; state: string }
   | { view: "planned"; slug: string };
 
 function parseHash(): Route {
-  const [view, slug, state] = location.hash.replace(/^#\/?/, "").split("/");
+  const [path, qs] = location.hash.replace(/^#\/?/, "").split("?");
+  const [view, slug, state] = path.split("/");
+  if (view === "capture") return { view: "capture", slug, state, query: new URLSearchParams(qs ?? "") };
   if (view === "tokens") return { view: "tokens" };
   if (view === "screen" && slug) {
     const screen = screenBySlug[slug];
@@ -100,6 +104,9 @@ export function App() {
   }, [route.view]);
 
   const onScreen = route.view === "screen" || route.view === "planned";
+
+  // Headless screenshot mode: the frame alone, no workbench chrome.
+  if (route.view === "capture") return <Capture slug={route.slug} state={route.state} query={route.query} />;
 
   return (
     <div className="wb">
