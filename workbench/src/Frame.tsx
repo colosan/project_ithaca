@@ -179,7 +179,7 @@ export function presetGroups(os: Platform): [string, Viewport[]][] {
   return out;
 }
 
-/** "iPad Pro 11\" (M4) · 가로" when a portrait preset is shown rotated. */
+/** Suffix shown when a preset is displayed in the other orientation (e.g. a portrait iPad turned landscape). */
 export const rotatedSuffix = (v: Viewport, w: number, h: number) => (w > h && v.width < v.height ? " · 가로" : w < h && v.width > v.height ? " · 세로" : "");
 
 // ── ResizableFrame: a Device with its platform's presets, drag handles and tools ──
