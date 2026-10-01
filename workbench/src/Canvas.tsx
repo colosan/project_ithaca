@@ -4,7 +4,7 @@ import { cardSize, collapseGraph, edgeGeometry, hubOf, laneLayout, type Pos } fr
 import { Device } from "./Frame";
 import { clamp, drag, useWheelPanZoom, type View } from "./panzoom";
 import { usePref } from "./prefs";
-import { buildGraph, specSummary, viewportById, viewports, type GraphEdge, type GraphNode } from "./registry";
+import { buildGraph, presetLabel, specSummary, viewportById, viewportGroups, viewports, type GraphEdge, type GraphNode } from "./registry";
 import { commit, gesture, useStore } from "./store";
 import { loadPositions, positionsStore, type Positions } from "./stores";
 
@@ -28,7 +28,7 @@ export function Canvas({ theme, locale, onOpen }: {
     [full],
   );
 
-  const [previewId, setPreviewId] = usePref("canvas.preview", "iphone-15");
+  const [previewId, setPreviewId] = usePref("canvas.preview", "iphone-17-pro");
   const vp = viewportById[previewId] ?? viewports[0];
   const size = cardSize(vp);
 
@@ -150,10 +150,14 @@ export function Canvas({ theme, locale, onOpen }: {
         <label title="카드에 그릴 기기">
           미리보기{" "}
           <select value={vp.id} onChange={(e) => setPreviewId(e.target.value)}>
-            {viewports.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.platform} · {v.label} ({v.width}×{v.height})
-              </option>
+            {viewportGroups().map(([group, list]) => (
+              <optgroup key={group} label={group}>
+                {list.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {presetLabel(v)} ({v.width}×{v.height})
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>

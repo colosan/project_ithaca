@@ -6,7 +6,7 @@ import { redo, undo, useHistory } from "./history";
 import { InfoPanel } from "./InfoPanel";
 import { clamp, drag, useWheelPanZoom, zoomAround, type View } from "./panzoom";
 import { usePref } from "./prefs";
-import { planned, plannedBySlug, screenBySlug, screens, viewportById, type PlannedScreen, type Screen } from "./registry";
+import { planned, plannedBySlug, presetLabel, screenBySlug, screens, viewportById, type PlannedScreen, type Screen } from "./registry";
 import { ScreenList } from "./ScreenList";
 import { commit, gesture, useStore } from "./store";
 import { framesStore, normalizeDevices, resetAll } from "./stores";
@@ -431,7 +431,7 @@ function ScreenDetail({ screen, state, themes, locale }: { screen: Screen; state
           <Seg label="상태" value={state} options={screen.states.map((s) => [s, s] as const)} onChange={(s) => open(screen.slug, s)} />
           {focused && (
             <button className="wb-focus-exit" onClick={() => focus(null)} title="모든 프레임 보기 (Esc)">
-              ◱ 전체 보기 <span className="wb-muted">— {focused.id.startsWith("base-") ? baseTitle(focused) : viewportById[focused.preset ?? focused.base ?? ""]?.label ?? "직접 조절"} 만 보는 중</span>
+              ◱ 전체 보기 <span className="wb-muted">— {focused.id.startsWith("base-") ? baseTitle(focused) : (viewportById[focused.preset ?? focused.base ?? ""] ? presetLabel(viewportById[focused.preset ?? focused.base ?? ""]) : "직접 조절")} 만 보는 중</span>
             </button>
           )}
           <div className="wb-seg">

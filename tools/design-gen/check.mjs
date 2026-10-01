@@ -182,6 +182,7 @@ try {
     const hasPhysical = Array.isArray(p.physical) && p.physical.length === 2 && typeof p.scale === "number" && p.scale > 0;
     if (hasLogical === hasPhysical) block(at, `logical 또는 (physical + scale) 중 정확히 하나`);
     if (p.group !== undefined && typeof p.group !== "string") block(at, `group 은 문자열`);
+    if (p.approx !== undefined && typeof p.approx !== "boolean") block(at, `approx 는 true/false`);
   }
   for (const spec of vp.detailDefaults ?? []) {
     const [id, orientation] = spec.split(":");

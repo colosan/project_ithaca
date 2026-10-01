@@ -1,7 +1,7 @@
 import type { Locale, Theme } from "@ithaca/kit";
 import { Device } from "./Frame";
 import { usePref } from "./prefs";
-import { buildGraph, planned, screens, specSummary, viewportById, viewports } from "./registry";
+import { buildGraph, planned, presetLabel, screens, specSummary, viewportById, viewportGroups, viewports } from "./registry";
 
 const CARD_W = { phone: 200, wide: 420 };
 
@@ -11,7 +11,7 @@ export function ScreenList({ theme, locale, onOpen }: {
   locale: Locale;
   onOpen: (slug: string, state: string | null) => void;
 }) {
-  const [previewId, setPreviewId] = usePref("list.preview", "iphone-15");
+  const [previewId, setPreviewId] = usePref("list.preview", "iphone-17-pro");
   const [collapsed, setCollapsed] = usePref<string[]>("canvas.collapsed", ["app-shell"]);
   const toggle = (slug: string) => setCollapsed((l) => (l.includes(slug) ? l.filter((s) => s !== slug) : [...l, slug]));
   const vp = viewportById[previewId] ?? viewports[0];
@@ -33,10 +33,14 @@ export function ScreenList({ theme, locale, onOpen }: {
         <label>
           미리보기{" "}
           <select value={vp.id} onChange={(e) => setPreviewId(e.target.value)}>
-            {viewports.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.platform} · {v.label} ({v.width}×{v.height})
-              </option>
+            {viewportGroups().map(([group, list]) => (
+              <optgroup key={group} label={group}>
+                {list.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {presetLabel(v)} ({v.width}×{v.height})
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </label>

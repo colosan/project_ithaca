@@ -149,11 +149,13 @@ export interface Viewport {
   height: number;
   physical?: readonly [number, number];
   scale?: number;
+  /** Sources disagree on this size; shown with "≈". */
+  approx?: boolean;
 }
 
 const OS: Record<string, Platform> = { iOS: "ios", iPadOS: "ipados", Android: "android", macOS: "macos", Windows: "windows" };
 
-type RawPreset = { id: string; platform: string; group?: string; label: string; logical?: number[]; physical?: number[]; scale?: number };
+type RawPreset = { id: string; platform: string; group?: string; label: string; logical?: number[]; physical?: number[]; scale?: number; approx?: boolean };
 
 export const viewports: Viewport[] = (viewportsJson.presets as RawPreset[]).map((p) => {
   const scale = p.scale ?? 1;
@@ -168,8 +170,24 @@ export const viewports: Viewport[] = (viewportsJson.presets as RawPreset[]).map(
     height: h,
     physical: p.physical ? [p.physical[0], p.physical[1]] : undefined,
     scale: p.scale,
+    approx: p.approx,
   };
 });
+
+/** Picker label: "Galaxy S25 Ultra ≈" when the size is an estimate. */
+export const presetLabel = (v: Viewport) => (v.approx ? `${v.label} ≈` : v.label);
+
+/** Every preset grouped as "<platform> · <family>", for preview pickers. */
+export function viewportGroups(): [string, Viewport[]][] {
+  const out: [string, Viewport[]][] = [];
+  for (const v of viewports) {
+    const name = `${v.platform} · ${v.group}`;
+    const g = out.find(([n]) => n === name);
+    if (g) g[1].push(v);
+    else out.push([name, [v]]);
+  }
+  return out;
+}
 
 export const viewportById = Object.fromEntries(viewports.map((v) => [v.id, v]));
 /** Default frames: preset ids, optionally suffixed ":landscape". */

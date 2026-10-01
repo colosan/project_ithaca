@@ -3,7 +3,7 @@ import {
   type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode,
 } from "react";
 import { FrameContext, sample, sizeClassFor, type FrameInfo, type Locale, type Platform, type Theme } from "@ithaca/kit";
-import { viewportById, viewports, type Viewport } from "./registry";
+import { presetLabel, viewportById, viewports, type Viewport } from "./registry";
 
 // ── Issue detection (J3) ─────────────────────────────────────────────────
 
@@ -140,7 +140,7 @@ export const SECTORS: { os: Platform; name: string }[] = [
 const SIDES: Record<Platform, { short: [number, number]; long: [number, number] }> = {
   ios: { short: [320, 440], long: [568, 960] },
   android: { short: [320, 1000], long: [480, 1600] },
-  ipados: { short: [320, 1032], long: [600, 1366] },
+  ipados: { short: [320, 1032], long: [600, 1400] },
   macos: { short: [360, 2400], long: [480, 3840] },
   windows: { short: [360, 2400], long: [480, 3840] },
 };
@@ -253,7 +253,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
   const setSize = (w: number, h: number, label: string, key?: string, rotate = false) => edit.commit(resized(frame, w, h, rotate), label, key);
 
   const copyRef = async () => {
-    const where = fixedTitle ?? (preset ? preset.label + rotatedSuffix(preset, frame.w, frame.h) : `custom${base ? ` from ${base.label}` : ""}`);
+    const where = fixedTitle ?? (preset ? presetLabel(preset) + rotatedSuffix(preset, frame.w, frame.h) : `custom${base ? ` from ${base.label}` : ""}`);
     const line = `${nodeRef} · ${frame.platform} ${where} ${frame.w}×${frame.h} (${sizeClassFor(frame.w)}) · ${theme} · ${locale}`;
     try {
       await navigator.clipboard.writeText(line);
@@ -305,7 +305,7 @@ export function ResizableFrame({ frame, zoom, theme, locale, nodeRef, showIssues
               <optgroup key={group} label={group}>
                 {list.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.label}
+                    {presetLabel(v)}
                     {v.id === frame.preset ? rotatedSuffix(v, frame.w, frame.h) : ""}
                   </option>
                 ))}
