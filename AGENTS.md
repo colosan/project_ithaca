@@ -24,4 +24,4 @@
 - GPL 프로젝트(Manuskript 등)와 외부 비공개 코드는 아이디어만 참고, 코드 복사 금지.
 
 ## 커밋
-개인 repo — `user.email` 은 `80652992+colosan@users.noreply.github.com` (repo local config 에 설정됨).
+GitHub 계정 `colosan` — `user.name colosan` · `user.email ljchan71@gmail.com` (repo local config 에 설정됨).
