@@ -29,7 +29,7 @@
   "branch.subtitle": "{device}에서 오프라인으로 쓴 내용이 있어요 · {minutes}분 전",
   "branch.main": "본문",
   "branch.copy": "갈라진 사본",
-  "branch.bringOver": "← 가져오기",
+  "branch.bringOver": "가져오기",
   "branch.changed": "바뀜",
   "branch.onlyHere": "이쪽에만 있음",
   "branch.progress": "{done}/{total} 정리됨",
@@ -109,7 +109,6 @@
   "history.kind.edit": "편집",
   "history.kind.lease": "점유",
   "history.kind.merge": "합침",
-  "history.delta": "+{added} −{removed}",
   "history.before": "이전",
   "history.after": "이후",
   "history.restore": "이 시점으로 되돌리기",
@@ -160,5 +159,15 @@
   "pair.word3": "지도",
   "pair.word4": "열하나",
   "export.scope": "범위",
-  "export.format": "형식"
+  "export.format": "형식",
+  "platform.ios": "iOS",
+  "platform.ipados": "iPadOS",
+  "platform.android": "Android",
+  "platform.macos": "macOS",
+  "platform.windows": "Windows",
+  "sync.hoursAgo": "{hours}시간 전 동기화",
+  "sync.daysAgo": "{count}일 전 동기화",
+  "search.open": "열기",
+  "nav.previous": "이전",
+  "nav.next": "다음"
 }

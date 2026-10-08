@@ -102,12 +102,14 @@ public enum Tokens {
     public enum Radius {
         public static let none: Double = 0
         public static let piece: Double = 4
-        public static let panel: Double = 8
-        public static let sheet: Double = 12
+        public static let control: Double = 8
+        public static let panel: Double = 10
+        public static let sheet: Double = 14
         public static let full: Double = 9999
     }
 
     public enum Shadow {
+        public static let raised = ShadowToken(y: 1, blur: 3, opacity: 0.08)
         public static let popover = ShadowToken(y: 4, blur: 16, opacity: 0.1)
         public static let dialog = ShadowToken(y: 12, blur: 40, opacity: 0.16)
     }

@@ -1,12 +1,18 @@
 // project-settings prototype — title, manuscript language, per-sheet length goal, folders.
 import { useState, type ReactNode } from "react";
-import { color, pane, radius, shadow, size, space, type, openContext, safePadding, useFrame, useNavigate, useT, type StringKey } from "@ithaca/kit";
+import {
+  color, pane, radius, shadow, size, space, type,
+  Button, Icon, IconButton, Radio, Segmented, TextField,
+  openContext, safePadding, useFrame, useNavigate, useT, type StringKey,
+} from "@ithaca/kit";
 
 export const states = ["default"] as const;
 type State = (typeof states)[number];
 
 const hairline = (c: string) => `${size.strokeHairline} solid ${c}`;
-const clickable = { cursor: "pointer" } as const;
+
+type Basis = "withSpaces" | "withoutSpaces" | "words";
+const BASIS: [Basis, StringKey][] = [["withSpaces", "goal.basis.withSpaces"], ["withoutSpaces", "goal.basis.withoutSpaces"], ["words", "goal.basis.words"]];
 
 /** compact: full-screen page with a nav bar. medium+: centered dialog over a scrim. */
 export default function ProjectSettings({ state: _state }: { state: State }) {
@@ -14,13 +20,14 @@ export default function ProjectSettings({ state: _state }: { state: State }) {
   const t = useT();
   const go = useNavigate();
   const body = <Body />;
+  const done = <Button variant="primary" onClick={() => go("app-shell")}>{t("action.done")}</Button>;
   if (sizeClass === "compact") {
     return (
       <div style={{ display: "flex", flexDirection: "column", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body, ...safePadding(safeArea) }}>
-        <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle), ...type.label }}>
-          <span style={{ color: color.inkSecondary, ...clickable }} onClick={() => go("app-shell")}>‹ {t("nav.back")}</span>
-          <span style={{ flex: 1, textAlign: "center", ...type.heading }}>{t("projectSettings.title")}</span>
-          <span style={{ color: color.accentPrimary, ...clickable }} onClick={() => go("app-shell")}>{t("action.done")}</span>
+        <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[100], padding: `0 ${space[100]}`, borderBottom: hairline(color.lineSubtle) }}>
+          <IconButton icon="back" label={t("nav.back")} onClick={() => go("app-shell")} />
+          <span style={{ flex: 1, ...type.heading }}>{t("projectSettings.title")}</span>
+          {done}
         </header>
         <div style={{ flex: 1, overflow: "auto", padding: space[200] }}>{body}</div>
       </div>
@@ -28,10 +35,10 @@ export default function ProjectSettings({ state: _state }: { state: State }) {
   }
   return (
     <div style={{ position: "relative", height: "100%", background: color.surfaceScrim, display: "flex", alignItems: "center", justifyContent: "center", ...safePadding(safeArea), color: color.inkPrimary, ...type.body }}>
-      <div style={{ width: pane.dialog, maxWidth: "90%", maxHeight: "90%", overflow: "hidden", display: "flex", flexDirection: "column", background: color.surfaceRaised, borderRadius: radius.sheet, boxShadow: shadow.dialog }}>
-        <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", padding: `0 ${space[300]}`, borderBottom: hairline(color.lineSubtle) }}>
+      <div style={{ width: pane.dialog, maxWidth: "90%", maxHeight: "90%", overflow: "hidden", display: "flex", flexDirection: "column", background: color.surfaceCanvas, borderRadius: radius.sheet, boxShadow: shadow.dialog }}>
+        <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[100], padding: `0 ${space[150]} 0 ${space[300]}`, borderBottom: hairline(color.lineSubtle) }}>
           <span style={{ ...type.heading, flex: 1 }}>{t("projectSettings.title")}</span>
-          <span style={{ ...type.label, color: color.accentPrimary, ...clickable }} onClick={() => go("app-shell")}>{t("action.done")}</span>
+          {done}
         </header>
         <div style={{ overflow: "auto", padding: space[300] }}>{body}</div>
       </div>
@@ -43,48 +50,70 @@ function Body() {
   const t = useT();
   const { sample, locale, sizeClass } = useFrame();
   const { project } = openContext(sample);
+  const [title, setTitle] = useState(project.title);
+  const [lang, setLang] = useState(project.language);
+  const [goal, setGoal] = useState(project.goal ? project.goal.count.toLocaleString(locale) : "");
+  const [basis, setBasis] = useState<Basis>(project.goal?.basis ?? "withSpaces");
   const [folders, setFolders] = useState(project.folders.map((f) => ({ id: f.id, name: f.name, count: f.sheets.length })));
-  const basisKey: Record<string, StringKey> = {
-    withSpaces: "goal.basis.withSpaces",
-    withoutSpaces: "goal.basis.withoutSpaces",
-    words: "goal.basis.words",
-  };
-  const basisIndex = Object.keys(basisKey).indexOf(project.goal?.basis ?? "withSpaces");
-  const basisLabels = Object.values(basisKey).map((k) => t(k));
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: space[300] }}>
       <Section label={t("projectSettings.name")}>
-        <Field>{project.title}</Field>
+        <TextField value={title} onChange={setTitle} />
       </Section>
 
       <Section label={t("projectSettings.language")}>
-        <Segmented options={[t("language.ko"), t("language.en")]} active={project.language === "ko" ? 0 : 1} />
+        <Segmented items={[["ko", t("language.ko")], ["en", t("language.en")]] as const} value={lang} onChange={setLang} />
       </Section>
 
       <Section label={t("projectSettings.goal")} hint={t("projectSettings.goalHint")}>
-        <div style={{ display: "flex", gap: space[100], flexWrap: "wrap" }}>
-          <Field narrow>{project.goal ? project.goal.count.toLocaleString(locale) : t("projectSettings.goalNone")}</Field>
+        <div style={{ display: "flex", gap: space[100], flexWrap: "wrap", alignItems: "flex-start" }}>
+          <TextField value={goal} placeholder={t("projectSettings.goalNone")} onChange={setGoal} width={size.rowSheet} />
           {/* Three long options do not fit a segmented control on a phone — stack them as a radio list there. */}
-          {sizeClass === "compact" ? <RadioList options={basisLabels} active={basisIndex} /> : <Segmented options={basisLabels} active={basisIndex} />}
+          {sizeClass === "compact" ? (
+            <div style={{ width: "100%", borderRadius: radius.panel, border: hairline(color.lineSubtle), background: color.surfaceRaised, overflow: "hidden" }}>
+              {BASIS.map(([k, s], i) => (
+                <div key={k} onClick={() => setBasis(k)} style={{ display: "flex", alignItems: "center", gap: space[150], minHeight: size.controlLg, padding: `${space[50]} ${space[150]}`, borderTop: i ? hairline(color.lineSubtle) : undefined, cursor: "pointer" }}>
+                  <Radio on={basis === k} />
+                  <span>{t(s)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Segmented items={BASIS.map(([k, s]) => [k, t(s)] as const)} value={basis} onChange={setBasis} />
+          )}
         </div>
       </Section>
 
       <Section label={t("projectSettings.folders")} hint={t("projectSettings.folderHint")}>
-        <div style={{ border: hairline(color.lineSubtle), borderRadius: radius.panel, overflow: "hidden" }}>
-          {folders.map((f) => (
-            <div key={f.id} style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: `${space[50]} ${space[150]}`, minHeight: size.controlLg, padding: `${space[50]} ${space[150]}`, borderBottom: hairline(color.lineSubtle) }}>
-              <span style={{ color: color.inkMarkup }}>≡</span>
-              <span style={{ flex: 1 }}>{f.name}</span>
-              <span style={{ ...type.caption, color: color.inkTertiary }}>{t("sheetList.count", { count: f.count })}</span>
-              <span style={{ ...type.label, color: color.inkSecondary }}>{t("folder.rename")}</span>
-              <span style={{ ...type.label, color: color.stateDanger, ...clickable }} onClick={() => setFolders((l) => l.filter((x) => x.id !== f.id))}>{t("folder.delete")}</span>
+        <div style={{ borderRadius: radius.panel, border: hairline(color.lineSubtle), background: color.surfaceRaised, overflow: "hidden" }}>
+          {folders.map((f, i) => (
+            <div key={f.id} style={{ display: "flex", alignItems: "center", gap: space[100], minHeight: size.controlLg, padding: `${space[50]} ${space[100]}`, borderTop: i ? hairline(color.lineSubtle) : undefined }}>
+              <span style={{ display: "grid", placeItems: "center", color: color.inkMarkup, cursor: "grab" }}><Icon name="reorder" size="sm" /></span>
+              <Icon name="folder" size="sm" color={color.inkTertiary} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div>{f.name}</div>
+                <div style={{ ...type.caption, color: color.inkTertiary }}>{t("sheetList.count", { count: f.count })}</div>
+              </div>
+              {/* Phones keep the name readable: icon-only actions (labels stay as tooltips / accessibility names). */}
+              {sizeClass === "compact" ? (
+                <>
+                  <IconButton icon="rename" label={t("folder.rename")} />
+                  <IconButton icon="delete" label={t("folder.delete")} tone={color.stateDanger} onClick={() => setFolders((l) => l.filter((x) => x.id !== f.id))} />
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost">{t("folder.rename")}</Button>
+                  <Button variant="ghost" style={{ color: color.stateDanger }} onClick={() => setFolders((l) => l.filter((x) => x.id !== f.id))}>{t("folder.delete")}</Button>
+                </>
+              )}
             </div>
           ))}
           <div
             onClick={() => setFolders((l) => [...l, { id: `new-${l.length}`, name: t("folder.new"), count: 0 }])}
-            style={{ display: "flex", alignItems: "center", minHeight: size.controlLg, padding: `0 ${space[150]}`, ...type.label, color: color.accentPrimary, ...clickable }}
+            style={{ display: "flex", alignItems: "center", gap: space[100], minHeight: size.controlLg, padding: `0 ${space[150]}`, borderTop: hairline(color.lineSubtle), ...type.label, fontWeight: type.heading.fontWeight, color: color.accentPrimary, cursor: "pointer" }}
           >
-            ＋ {t("folder.new")}
+            <Icon name="add" size="sm" />
+            {t("folder.new")}
           </div>
         </div>
       </Section>
@@ -97,43 +126,7 @@ function Section({ label, hint, children }: { label: string; hint?: string; chil
     <section>
       <div style={{ ...type.label, color: color.inkSecondary, marginBottom: space[100] }}>{label}</div>
       {children}
-      {hint && <div style={{ ...type.caption, color: color.inkTertiary, marginTop: space[50] }}>{hint}</div>}
+      {hint && <div style={{ ...type.caption, color: color.inkTertiary, marginTop: space[100] }}>{hint}</div>}
     </section>
-  );
-}
-
-/** Grows with its content (long titles wrap) instead of a fixed height the text could spill out of. */
-function Field({ children, narrow }: { children: ReactNode; narrow?: boolean }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", minHeight: size.controlMd, padding: `${space[100]} ${space[150]}`, border: hairline(color.lineStrong), borderRadius: radius.piece, background: color.surfaceCanvas, flex: narrow ? "none" : 1, minWidth: narrow ? size.rowSheet : 0 }}>
-      {children}
-    </div>
-  );
-}
-
-function RadioList({ options, active: initial }: { options: string[]; active: number }) {
-  const [active, setActive] = useState(initial);
-  return (
-    <div style={{ width: "100%", border: hairline(color.lineStrong), borderRadius: radius.piece, overflow: "hidden" }}>
-      {options.map((o, i) => (
-        <div key={o} onClick={() => setActive(i)} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: space[100], minHeight: size.controlMd, padding: `0 ${space[150]}`, borderTop: i ? hairline(color.lineSubtle) : undefined, background: i === active ? color.surfaceSelected : "transparent" }}>
-          <span style={{ color: i === active ? color.accentPrimary : color.inkMarkup }}>{i === active ? "●" : "○"}</span>
-          <span style={type.label}>{o}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Segmented({ options, active: initial }: { options: string[]; active: number }) {
-  const [active, setActive] = useState(initial);
-  return (
-    <div style={{ display: "inline-flex", border: hairline(color.lineStrong), borderRadius: radius.piece, overflow: "hidden", ...type.label }}>
-      {options.map((o, i) => (
-        <span key={o} onClick={() => setActive(i)} style={{ cursor: "pointer", whiteSpace: "nowrap", padding: `${space[100]} ${space[150]}`, background: i === active ? color.surfaceSelected : "transparent", color: i === active ? color.inkPrimary : color.inkSecondary, borderLeft: i ? hairline(color.lineStrong) : undefined }}>
-          {o}
-        </span>
-      ))}
-    </div>
   );
 }

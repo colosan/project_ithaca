@@ -1,16 +1,20 @@
 // history prototype — one sheet's hash chain (ADR-0002): who changed what, compare, restore without deleting.
 // Interactive: filter by actor/device, pick a record to compare, restore adds a new record (shown as a notice).
 import { useState, type ReactNode } from "react";
-import { color, pane, radius, safePadding, size, space, type, openContext, useFrame, useNavigate, useT, type HistoryRecord, type StringKey } from "@ithaca/kit";
+import {
+  color, pane, radius, safePadding, size, space, type,
+  Button, Chip, Icon, IconButton,
+  openContext, useFrame, useNavigate, useT, type HistoryRecord, type IconName, type StringKey,
+} from "@ithaca/kit";
 
 export const states = ["all", "claude"] as const;
 type State = (typeof states)[number];
 
 const hairline = (c: string) => `${size.strokeHairline} solid ${c}`;
-const clickable = { cursor: "pointer" } as const;
 
 type Filter = "all" | "claude" | "device";
 const KIND: Record<HistoryRecord["kind"], StringKey> = { edit: "history.kind.edit", lease: "history.kind.lease", merge: "history.kind.merge" };
+const KIND_ICON: Record<HistoryRecord["kind"], IconName> = { edit: "edit", lease: "lease", merge: "merge" };
 
 /** Character-level highlight: common prefix/suffix plain, the changed middle marked. */
 function Highlighted({ text, other, tone }: { text: string; other: string | null; tone: string }) {
@@ -48,9 +52,12 @@ export default function History({ state }: { state: State }) {
           <div style={type.heading}>{t("history.title")}</div>
           <div style={{ ...type.caption, color: color.inkSecondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sheet.title}</div>
         </div>
-        <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} title={t("action.close")} onClick={() => go("app-shell")}>✕</span>
+        <IconButton icon="close" label={t("action.close")} onClick={() => go("app-shell")} />
       </div>
-      <div style={{ ...type.caption, color: color.stateSuccess }}>✓ {t("history.integrity", { count: h.total })}</div>
+      <div style={{ display: "flex", alignItems: "center", gap: space[50], ...type.caption, color: color.stateSuccess }}>
+        <Icon name="verified" size="sm" />
+        {t("history.integrity", { count: h.total })}
+      </div>
       <FilterPicker filter={filter} onChange={(f) => { setFilter(f); setPicked(null); }} />
     </header>
   );
@@ -68,8 +75,8 @@ export default function History({ state }: { state: State }) {
       <div style={{ display: "flex", flexDirection: "column", height: "100%", background: color.surfaceList, color: color.inkPrimary, ...type.body, ...safePadding(safeArea) }}>
         {current ? (
           <>
-            <header style={{ flex: "none", display: "flex", alignItems: "center", minHeight: size.barTop, padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
-              <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} onClick={() => setPicked(null)}>‹ {t("history.title")}</span>
+            <header style={{ flex: "none", display: "flex", alignItems: "center", minHeight: size.barTop, padding: `0 ${space[100]}`, borderBottom: hairline(color.lineSubtle) }}>
+              <Button variant="ghost" icon="back" onClick={() => setPicked(null)}>{t("history.title")}</Button>
             </header>
             <Detail r={current} restored={restored === current.id} onRestore={() => setRestored(current.id)} />
           </>
@@ -103,13 +110,7 @@ function FilterPicker({ filter, onChange }: { filter: Filter; onChange: (f: Filt
   return (
     <div style={{ display: "flex", flexWrap: "wrap", gap: space[50] }}>
       {items.map(([f, label]) => (
-        <span
-          key={f}
-          onClick={() => onChange(f)}
-          style={{ ...type.label, padding: `${space[25]} ${space[100]}`, borderRadius: radius.full, border: hairline(f === filter ? color.accentPrimary : color.lineStrong), background: f === filter ? color.accentSoft : "transparent", color: f === filter ? color.accentPrimary : color.inkSecondary, ...clickable }}
-        >
-          {label}
-        </span>
+        <Chip key={f} active={f === filter} onClick={() => onChange(f)}>{label}</Chip>
       ))}
     </div>
   );
@@ -121,9 +122,9 @@ function Row({ r, active, onClick }: { r: HistoryRecord; active: boolean; onClic
   const when = new Date(r.at).toLocaleString(locale, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   const claude = r.actor === "claude";
   return (
-    <article onClick={onClick} style={{ display: "flex", gap: space[150], padding: `${space[150]} ${space[200]}`, borderBottom: hairline(color.lineSubtle), background: active ? color.surfaceSelected : "transparent", ...clickable }}>
-      <span style={{ flex: "none", alignSelf: "flex-start", display: "grid", placeItems: "center", minWidth: size.iconLg, minHeight: size.iconLg, borderRadius: radius.full, background: claude ? color.accentSoft : color.surfaceSelected, color: claude ? color.accentPrimary : color.inkSecondary, ...type.caption }}>
-        {claude ? "✦" : "✎"}
+    <article onClick={onClick} style={{ display: "flex", gap: space[150], padding: `${space[150]} ${space[200]}`, borderBottom: hairline(color.lineSubtle), background: active ? color.surfaceSelected : "transparent", cursor: "pointer" }}>
+      <span style={{ flex: "none", alignSelf: "flex-start", display: "grid", placeItems: "center", minWidth: size.controlSm, minHeight: size.controlSm, borderRadius: radius.full, background: claude ? color.accentSoft : color.surfaceRaised, border: hairline(claude ? "transparent" : color.lineSubtle), color: claude ? color.accentPrimary : color.inkSecondary }}>
+        <Icon name={claude ? "claude" : KIND_ICON[r.kind]} size="sm" />
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: `0 ${space[100]}`, alignItems: "baseline" }}>
@@ -133,7 +134,11 @@ function Row({ r, active, onClick }: { r: HistoryRecord; active: boolean; onClic
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: `0 ${space[100]}`, ...type.caption, color: color.inkSecondary }}>
           <span>{when}</span>
-          {(r.added > 0 || r.removed > 0) && <span>{t("history.delta", { added: r.added, removed: r.removed })}</span>}
+          {(r.added > 0 || r.removed > 0) && (
+            <span>
+              <span style={{ color: color.stateSuccess }}>+{r.added}</span> <span style={{ color: color.stateDanger }}>−{r.removed}</span>
+            </span>
+          )}
         </div>
       </div>
     </article>
@@ -159,11 +164,12 @@ function Detail({ r, restored, onRestore }: { r: HistoryRecord; restored: boolea
       {hasText && (
         <div style={{ flex: "none" }}>
           {restored ? (
-            <div style={{ ...type.label, color: color.stateSuccess }}>✓ {t("history.restored")}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: space[50], ...type.label, color: color.stateSuccess }}>
+              <Icon name="success" size="sm" />
+              {t("history.restored")}
+            </div>
           ) : (
-            <span onClick={onRestore} style={{ display: "inline-block", ...type.label, padding: `${space[100]} ${space[200]}`, borderRadius: radius.piece, background: color.accentPrimary, color: color.inkOnAccent, ...clickable }}>
-              {t("history.restore")}
-            </span>
+            <Button variant="primary" icon="restore" onClick={onRestore}>{t("history.restore")}</Button>
           )}
           <div style={{ ...type.caption, color: color.inkTertiary, marginTop: space[100] }}>{t("history.restoreHint")}</div>
         </div>

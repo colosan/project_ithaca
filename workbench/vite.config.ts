@@ -62,7 +62,7 @@ function canvasStore(): Plugin {
 
 /** Regenerates outputs when design/tokens or design/strings change → HMR refreshes the view. */
 function designGen(): Plugin {
-  const dirs = ["design/tokens", "design/strings"].map((d) => slash(join(repo, d)));
+  const dirs = ["design/tokens", "design/strings", "design/icons.json"].map((d) => slash(join(repo, d)));
   return {
     name: "ithaca-design-gen",
     async configureServer(server) {

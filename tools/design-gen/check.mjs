@@ -103,6 +103,8 @@ const LINT = [
     "숫자 스타일 값 — 토큰을 쓴다 (0 은 허용)",
   ],
   [/(?<![=\-])>(?!=)\s*([^<>{}();=\n]*[A-Za-z가-힣][^<>{}();=\n]*)<\/?[A-Za-z]/, "JSX 안 하드코딩 문구 — t('key') 를 쓴다"],
+  // Glyphs drawn as text render in whatever fallback font has them — mismatched size and weight. Use <Icon name>.
+  [/[←-⇿⌀-⏿①-⓿■-◿☀-➿⬀-⯿⋯≡＋]/, "문자로 그린 아이콘 — <Icon name> (design/icons.json) 을 쓴다"],
 ];
 
 // Pass 1: collect each screen's declared states (parsed from `export const states = [...]`) so links can be resolved.

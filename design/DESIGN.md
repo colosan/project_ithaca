@@ -33,8 +33,17 @@ Ulysses 에서 가져오는 것은 모양이 아니라 태도다: 본문 한 줄
 - 초안 값에서 light `ink.tertiary` · `accent.primary` · `state.*` 가 2.6~4.2 였다 → 색상·채도는 두고 명도만 기준까지 옮겼다. 그 결과 accent 가 황토에서 **짙은 갈색** 쪽으로 내려왔다.
 - tertiary 가 어두워지면서 secondary 와 겹쳐 ink 3단이 무너졌다 → secondary 를 한 단 더 진하게(light) · 밝게(dark) 벌렸다. 대비 순서: primary > secondary > tertiary 를 유지한다.
 
+## 아이콘 · 컨트롤 (2026-10-08, 검토 필요)
+
+- **아이콘은 Lucide 하나**(ISC). 어휘는 `design/icons.json` — 이름은 쓰임새(`history`, `reference`), 값은 Lucide 이름. 네 플랫폼이 같은 벡터를 쓴다(SF Symbols · Material 로 바꾸지 않는다 — 모양이 갈라지면 디자인 검수가 무의미해진다). 선 굵기 1.75.
+- **글자로 아이콘을 그리지 않는다** (↺ ✕ ⚙ ◫ …). 폴백 글꼴마다 크기·굵기가 달라 화면이 조잡해진다 → `design:check` 가 막는다.
+- **컨트롤은 kit 하나로**: Button(primary · secondary · ghost · danger) · IconButton · Segmented · Chip · Checkbox · Radio · Switch · TextField. 화면이 제각각 그리지 않는다. 네이티브도 같은 이름의 컴포넌트를 하나씩 만든다.
+  - primary 는 화면에 하나. 나머지는 secondary(흰 면 + 선 + 얕은 그림자) 또는 ghost.
+  - Segmented 는 가라앉은 트랙 위에 고른 칸만 떠 있는 모양(iOS · macOS 와 같은 문법).
+  - 버튼 · 입력의 모서리는 `radius.control`, 묶음 상자는 `radius.panel`, 다이얼로그는 `radius.sheet`.
+- 서체 Pretendard 는 workbench 에 번들(OFL) — 설치 여부와 상관없이 모든 기계 · 스냅샷이 같은 글꼴로 그린다.
+
 ## [미정]
 
 - 본문 서체: Pretendard 로 시작. 명조 계열(Noto Serif KR 등) 선택지를 줄지.
-- 아이콘 세트: 라이선스(OFL · MIT · Apache) 안에서 고른다.
 - accent 색 최종값 — 지금은 황토색 잠정.

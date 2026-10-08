@@ -22,6 +22,8 @@
   - **조작 가능하게 만든다.** 선택 · 패널 · 토글은 `useState`(초기값은 `state` prop), 다른 화면으로 가는 버튼은 `useNavigate()("slug#state")`.
     누를 수 있는 요소엔 `cursor: "pointer"`. 이동 대상은 meta.json `links` 와 맞춘다.
   - `export const states = [...] as const` 와 `export default function` 필수.
+  - 버튼 · 토글 · 세그먼트 · 체크 · 입력은 kit 컴포넌트(`Button` · `IconButton` · `Segmented` · `Chip` · `Checkbox` · `Radio` · `Switch` · `TextField`)만. 화면에서 새로 그리지 않는다.
+  - 아이콘은 `<Icon name>` · `<IconButton icon>` 만. 이름은 `design/icons.json` 에 있는 것만 — 필요하면 거기에 더한다(Lucide 이름). ↺ ✕ ⚙ 같은 문자 아이콘은 BLOCK.
 - `meta.json` 의 `links` 가 캔버스의 화살표다: `{ "from": "<내 state>", "to": "<slug>" | "<slug>#<state>", "label": { "ko", "en" } }`.
   화면을 이동시키는 동작(버튼·제스처·외부 사건)마다 하나씩. `design:check` 가 없는 화면·state 를 막는다.
 

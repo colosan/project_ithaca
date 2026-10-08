@@ -70,12 +70,14 @@ export const size = {
 export const radius = {
   none: "var(--radius-none)",
   piece: "var(--radius-piece)",
+  control: "var(--radius-control)",
   panel: "var(--radius-panel)",
   sheet: "var(--radius-sheet)",
   full: "var(--radius-full)",
 } as const;
 
 export const shadow = {
+  raised: "var(--shadow-raised)",
   popover: "var(--shadow-popover)",
   dialog: "var(--shadow-dialog)",
 } as const;

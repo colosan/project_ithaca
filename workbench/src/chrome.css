@@ -20,7 +20,7 @@ html, body, #root { height: 100%; margin: 0; }
 body {
   background: var(--wb-bg);
   color: var(--wb-ink);
-  font: 13px/1.45 "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  font: 13px/1.45 Pretendard, system-ui, sans-serif;
 }
 body.wb-resizing { cursor: nwse-resize; user-select: none; }
 button, select, input {
@@ -36,7 +36,7 @@ button:hover { border-color: #c4c4cc; }
 code { font: 12px ui-monospace, "JetBrains Mono", monospace; }
 .wb-muted { color: var(--wb-muted); }
 .wb-spacer { flex: 1; }
-.wb-chip { font: 11px ui-monospace, monospace; padding: 1px 6px; border-radius: 4px; background: var(--wb-accent-soft); color: var(--wb-accent); white-space: nowrap; }
+.wb-chip { font: 600 11px/1.45 Pretendard, system-ui, sans-serif; padding: 1px 8px; border-radius: 999px; background: var(--wb-panel); border: 1px solid var(--wb-line); color: #3f3f46; white-space: nowrap; }
 .wb-chip-planned { background: #f4f4f5; color: var(--wb-muted); border: 1px dashed #c4c4cc; }
 .wb-hint { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--wb-line); color: var(--wb-muted); cursor: help; background: var(--wb-panel); }
 .wb-check { display: flex; gap: 4px; align-items: center; color: var(--wb-muted); white-space: nowrap; }
@@ -166,7 +166,7 @@ code { font: 12px ui-monospace, "JetBrains Mono", monospace; }
 .wb-show-issues [data-wb-issue="ellipsis"] { outline: calc(1.5px / var(--wb-z, 1)) dashed var(--wb-amber); outline-offset: -1px; }
 .wb-error { color: #b91c1c; font-size: 14px; padding: 16px; white-space: pre-wrap; }
 
-.wb-class { font: 600 11px ui-monospace, monospace; padding: 1px 6px; border-radius: 4px; background: #e4e4e7; }
+.wb-class { font: 600 11px Pretendard, system-ui, sans-serif; padding: 1px 6px; border-radius: 4px; background: #e4e4e7; }
 .wb-class-compact { background: #fee2e2; }
 .wb-class-medium { background: #fef3c7; }
 .wb-class-expanded { background: #dcfce7; }

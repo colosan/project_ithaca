@@ -1,13 +1,16 @@
 // pair-device prototype — add a device to the set and share the E2E key (ADR-0003): code, word check, first sync.
 // Interactive: the existing device shows a QR + code, the new one types or scans it, both confirm four words, then sync.
 import { useState, type ReactNode } from "react";
-import { color, isDesktop, opacity, pane, radius, safePadding, shadow, size, space, type, useFrame, useNavigate, useT, type StringKey } from "@ithaca/kit";
+import {
+  color, isDesktop, opacity, pane, radius, safePadding, shadow, size, space, type,
+  Button, Icon, IconButton,
+  useFrame, useNavigate, useT, type StringKey,
+} from "@ithaca/kit";
 
 export const states = ["show-code", "enter-code", "confirm", "syncing"] as const;
 type State = (typeof states)[number];
 
 const hairline = (c: string) => `${size.strokeHairline} solid ${c}`;
-const clickable = { cursor: "pointer" } as const;
 
 const WORDS: StringKey[] = ["pair.word1", "pair.word2", "pair.word3", "pair.word4"];
 const STEPS: StringKey[] = ["pair.step1", "pair.step2", "pair.step3"];
@@ -27,9 +30,9 @@ export default function PairDevice({ state }: { state: State }) {
     : <Syncing onDone={close} />;
 
   const header = (
-    <header style={{ flex: "none", display: "flex", alignItems: "center", gap: space[150], minHeight: size.barTop, padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
+    <header style={{ flex: "none", display: "flex", alignItems: "center", gap: space[150], minHeight: size.barTop, padding: `0 ${space[100]} 0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
       <span style={{ ...type.heading, flex: 1 }}>{t("pair.title")}</span>
-      <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} title={t("action.close")} onClick={close}>✕</span>
+      <IconButton icon="close" label={t("action.close")} onClick={close} />
     </header>
   );
 
@@ -67,10 +70,17 @@ function ShowCode({ onScanned }: { onScanned: () => void }) {
         <div style={{ ...type.display, letterSpacing: space[50], fontVariantNumeric: "tabular-nums" }}>{`${code.slice(0, 3)} ${code.slice(3)}`}</div>
         <div style={{ ...type.caption, color: color.inkTertiary }}>{t("pair.expires", { time: expiresIn })}</div>
       </div>
-      <ol style={{ margin: 0, paddingLeft: space[300], display: "flex", flexDirection: "column", gap: space[50], color: color.inkSecondary }}>
-        {STEPS.map((k) => <li key={k}>{t(k)}</li>)}
-      </ol>
-      <Secondary onClick={onScanned}>{t("pair.simulate")}</Secondary>
+      <div style={{ display: "flex", flexDirection: "column", gap: space[100], padding: space[200], borderRadius: radius.panel, background: color.surfaceList }}>
+        {STEPS.map((k, i) => (
+          <div key={k} style={{ display: "flex", alignItems: "flex-start", gap: space[150], color: color.inkSecondary }}>
+            <span style={{ flex: "none", display: "grid", placeItems: "center", minWidth: size.iconLg, minHeight: size.iconLg, borderRadius: radius.full, background: color.surfaceRaised, border: hairline(color.lineSubtle), ...type.caption, fontWeight: type.heading.fontWeight, color: color.inkPrimary }}>
+              {i + 1}
+            </span>
+            <span style={{ flex: 1, minWidth: 0 }}>{t(k)}</span>
+          </div>
+        ))}
+      </div>
+      <Button variant="ghost" style={{ alignSelf: "center" }} onClick={onScanned}>{t("pair.simulate")}</Button>
     </Stack>
   );
 }
@@ -112,13 +122,13 @@ function EnterCode({ onEntered }: { onEntered: () => void }) {
         <div style={type.title}>{t("pair.enterTitle")}</div>
         <div style={{ ...type.caption, color: color.inkSecondary, marginTop: space[50] }}>{t("pair.enterHint")}</div>
       </div>
-      <label style={{ position: "relative", display: "flex", justifyContent: "center", gap: space[100], ...clickable }}>
+      <label style={{ position: "relative", display: "flex", justifyContent: "center", gap: space[100], cursor: "text" }}>
         {Array.from({ length: 6 }, (_, i) => (
           <span
             key={i}
             style={{
               flex: "1 1 0", maxWidth: size.pairCodeCell, minHeight: size.pairCodeCell, display: "grid", placeItems: "center",
-              ...type.title, fontVariantNumeric: "tabular-nums", borderRadius: radius.piece, background: color.surfaceRaised,
+              ...type.title, fontVariantNumeric: "tabular-nums", borderRadius: radius.control, background: color.surfaceRaised,
               border: hairline(i === code.length ? color.accentPrimary : color.lineStrong),
             }}
           >
@@ -137,7 +147,7 @@ function EnterCode({ onEntered }: { onEntered: () => void }) {
           style={{ position: "absolute", inset: 0, opacity: 0, border: "none", padding: 0 }}
         />
       </label>
-      {!isDesktop(platform) && <Secondary onClick={onEntered}>{`⌗ ${t("pair.scan")}`}</Secondary>}
+      {!isDesktop(platform) && <Button icon="scan" style={{ alignSelf: "center" }} onClick={onEntered}>{t("pair.scan")}</Button>}
     </Stack>
   );
 }
@@ -154,20 +164,23 @@ function Confirm({ onMatch, onRetry }: { onMatch: () => void; onRetry: () => voi
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: space[100], opacity: refused ? opacity.disabled : undefined }}>
         {WORDS.map((k) => (
-          <span key={k} style={{ ...type.heading, padding: `${space[100]} ${space[200]}`, borderRadius: radius.piece, background: color.accentSoft, color: color.accentPrimary }}>
+          <span key={k} style={{ ...type.heading, padding: `${space[100]} ${space[200]}`, borderRadius: radius.control, background: color.surfaceRaised, border: hairline(color.lineStrong), boxShadow: shadow.raised }}>
             {t(k)}
           </span>
         ))}
       </div>
       {refused ? (
         <>
-          <div style={{ ...type.label, color: color.stateDanger, textAlign: "center" }}>{t("pair.mismatchNote")}</div>
-          <Secondary onClick={onRetry}>{t("pair.title")}</Secondary>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: space[100], padding: space[150], borderRadius: radius.panel, background: color.surfaceList, ...type.label, color: color.stateDanger }}>
+            <Icon name="warning" size="sm" />
+            <span style={{ flex: 1, minWidth: 0 }}>{t("pair.mismatchNote")}</span>
+          </div>
+          <Button style={{ alignSelf: "center" }} onClick={onRetry}>{t("pair.title")}</Button>
         </>
       ) : (
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: space[100] }}>
-          <Secondary onClick={() => setRefused(true)}>{t("pair.mismatch")}</Secondary>
-          <Primary onClick={onMatch}>{t("pair.match")}</Primary>
+          <Button onClick={() => setRefused(true)}>{t("pair.mismatch")}</Button>
+          <Button variant="primary" icon="check" onClick={onMatch}>{t("pair.match")}</Button>
         </div>
       )}
     </Stack>
@@ -189,7 +202,7 @@ function Syncing({ onDone }: { onDone: () => void }) {
         <div style={{ width: `${Math.round((done / total) * 100)}%`, height: "100%", background: color.accentPrimary }} />
       </div>
       <div style={{ ...type.caption, color: color.inkTertiary, textAlign: "center" }}>{t("pair.syncHint")}</div>
-      <Primary onClick={onDone}>{t("action.done")}</Primary>
+      <Button variant="primary" style={{ alignSelf: "center" }} onClick={onDone}>{t("action.done")}</Button>
     </Stack>
   );
 }
@@ -198,20 +211,4 @@ function Syncing({ onDone }: { onDone: () => void }) {
 
 function Stack({ children }: { children: ReactNode }) {
   return <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: space[300] }}>{children}</div>;
-}
-
-function Primary({ onClick, children }: { onClick: () => void; children: ReactNode }) {
-  return (
-    <span onClick={onClick} style={{ alignSelf: "center", textAlign: "center", ...type.label, minHeight: size.controlMd, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: `${space[50]} ${space[300]}`, borderRadius: radius.piece, background: color.accentPrimary, color: color.inkOnAccent, ...clickable }}>
-      {children}
-    </span>
-  );
-}
-
-function Secondary({ onClick, children }: { onClick: () => void; children: ReactNode }) {
-  return (
-    <span onClick={onClick} style={{ alignSelf: "center", textAlign: "center", ...type.label, minHeight: size.controlMd, display: "inline-flex", alignItems: "center", justifyContent: "center", padding: `${space[50]} ${space[300]}`, borderRadius: radius.piece, border: hairline(color.lineStrong), color: color.inkSecondary, ...clickable }}>
-      {children}
-    </span>
-  );
 }

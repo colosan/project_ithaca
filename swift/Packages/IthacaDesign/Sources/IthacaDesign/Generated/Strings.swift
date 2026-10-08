@@ -117,7 +117,6 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case historyKindEdit = "history.kind.edit"
     case historyKindLease = "history.kind.lease"
     case historyKindMerge = "history.kind.merge"
-    case historyDelta = "history.delta"
     case historyBefore = "history.before"
     case historyAfter = "history.after"
     case historyRestore = "history.restore"
@@ -169,6 +168,16 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case pairWord4 = "pair.word4"
     case exportScope = "export.scope"
     case exportFormat = "export.format"
+    case platformIos = "platform.ios"
+    case platformIpados = "platform.ipados"
+    case platformAndroid = "platform.android"
+    case platformMacos = "platform.macos"
+    case platformWindows = "platform.windows"
+    case syncHoursAgo = "sync.hoursAgo"
+    case syncDaysAgo = "sync.daysAgo"
+    case searchOpen = "search.open"
+    case navPrevious = "nav.previous"
+    case navNext = "nav.next"
 }
 
 enum L10nValue: Sendable {
@@ -222,7 +231,7 @@ public enum L10n {
             .branchSubtitle: .text("{device}에서 오프라인으로 쓴 내용이 있어요 · {minutes}분 전"),
             .branchMain: .text("본문"),
             .branchCopy: .text("갈라진 사본"),
-            .branchBringOver: .text("← 가져오기"),
+            .branchBringOver: .text("가져오기"),
             .branchChanged: .text("바뀜"),
             .branchOnlyHere: .text("이쪽에만 있음"),
             .branchProgress: .text("{done}/{total} 정리됨"),
@@ -302,7 +311,6 @@ public enum L10n {
             .historyKindEdit: .text("편집"),
             .historyKindLease: .text("점유"),
             .historyKindMerge: .text("합침"),
-            .historyDelta: .text("+{added} −{removed}"),
             .historyBefore: .text("이전"),
             .historyAfter: .text("이후"),
             .historyRestore: .text("이 시점으로 되돌리기"),
@@ -354,6 +362,16 @@ public enum L10n {
             .pairWord4: .text("열하나"),
             .exportScope: .text("범위"),
             .exportFormat: .text("형식"),
+            .platformIos: .text("iOS"),
+            .platformIpados: .text("iPadOS"),
+            .platformAndroid: .text("Android"),
+            .platformMacos: .text("macOS"),
+            .platformWindows: .text("Windows"),
+            .syncHoursAgo: .text("{hours}시간 전 동기화"),
+            .syncDaysAgo: .text("{count}일 전 동기화"),
+            .searchOpen: .text("열기"),
+            .navPrevious: .text("이전"),
+            .navNext: .text("다음"),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -386,7 +404,7 @@ public enum L10n {
             .branchSubtitle: .text("{device} edited this offline · {minutes} min ago"),
             .branchMain: .text("Current"),
             .branchCopy: .text("Offline copy"),
-            .branchBringOver: .text("← Bring over"),
+            .branchBringOver: .text("Bring over"),
             .branchChanged: .text("Changed"),
             .branchOnlyHere: .text("Only here"),
             .branchProgress: .text("{done} of {total} resolved"),
@@ -466,7 +484,6 @@ public enum L10n {
             .historyKindEdit: .text("Edit"),
             .historyKindLease: .text("Take over"),
             .historyKindMerge: .text("Merge"),
-            .historyDelta: .text("+{added} −{removed}"),
             .historyBefore: .text("Before"),
             .historyAfter: .text("After"),
             .historyRestore: .text("Restore this version"),
@@ -518,6 +535,16 @@ public enum L10n {
             .pairWord4: .text("eleven"),
             .exportScope: .text("Scope"),
             .exportFormat: .text("Format"),
+            .platformIos: .text("iOS"),
+            .platformIpados: .text("iPadOS"),
+            .platformAndroid: .text("Android"),
+            .platformMacos: .text("macOS"),
+            .platformWindows: .text("Windows"),
+            .syncHoursAgo: .text("Synced {hours} h ago"),
+            .syncDaysAgo: .plural(one: "Synced {count} day ago", other: "Synced {count} days ago"),
+            .searchOpen: .text("Open"),
+            .navPrevious: .text("Previous"),
+            .navNext: .text("Next"),
         ],
     ]
 }

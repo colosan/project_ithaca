@@ -114,7 +114,6 @@ export type StringKey =
   | "history.kind.edit"
   | "history.kind.lease"
   | "history.kind.merge"
-  | "history.delta"
   | "history.before"
   | "history.after"
   | "history.restore"
@@ -166,6 +165,16 @@ export type StringKey =
   | "pair.word4"
   | "export.scope"
   | "export.format"
+  | "platform.ios"
+  | "platform.ipados"
+  | "platform.android"
+  | "platform.macos"
+  | "platform.windows"
+  | "sync.hoursAgo"
+  | "sync.daysAgo"
+  | "search.open"
+  | "nav.previous"
+  | "nav.next"
   ;
 
 type Value = string | { one: string; other: string };
@@ -202,7 +211,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "branch.subtitle": "{device}에서 오프라인으로 쓴 내용이 있어요 · {minutes}분 전",
     "branch.main": "본문",
     "branch.copy": "갈라진 사본",
-    "branch.bringOver": "← 가져오기",
+    "branch.bringOver": "가져오기",
     "branch.changed": "바뀜",
     "branch.onlyHere": "이쪽에만 있음",
     "branch.progress": "{done}/{total} 정리됨",
@@ -282,7 +291,6 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "history.kind.edit": "편집",
     "history.kind.lease": "점유",
     "history.kind.merge": "합침",
-    "history.delta": "+{added} −{removed}",
     "history.before": "이전",
     "history.after": "이후",
     "history.restore": "이 시점으로 되돌리기",
@@ -333,7 +341,17 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "pair.word3": "지도",
     "pair.word4": "열하나",
     "export.scope": "범위",
-    "export.format": "형식"
+    "export.format": "형식",
+    "platform.ios": "iOS",
+    "platform.ipados": "iPadOS",
+    "platform.android": "Android",
+    "platform.macos": "macOS",
+    "platform.windows": "Windows",
+    "sync.hoursAgo": "{hours}시간 전 동기화",
+    "sync.daysAgo": "{count}일 전 동기화",
+    "search.open": "열기",
+    "nav.previous": "이전",
+    "nav.next": "다음"
   },
   "en": {
     "app.name": "Ithaca",
@@ -378,7 +396,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "branch.subtitle": "{device} edited this offline · {minutes} min ago",
     "branch.main": "Current",
     "branch.copy": "Offline copy",
-    "branch.bringOver": "← Bring over",
+    "branch.bringOver": "Bring over",
     "branch.changed": "Changed",
     "branch.onlyHere": "Only here",
     "branch.progress": "{done} of {total} resolved",
@@ -464,7 +482,6 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "history.kind.edit": "Edit",
     "history.kind.lease": "Take over",
     "history.kind.merge": "Merge",
-    "history.delta": "+{added} −{removed}",
     "history.before": "Before",
     "history.after": "After",
     "history.restore": "Restore this version",
@@ -515,7 +532,20 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "pair.word3": "atlas",
     "pair.word4": "eleven",
     "export.scope": "Scope",
-    "export.format": "Format"
+    "export.format": "Format",
+    "platform.ios": "iOS",
+    "platform.ipados": "iPadOS",
+    "platform.android": "Android",
+    "platform.macos": "macOS",
+    "platform.windows": "Windows",
+    "sync.hoursAgo": "Synced {hours} h ago",
+    "sync.daysAgo": {
+      "one": "Synced {count} day ago",
+      "other": "Synced {count} days ago"
+    },
+    "search.open": "Open",
+    "nav.previous": "Previous",
+    "nav.next": "Next"
   }
 };
 

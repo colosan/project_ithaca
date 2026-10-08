@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import {
   color, editor, opacity, pane, radius, shadow, size, space, type,
+  Button, Icon, IconButton,
   openContext, safePadding, useFrame, useNavigate, useT, type SheetSummary, type SizeClass,
 } from "@ithaca/kit";
 
@@ -115,32 +116,31 @@ function LibraryPane({ shell, full }: { shell: Shell; full?: boolean }) {
         {sample.projects.map((p) => (
           <div key={p.id} style={{ marginBottom: space[150] }}>
             <Row muted={p.id !== open.id}>
-              <span style={{ color: color.inkTertiary }}>{p.id === open.id ? "▾" : "▸"}</span>
-              <span style={{ ...type.label, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</span>
-              {p.id === open.id && (
-                <span style={{ color: color.inkTertiary, ...clickable }} title={t("projectSettings.title")} onClick={() => go("project-settings")}>
-                  ⋯
-                </span>
-              )}
+              <Icon name={p.id === open.id ? "expanded" : "collapsed"} size="sm" color={color.inkTertiary} />
+              <span style={{ ...type.label, fontWeight: type.heading.fontWeight, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</span>
+              {p.id === open.id && <IconButton icon="more" label={t("projectSettings.title")} onClick={() => go("project-settings")} />}
             </Row>
             {p.id === open.id &&
               p.folders.map((f) => (
                 <Row key={f.id} active={f.id === shell.folderId} indent onClick={() => shell.selectFolder(f.id)}>
+                  <Icon name="folder" size="sm" color={f.id === shell.folderId ? color.accentPrimary : color.inkTertiary} />
                   <span style={{ flex: 1 }}>{f.name}</span>
                   <span style={{ ...type.caption, color: color.inkTertiary }}>{f.sheets.length}</span>
                 </Row>
               ))}
             {p.id === open.id && (
               <Row indent muted>
-                <span style={type.caption}>＋ {t("folder.new")}</span>
+                <Icon name="add" size="sm" />
+                <span style={type.caption}>{t("folder.new")}</span>
               </Row>
             )}
           </div>
         ))}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: space[100], ...type.label, color: color.inkSecondary, padding: space[200], borderTop: hairline(color.lineSubtle) }}>
-        <span style={{ flex: 1, ...clickable }} onClick={() => go("new-project#default")}>＋ {t("library.newProject")}</span>
-        <span style={clickable} title={t("prefs.title")} onClick={() => go("preferences#general")}>⚙</span>
+      <div style={{ display: "flex", alignItems: "center", gap: space[100], padding: space[100], borderTop: hairline(color.lineSubtle) }}>
+        <Button variant="ghost" icon="add" onClick={() => go("new-project#default")}>{t("library.newProject")}</Button>
+        <span style={{ flex: 1 }} />
+        <IconButton icon="settings" label={t("prefs.title")} onClick={() => go("preferences#general")} />
       </div>
     </aside>
   );
@@ -153,7 +153,7 @@ function Row({ children, active, muted, indent, onClick }: { children: ReactNode
       style={{
         display: "flex", alignItems: "center", gap: space[100],
         minHeight: size.controlMd, padding: `0 ${space[100]}`, paddingLeft: indent ? space[300] : space[100],
-        borderRadius: radius.piece,
+        borderRadius: radius.control,
         background: active ? color.surfaceSelected : "transparent",
         color: muted ? color.inkTertiary : active ? color.inkPrimary : color.inkSecondary,
         cursor: onClick ? "pointer" : undefined,
@@ -175,11 +175,13 @@ function SheetListPane({ shell, full }: { shell: Shell; full?: boolean }) {
   return (
     <section style={{ width: full ? "100%" : pane.sheetList, flex: "none", display: "flex", flexDirection: "column", background: color.surfaceList, borderRight: full ? undefined : hairline(color.lineSubtle) }}>
       <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[100], padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
-        {full && <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} onClick={shell.showLibrary}>‹</span>}
-        <span style={{ ...type.heading, flex: 1 }}>{folder.name}</span>
-        <span style={{ ...type.caption, color: color.inkTertiary }}>{t("sheetList.count", { count: folder.sheets.length })}</span>
-        <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} title={t("search.title")} onClick={() => go("search#empty")}>⌕</span>
-        <span style={{ ...type.label, color: color.inkSecondary }} title={t("sheet.new")}>＋</span>
+        {full && <IconButton icon="back" label={t("library.title")} onClick={shell.showLibrary} />}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ ...type.heading, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{folder.name}</div>
+          <div style={{ ...type.caption, color: color.inkTertiary }}>{t("sheetList.count", { count: folder.sheets.length })}</div>
+        </div>
+        <IconButton icon="search" label={t("search.title")} onClick={() => go("search#empty")} />
+        <IconButton icon="add" label={t("sheet.new")} />
       </header>
       <div style={{ flex: 1, overflow: "auto" }}>
         {folder.sheets.map((s) => (
@@ -200,7 +202,12 @@ function SheetRow({ sheet, active, onClick }: { sheet: SheetSummary; active: boo
       </div>
       <div style={{ display: "flex", gap: space[100], marginTop: space[50], ...type.caption, color: color.inkTertiary }}>
         <span>{t("count.withSpaces", { count: sheet.chars })}</span>
-        {sheet.branched && <span style={{ color: color.stateWarning }}>⚠ {t("sheet.branched")}</span>}
+        {sheet.branched && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: space[50], color: color.stateWarning }}>
+            <Icon name="warning" size="sm" />
+            {t("sheet.branched")}
+          </span>
+        )}
       </div>
     </article>
   );
@@ -219,31 +226,27 @@ function EditorPane({ shell }: { shell: Shell }) {
   const paragraphs = sheet.id === openSheet.id ? sample.openSheet.paragraphs : sheet.body ?? [`# ${sheet.title}`, sheet.excerpt];
   return (
     <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
-      <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[150], padding: `0 ${space[200]}`, color: color.inkSecondary, ...type.label }}>
-        {sizeClass === "compact" && <span style={{ whiteSpace: "nowrap", ...clickable }} onClick={shell.showList}>‹ {folder.name}</span>}
-        {sizeClass === "medium" && <span style={clickable} title={t("library.show")} onClick={shell.toggleLibrary}>☰</span>}
+      <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[50], padding: `0 ${space[150]}` }}>
+        {sizeClass === "compact" && (
+          <span onClick={shell.showList} style={{ display: "inline-flex", alignItems: "center", gap: space[25], ...type.label, color: color.accentPrimary, whiteSpace: "nowrap", ...clickable }}>
+            <Icon name="back" />
+            {folder.name}
+          </span>
+        )}
+        {sizeClass === "medium" && <IconButton icon="library" label={t("library.show")} onClick={shell.toggleLibrary} />}
         <span style={{ flex: 1 }} />
-        <span style={clickable} title={t("nav.history")} onClick={() => go("history#all")}>↺</span>
-        <span style={clickable} title={t("export.title")} onClick={() => go("export#paste")}>⇪</span>
-        <span
-          onClick={shell.toggleReference}
-          title={t("reference.open")}
-          style={{
-            padding: `${space[25]} ${space[100]}`, borderRadius: radius.piece, ...clickable,
-            background: shell.referenceOpen ? color.accentSoft : "transparent",
-            color: shell.referenceOpen ? color.accentPrimary : color.inkSecondary,
-          }}
-        >
-          ◫{sizeClass === "compact" ? null : ` ${t("reference.open")}`}
-        </span>
+        <IconButton icon="history" label={t("nav.history")} onClick={() => go("history#all")} />
+        <IconButton icon="export" label={t("export.title")} onClick={() => go("export#paste")} />
+        <IconButton icon="reference" label={t("reference.open")} active={shell.referenceOpen} onClick={shell.toggleReference} />
       </header>
 
       {shell.readOnly && (
-        <div style={{ display: "flex", alignItems: "center", gap: space[150], margin: `0 ${space[200]}`, padding: `${space[100]} ${space[150]}`, borderRadius: radius.panel, background: color.accentSoft, color: color.stateWarning, ...type.label }}>
-          <span style={{ flex: 1 }}>⚠ {t("lease.banner", { device: "MacBook Air", minutes: 3 })}</span>
-          <span onClick={shell.takeOver} style={{ padding: `${space[50]} ${space[150]}`, borderRadius: radius.piece, background: color.accentPrimary, color: color.inkOnAccent, ...clickable }}>
-            {t("lease.takeOver")}
-          </span>
+        <div style={{ display: "flex", flexDirection: "column", gap: space[100], margin: `0 ${space[200]}`, padding: space[150], borderRadius: radius.panel, background: color.accentSoft, color: color.stateWarning, ...type.label }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: space[100] }}>
+            <Icon name="lease" size="sm" style={{ marginTop: space[25] }} />
+            <span style={{ flex: 1, minWidth: 0 }}>{t("lease.banner", { device: "MacBook Air", minutes: 3 })}</span>
+          </div>
+          <Button variant="primary" onClick={shell.takeOver} style={{ alignSelf: "flex-end" }}>{t("lease.takeOver")}</Button>
         </div>
       )}
 
@@ -322,7 +325,7 @@ function ReferencePanel({ mode, onClose }: { mode: "docked" | "overlay" | "sheet
         <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[100], padding: `0 ${space[200]}`, borderBottom: hairline(color.lineSubtle) }}>
           <span style={{ ...type.label, color: color.inkTertiary }}>{t("reference.title")}</span>
           <span style={{ ...type.heading, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{reference.title}</span>
-          <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} title={t("action.close")} onClick={onClose}>✕</span>
+          <IconButton icon="close" label={t("action.close")} onClick={onClose} />
         </header>
         <div style={{ flex: 1, overflow: "auto", padding: space[200] }}>
           {(reference.body ?? [reference.excerpt]).filter((p) => !p.startsWith("# ")).map((p, i) => (

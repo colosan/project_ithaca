@@ -41,7 +41,7 @@
   "branch.subtitle": "{device} edited this offline · {minutes} min ago",
   "branch.main": "Current",
   "branch.copy": "Offline copy",
-  "branch.bringOver": "← Bring over",
+  "branch.bringOver": "Bring over",
   "branch.changed": "Changed",
   "branch.onlyHere": "Only here",
   "branch.progress": "{done} of {total} resolved",
@@ -127,7 +127,6 @@
   "history.kind.edit": "Edit",
   "history.kind.lease": "Take over",
   "history.kind.merge": "Merge",
-  "history.delta": "+{added} −{removed}",
   "history.before": "Before",
   "history.after": "After",
   "history.restore": "Restore this version",
@@ -178,5 +177,18 @@
   "pair.word3": "atlas",
   "pair.word4": "eleven",
   "export.scope": "Scope",
-  "export.format": "Format"
+  "export.format": "Format",
+  "platform.ios": "iOS",
+  "platform.ipados": "iPadOS",
+  "platform.android": "Android",
+  "platform.macos": "macOS",
+  "platform.windows": "Windows",
+  "sync.hoursAgo": "Synced {hours} h ago",
+  "sync.daysAgo": {
+    "one": "Synced {count} day ago",
+    "other": "Synced {count} days ago"
+  },
+  "search.open": "Open",
+  "nav.previous": "Previous",
+  "nav.next": "Next"
 }

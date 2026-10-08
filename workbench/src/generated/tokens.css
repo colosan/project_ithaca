@@ -122,9 +122,11 @@
   --size-pair-code-cell: 44px;
   --radius-none: 0px;
   --radius-piece: 4px;
-  --radius-panel: 8px;
-  --radius-sheet: 12px;
+  --radius-control: 8px;
+  --radius-panel: 10px;
+  --radius-sheet: 14px;
   --radius-full: 9999px;
+  --shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.1);
   --shadow-dialog: 0 12px 40px rgba(0, 0, 0, 0.16);
   --opacity-read-only: 0.72;

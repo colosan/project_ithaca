@@ -86,12 +86,14 @@ object Tokens {
     object Radius {
         const val none = 0f
         const val piece = 4f
-        const val panel = 8f
-        const val sheet = 12f
+        const val control = 8f
+        const val panel = 10f
+        const val sheet = 14f
         const val full = 9999f
     }
 
     object Shadow {
+        val raised = ShadowToken(y = 1f, blur = 3f, opacity = 0.08f)
         val popover = ShadowToken(y = 4f, blur = 16f, opacity = 0.1f)
         val dialog = ShadowToken(y = 12f, blur = 40f, opacity = 0.16f)
     }

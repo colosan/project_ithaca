@@ -16,6 +16,9 @@ export const OUT = {
   swiftStrings: "swift/Packages/IthacaDesign/Sources/IthacaDesign/Generated/Strings.swift",
   ktTokens: "kotlin/design/src/commonMain/kotlin/io/github/colosan/ithaca/design/generated/Tokens.kt",
   ktStrings: "kotlin/design/src/commonMain/kotlin/io/github/colosan/ithaca/design/generated/Strings.kt",
+  iconsTs: "workbench/src/generated/icons.ts",
+  swiftIcons: "swift/Packages/IthacaDesign/Sources/IthacaDesign/Generated/Icons.swift",
+  ktIcons: "kotlin/design/src/commonMain/kotlin/io/github/colosan/ithaca/design/generated/Icons.kt",
 };
 
 // ── Read ────────────────────────────────────────────────────────────────
@@ -33,7 +36,8 @@ export function loadDesign() {
   };
   const locales = ["ko", "en"];
   const strings = Object.fromEntries(locales.map((l) => [l, readJson(`design/strings/${l}.json`)]));
-  return { tokens, locales, strings };
+  const icons = readJson("design/icons.json");
+  return { tokens, locales, strings, icons };
 }
 
 /** Ensure every locale has the same key set before generating; otherwise the Swift/Kotlin tables would have holes. */
@@ -560,6 +564,54 @@ function buildKtTokens({ tokens }) {
   ].join("\n");
 }
 
+// ── Icons ──────────────────────────────────────────────────────────────
+
+const pascal = (kebabName) => kebabName.replace(/(^|-)([a-z0-9])/g, (_, __, c) => c.toUpperCase());
+
+function buildIconsTs({ icons }) {
+  const entries = Object.entries(icons.icons);
+  const components = [...new Set(entries.map(([, v]) => pascal(v)))].sort();
+  return [
+    `// ${HEADER}`,
+    `// ${icons.set.name} (${icons.set.license}). Prototypes use <Icon name="…" /> from @ithaca/kit, never these directly.`,
+    `import { ${components.join(", ")}, type LucideIcon } from "lucide-react";`,
+    ``,
+    `export const iconStroke = ${icons.set.strokeWidth};`,
+    ``,
+    `export const icons = {`,
+    ...entries.map(([k, v]) => `  ${k}: ${pascal(v)},`),
+    `} satisfies Record<string, LucideIcon>;`,
+    ``,
+    `export type IconName = keyof typeof icons;`,
+    ``,
+  ].join("\n");
+}
+
+function buildSwiftIcons({ icons }) {
+  return [
+    `// ${HEADER}`,
+    `// ${icons.set.name} (${icons.set.license}) vectors, bundled as template assets named by rawValue. Stroke ${icons.set.strokeWidth}.`,
+    ``,
+    `public enum IthacaIcon: String, CaseIterable, Sendable {`,
+    ...Object.entries(icons.icons).map(([k, v]) => `    case ${k} = ${swiftStr(v)}`),
+    `}`,
+    ``,
+  ].join("\n");
+}
+
+function buildKtIcons({ icons }) {
+  return [
+    `// ${HEADER}`,
+    `// ${icons.set.name} (${icons.set.license}) vectors, bundled as vector drawables named by asset. Stroke ${icons.set.strokeWidth}.`,
+    `package io.github.colosan.ithaca.design.generated`,
+    ``,
+    `enum class IthacaIcon(val asset: String) {`,
+    ...Object.entries(icons.icons).map(([k, v]) => `    ${k[0].toUpperCase() + k.slice(1)}(${ktStr(v)}),`),
+    `}`,
+    ``,
+  ].join("\n");
+}
+
 // ── Bundle ─────────────────────────────────────────────────────────────
 
 export function buildOutputs(design = loadDesign()) {
@@ -572,5 +624,8 @@ export function buildOutputs(design = loadDesign()) {
     [OUT.swiftStrings]: buildSwiftStrings(design),
     [OUT.ktTokens]: buildKtTokens(design),
     [OUT.ktStrings]: buildKtStrings(design),
+    [OUT.iconsTs]: buildIconsTs(design),
+    [OUT.swiftIcons]: buildSwiftIcons(design),
+    [OUT.ktIcons]: buildKtIcons(design),
   };
 }
