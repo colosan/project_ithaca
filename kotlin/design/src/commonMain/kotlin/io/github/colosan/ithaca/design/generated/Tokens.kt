@@ -79,6 +79,8 @@ object Tokens {
         const val toggleWidth = 44f
         const val toggleHeight = 26f
         const val toggleKnob = 22f
+        const val pairQr = 192f
+        const val pairCodeCell = 44f
     }
 
     object Radius {

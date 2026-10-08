@@ -64,7 +64,7 @@
     },
     {
       "from": "default",
-      "to": "new-project",
+      "to": "new-project#default",
       "label": {
         "ko": "＋ 새 작품",
         "en": "New project"
@@ -72,7 +72,7 @@
     },
     {
       "from": "default",
-      "to": "search",
+      "to": "search#empty",
       "label": {
         "ko": "검색",
         "en": "Search"
@@ -80,7 +80,7 @@
     },
     {
       "from": "default",
-      "to": "history",
+      "to": "history#all",
       "label": {
         "ko": "변경 기록",
         "en": "History"
@@ -88,7 +88,7 @@
     },
     {
       "from": "default",
-      "to": "export",
+      "to": "export#paste",
       "label": {
         "ko": "내보내기",
         "en": "Export"

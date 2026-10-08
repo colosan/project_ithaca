@@ -184,5 +184,94 @@
     "enabled": true,
     "address": "http://127.0.0.1:7421/mcp",
     "token": "ith_6f2c…9a1e"
+  },
+  "search": {
+    "recent": [
+      "열한 번째",
+      "logbook",
+      "엘리엇"
+    ],
+    "sampleQuery": "등대",
+    "emptyQuery": "고래"
+  },
+  "history": {
+    "total": 1204,
+    "sheet": "s-3",
+    "thisDevice": "MacBook Air",
+    "records": [
+      {
+        "id": "h-6",
+        "at": "2026-10-08T14:32:00",
+        "device": "MacBook Air",
+        "actor": "claude",
+        "kind": "edit",
+        "added": 38,
+        "removed": 12,
+        "before": "서윤은 대답하지 않았다. 아버지의 logbook 마지막 장에도 같은 숫자가 적혀 있었기 때문이다.",
+        "after": "서윤은 한동안 대답하지 않았다. 아버지의 logbook 마지막 장에도 같은 숫자가 적혀 있었기 때문이다 — 11, 그리고 그 옆에 낯선 좌표 하나."
+      },
+      {
+        "id": "h-5",
+        "at": "2026-10-08T14:10:00",
+        "device": "MacBook Air",
+        "actor": "me",
+        "kind": "edit",
+        "added": 210,
+        "removed": 0,
+        "before": null,
+        "after": "\"There was something last night,\" Elliot said, tapping the chart. \"When the light flashed the eleventh time.\""
+      },
+      {
+        "id": "h-4",
+        "at": "2026-10-08T13:55:00",
+        "device": "MacBook Air",
+        "actor": "me",
+        "kind": "lease",
+        "added": 0,
+        "removed": 0,
+        "before": null,
+        "after": null
+      },
+      {
+        "id": "h-3",
+        "at": "2026-10-08T11:20:00",
+        "device": "iPhone 15",
+        "actor": "me",
+        "kind": "merge",
+        "added": 64,
+        "removed": 20,
+        "before": "엘리엇의 지도에는 섬이 하나 더 있었다.",
+        "after": "엘리엇의 지도에는 섬이 하나 더 있었다. 서윤은 그 점을 손끝으로 눌러 보았다."
+      },
+      {
+        "id": "h-2",
+        "at": "2026-10-07T23:40:00",
+        "device": "MacBook Air",
+        "actor": "claude",
+        "kind": "edit",
+        "added": 9,
+        "removed": 9,
+        "before": "잉크가 아직 마르지 않았다.",
+        "after": "잉크가 아직 덜 말라 있었다."
+      },
+      {
+        "id": "h-1",
+        "at": "2026-10-07T22:05:00",
+        "device": "iPhone 15",
+        "actor": "me",
+        "kind": "edit",
+        "added": 1180,
+        "removed": 0,
+        "before": null,
+        "after": "엘리엇의 지도에는 섬이 하나 더 있었다."
+      }
+    ]
+  },
+  "pair": {
+    "code": "482913",
+    "expiresIn": "1:48",
+    "total": 238,
+    "done": 112,
+    "size": "4.2 MB"
   }
 }

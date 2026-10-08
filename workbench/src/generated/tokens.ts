@@ -63,6 +63,8 @@ export const size = {
   toggleWidth: "var(--size-toggle-width)",
   toggleHeight: "var(--size-toggle-height)",
   toggleKnob: "var(--size-toggle-knob)",
+  pairQr: "var(--size-pair-qr)",
+  pairCodeCell: "var(--size-pair-code-cell)",
 } as const;
 
 export const radius = {

@@ -4,6 +4,23 @@
     "en": "New project"
   },
   "description": "작품을 만들면서 원고 언어 · 목표 · 기본 폴더를 정한다",
-  "version": "0.0.0",
-  "planned": true
+  "version": "0.1.0",
+  "links": [
+    {
+      "from": "default",
+      "to": "app-shell#default",
+      "label": {
+        "ko": "만들기 · 취소",
+        "en": "Create · Cancel"
+      }
+    },
+    {
+      "from": "first-run",
+      "to": "app-shell#default",
+      "label": {
+        "ko": "만들기",
+        "en": "Create"
+      }
+    }
+  ]
 }

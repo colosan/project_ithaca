@@ -4,6 +4,31 @@
     "en": "Search"
   },
   "description": "작품 안 / 모든 작품에서 시트 · 문단 찾기",
-  "version": "0.0.0",
-  "planned": true
+  "version": "0.1.0",
+  "links": [
+    {
+      "from": "results",
+      "to": "app-shell#default",
+      "label": {
+        "ko": "결과 열기 · 취소",
+        "en": "Open result · Cancel"
+      }
+    },
+    {
+      "from": "empty",
+      "to": "search#results",
+      "label": {
+        "ko": "검색어 입력",
+        "en": "Type a query"
+      }
+    },
+    {
+      "from": "results",
+      "to": "search#none",
+      "label": {
+        "ko": "없는 단어",
+        "en": "No match"
+      }
+    }
+  ]
 }

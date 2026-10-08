@@ -4,6 +4,47 @@
     "en": "Pair a device"
   },
   "description": "QR 이나 코드로 새 기기를 묶고 암호화 키를 나눈다 (ADR-0003)",
-  "version": "0.0.0",
-  "planned": true
+  "version": "0.1.0",
+  "links": [
+    {
+      "from": "show-code",
+      "to": "pair-device#confirm",
+      "label": {
+        "ko": "새 기기가 찍음",
+        "en": "New device scanned"
+      }
+    },
+    {
+      "from": "enter-code",
+      "to": "pair-device#confirm",
+      "label": {
+        "ko": "코드 6자리 · 스캔",
+        "en": "6 digits · Scan"
+      }
+    },
+    {
+      "from": "confirm",
+      "to": "pair-device#syncing",
+      "label": {
+        "ko": "같아요",
+        "en": "They match"
+      }
+    },
+    {
+      "from": "confirm",
+      "to": "pair-device#show-code",
+      "label": {
+        "ko": "달라요 → 다시",
+        "en": "They differ → retry"
+      }
+    },
+    {
+      "from": "syncing",
+      "to": "preferences#sync",
+      "label": {
+        "ko": "완료 · 닫기",
+        "en": "Done · Close"
+      }
+    }
+  ]
 }

@@ -32,7 +32,7 @@
     },
     {
       "from": "sync",
-      "to": "pair-device",
+      "to": "pair-device#show-code",
       "label": {
         "ko": "＋ 기기 추가",
         "en": "Pair a device"

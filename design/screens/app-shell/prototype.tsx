@@ -139,7 +139,7 @@ function LibraryPane({ shell, full }: { shell: Shell; full?: boolean }) {
         ))}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: space[100], ...type.label, color: color.inkSecondary, padding: space[200], borderTop: hairline(color.lineSubtle) }}>
-        <span style={{ flex: 1, ...clickable }} onClick={() => go("new-project")}>＋ {t("library.newProject")}</span>
+        <span style={{ flex: 1, ...clickable }} onClick={() => go("new-project#default")}>＋ {t("library.newProject")}</span>
         <span style={clickable} title={t("prefs.title")} onClick={() => go("preferences#general")}>⚙</span>
       </div>
     </aside>
@@ -168,6 +168,7 @@ function Row({ children, active, muted, indent, onClick }: { children: ReactNode
 
 function SheetListPane({ shell, full }: { shell: Shell; full?: boolean }) {
   const t = useT();
+  const go = useNavigate();
   const { sample } = useFrame();
   const { project } = openContext(sample);
   const folder = project.folders.find((f) => f.id === shell.folderId)!;
@@ -177,6 +178,7 @@ function SheetListPane({ shell, full }: { shell: Shell; full?: boolean }) {
         {full && <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} onClick={shell.showLibrary}>‹</span>}
         <span style={{ ...type.heading, flex: 1 }}>{folder.name}</span>
         <span style={{ ...type.caption, color: color.inkTertiary }}>{t("sheetList.count", { count: folder.sheets.length })}</span>
+        <span style={{ ...type.label, color: color.inkSecondary, ...clickable }} title={t("search.title")} onClick={() => go("search#empty")}>⌕</span>
         <span style={{ ...type.label, color: color.inkSecondary }} title={t("sheet.new")}>＋</span>
       </header>
       <div style={{ flex: 1, overflow: "auto" }}>
@@ -218,19 +220,21 @@ function EditorPane({ shell }: { shell: Shell }) {
   return (
     <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
       <header style={{ minHeight: size.barTop, flex: "none", display: "flex", alignItems: "center", gap: space[150], padding: `0 ${space[200]}`, color: color.inkSecondary, ...type.label }}>
-        {sizeClass === "compact" && <span style={clickable} onClick={shell.showList}>‹ {folder.name}</span>}
+        {sizeClass === "compact" && <span style={{ whiteSpace: "nowrap", ...clickable }} onClick={shell.showList}>‹ {folder.name}</span>}
         {sizeClass === "medium" && <span style={clickable} title={t("library.show")} onClick={shell.toggleLibrary}>☰</span>}
         <span style={{ flex: 1 }} />
-        <span style={clickable} title={t("nav.history")} onClick={() => go("history")}>↺</span>
+        <span style={clickable} title={t("nav.history")} onClick={() => go("history#all")}>↺</span>
+        <span style={clickable} title={t("export.title")} onClick={() => go("export#paste")}>⇪</span>
         <span
           onClick={shell.toggleReference}
+          title={t("reference.open")}
           style={{
             padding: `${space[25]} ${space[100]}`, borderRadius: radius.piece, ...clickable,
             background: shell.referenceOpen ? color.accentSoft : "transparent",
             color: shell.referenceOpen ? color.accentPrimary : color.inkSecondary,
           }}
         >
-          ◫ {t("reference.open")}
+          ◫{sizeClass === "compact" ? null : ` ${t("reference.open")}`}
         </span>
       </header>
 

@@ -4,6 +4,31 @@
     "en": "Export"
   },
   "description": "시트 · 폴더 · 작품을 파일이나 연재 플랫폼 붙여넣기용으로",
-  "version": "0.0.0",
-  "planned": true
+  "version": "0.1.0",
+  "links": [
+    {
+      "from": "paste",
+      "to": "export#file",
+      "label": {
+        "ko": "파일",
+        "en": "File"
+      }
+    },
+    {
+      "from": "file",
+      "to": "export#paste",
+      "label": {
+        "ko": "붙여넣기용",
+        "en": "For pasting"
+      }
+    },
+    {
+      "from": "paste",
+      "to": "app-shell#default",
+      "label": {
+        "ko": "닫기",
+        "en": "Close"
+      }
+    }
+  ]
 }

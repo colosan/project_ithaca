@@ -118,6 +118,8 @@
   --size-toggle-width: 44px;
   --size-toggle-height: 26px;
   --size-toggle-knob: 22px;
+  --size-pair-qr: 192px;
+  --size-pair-code-cell: 44px;
   --radius-none: 0px;
   --radius-piece: 4px;
   --radius-panel: 8px;

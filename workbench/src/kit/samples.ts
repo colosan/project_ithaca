@@ -41,6 +41,24 @@ export interface Sample {
   devices: { name: string; platform: Platform; minutesAgo: number }[];
   sync: { relay: string; icloud: boolean; p2p: boolean };
   mcp: { enabled: boolean; address: string; token: string };
+  search: { recent: string[]; sampleQuery: string; emptyQuery: string };
+  history: { total: number; sheet: string; thisDevice: string; records: HistoryRecord[] };
+  pair: { code: string; expiresIn: string; total: number; done: number; size: string };
+}
+
+/** One block of a sheet's hash chain (ADR-0002), as the history screen shows it. */
+export interface HistoryRecord {
+  id: string;
+  /** ISO date-time; format with the frame locale. */
+  at: string;
+  device: string;
+  actor: "me" | "claude";
+  kind: "edit" | "lease" | "merge";
+  added: number;
+  removed: number;
+  /** The paragraph before/after this record; null where nothing existed or nothing changed. */
+  before: string | null;
+  after: string | null;
 }
 
 export type Platform = "ios" | "ipados" | "android" | "macos" | "windows";

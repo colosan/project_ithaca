@@ -14,6 +14,8 @@
     "bar.top": 52,
     "toggle.width": 44,
     "toggle.height": 26,
-    "toggle.knob": 22
+    "toggle.knob": 22,
+    "pair.qr": 192,
+    "pair.codeCell": 44
   }
 }

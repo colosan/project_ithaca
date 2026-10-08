@@ -4,6 +4,31 @@
     "en": "History"
   },
   "description": "시트의 hash chain 기록 — 누가(나 · Claude · 어느 기기) 무엇을 바꿨고, 되돌리기",
-  "version": "0.0.0",
-  "planned": true
+  "version": "0.1.0",
+  "links": [
+    {
+      "from": "all",
+      "to": "history#claude",
+      "label": {
+        "ko": "Claude가 한 것만",
+        "en": "By Claude only"
+      }
+    },
+    {
+      "from": "all",
+      "to": "app-shell#default",
+      "label": {
+        "ko": "닫기",
+        "en": "Close"
+      }
+    },
+    {
+      "from": "claude",
+      "to": "history#all",
+      "label": {
+        "ko": "전부",
+        "en": "All"
+      }
+    }
+  ]
 }

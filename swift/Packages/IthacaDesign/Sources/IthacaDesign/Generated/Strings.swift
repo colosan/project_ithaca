@@ -89,6 +89,86 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case navMore = "nav.more"
     case branchKeepMain = "branch.keepMain"
     case branchResolved = "branch.resolved"
+    case newProjectTitle = "newProject.title"
+    case newProjectCreate = "newProject.create"
+    case newProjectTitlePlaceholder = "newProject.titlePlaceholder"
+    case newProjectFolders = "newProject.folders"
+    case newProjectFoldersHint = "newProject.foldersHint"
+    case welcomeTitle = "welcome.title"
+    case welcomeSubtitle = "welcome.subtitle"
+    case welcomeImport = "welcome.import"
+    case searchTitle = "search.title"
+    case searchPlaceholder = "search.placeholder"
+    case searchScopeFolder = "search.scope.folder"
+    case searchScopeProject = "search.scope.project"
+    case searchScopeAll = "search.scope.all"
+    case searchRecent = "search.recent"
+    case searchResults = "search.results"
+    case searchNone = "search.none"
+    case searchNoneHint = "search.noneHint"
+    case searchPick = "search.pick"
+    case historyTitle = "history.title"
+    case historyIntegrity = "history.integrity"
+    case historyFilterAll = "history.filter.all"
+    case historyFilterClaude = "history.filter.claude"
+    case historyFilterDevice = "history.filter.device"
+    case historyActorMe = "history.actor.me"
+    case historyActorClaude = "history.actor.claude"
+    case historyKindEdit = "history.kind.edit"
+    case historyKindLease = "history.kind.lease"
+    case historyKindMerge = "history.kind.merge"
+    case historyDelta = "history.delta"
+    case historyBefore = "history.before"
+    case historyAfter = "history.after"
+    case historyRestore = "history.restore"
+    case historyRestoreHint = "history.restoreHint"
+    case historyRestored = "history.restored"
+    case historyNoText = "history.noText"
+    case historyPick = "history.pick"
+    case exportTitle = "export.title"
+    case exportScopeSheet = "export.scope.sheet"
+    case exportScopeFolder = "export.scope.folder"
+    case exportScopeProject = "export.scope.project"
+    case exportTargetPaste = "export.target.paste"
+    case exportTargetFile = "export.target.file"
+    case exportOptBlankLine = "export.opt.blankLine"
+    case exportOptIndent = "export.opt.indent"
+    case exportOptStripMarkdown = "export.opt.stripMarkdown"
+    case exportOptIncludeTitle = "export.opt.includeTitle"
+    case exportFormatTxt = "export.format.txt"
+    case exportFormatMd = "export.format.md"
+    case exportFormatDocx = "export.format.docx"
+    case exportFormatEpub = "export.format.epub"
+    case exportCopy = "export.copy"
+    case exportCopied = "export.copied"
+    case exportSave = "export.save"
+    case exportSaved = "export.saved"
+    case exportPreview = "export.preview"
+    case exportOptions = "export.options"
+    case pairTitle = "pair.title"
+    case pairShowHint = "pair.showHint"
+    case pairExpires = "pair.expires"
+    case pairStep1 = "pair.step1"
+    case pairStep2 = "pair.step2"
+    case pairStep3 = "pair.step3"
+    case pairEnterTitle = "pair.enterTitle"
+    case pairEnterHint = "pair.enterHint"
+    case pairScan = "pair.scan"
+    case pairSimulate = "pair.simulate"
+    case pairConfirmTitle = "pair.confirmTitle"
+    case pairConfirmHint = "pair.confirmHint"
+    case pairMatch = "pair.match"
+    case pairMismatch = "pair.mismatch"
+    case pairMismatchNote = "pair.mismatchNote"
+    case pairSyncing = "pair.syncing"
+    case pairSyncProgress = "pair.syncProgress"
+    case pairSyncHint = "pair.syncHint"
+    case pairWord1 = "pair.word1"
+    case pairWord2 = "pair.word2"
+    case pairWord3 = "pair.word3"
+    case pairWord4 = "pair.word4"
+    case exportScope = "export.scope"
+    case exportFormat = "export.format"
 }
 
 enum L10nValue: Sendable {
@@ -194,6 +274,86 @@ public enum L10n {
             .navMore: .text("더 보기"),
             .branchKeepMain: .text("본문 유지"),
             .branchResolved: .text("정리됨"),
+            .newProjectTitle: .text("새 작품"),
+            .newProjectCreate: .text("만들기"),
+            .newProjectTitlePlaceholder: .text("작품 제목"),
+            .newProjectFolders: .text("기본 폴더"),
+            .newProjectFoldersHint: .text("필요 없는 폴더는 체크를 끄세요. 이름은 나중에도 바꿀 수 있어요."),
+            .welcomeTitle: .text("Ithaca에 오신 걸 환영해요"),
+            .welcomeSubtitle: .text("첫 작품을 만들고 바로 쓰기 시작하세요."),
+            .welcomeImport: .text("다른 앱에서 가져오기 — 준비 중"),
+            .searchTitle: .text("검색"),
+            .searchPlaceholder: .text("작품에서 찾기"),
+            .searchScopeFolder: .text("이 폴더"),
+            .searchScopeProject: .text("이 작품"),
+            .searchScopeAll: .text("모든 작품"),
+            .searchRecent: .text("최근 검색"),
+            .searchResults: .text("시트 {count}개에서 찾음"),
+            .searchNone: .text("찾는 내용이 없어요"),
+            .searchNoneHint: .text("다른 단어로 찾거나 범위를 넓혀 보세요."),
+            .searchPick: .text("왼쪽에서 결과를 고르세요"),
+            .historyTitle: .text("변경 기록"),
+            .historyIntegrity: .text("기록 {count}개 · 해시 검증 통과"),
+            .historyFilterAll: .text("전부"),
+            .historyFilterClaude: .text("Claude가 한 것"),
+            .historyFilterDevice: .text("이 기기"),
+            .historyActorMe: .text("나"),
+            .historyActorClaude: .text("Claude"),
+            .historyKindEdit: .text("편집"),
+            .historyKindLease: .text("점유"),
+            .historyKindMerge: .text("합침"),
+            .historyDelta: .text("+{added} −{removed}"),
+            .historyBefore: .text("이전"),
+            .historyAfter: .text("이후"),
+            .historyRestore: .text("이 시점으로 되돌리기"),
+            .historyRestoreHint: .text("기록은 지우지 않고, 이 시점 내용으로 새 기록을 쌓아요."),
+            .historyRestored: .text("되돌렸어요 — 새 기록이 추가됐어요"),
+            .historyNoText: .text("글 내용은 바뀌지 않은 기록이에요."),
+            .historyPick: .text("왼쪽에서 기록을 고르세요"),
+            .exportTitle: .text("내보내기"),
+            .exportScopeSheet: .text("이 시트"),
+            .exportScopeFolder: .text("폴더 전체"),
+            .exportScopeProject: .text("작품 전체"),
+            .exportTargetPaste: .text("붙여넣기용"),
+            .exportTargetFile: .text("파일"),
+            .exportOptBlankLine: .text("문단 사이 빈 줄"),
+            .exportOptIndent: .text("첫 줄 들여쓰기"),
+            .exportOptStripMarkdown: .text("Markdown 기호 지우기"),
+            .exportOptIncludeTitle: .text("제목 넣기"),
+            .exportFormatTxt: .text("텍스트 (.txt)"),
+            .exportFormatMd: .text("Markdown (.md)"),
+            .exportFormatDocx: .text("Word (.docx)"),
+            .exportFormatEpub: .text("EPUB (.epub) — 준비 중"),
+            .exportCopy: .text("클립보드에 복사"),
+            .exportCopied: .text("복사했어요"),
+            .exportSave: .text("파일로 저장"),
+            .exportSaved: .text("저장했어요"),
+            .exportPreview: .text("미리보기"),
+            .exportOptions: .text("설정"),
+            .pairTitle: .text("기기 추가"),
+            .pairShowHint: .text("새 기기에서 이 QR을 찍거나 코드를 입력하세요."),
+            .pairExpires: .text("{time} 남음"),
+            .pairStep1: .text("새 기기에서 Ithaca를 열어요"),
+            .pairStep2: .text("환경설정 → 동기화 → 기기 추가"),
+            .pairStep3: .text("QR을 찍거나 코드를 입력해요"),
+            .pairEnterTitle: .text("코드 입력"),
+            .pairEnterHint: .text("쓰던 기기의 환경설정 → 동기화 → 기기 추가에 나온 6자리 코드"),
+            .pairScan: .text("카메라로 QR 찍기"),
+            .pairSimulate: .text("새 기기가 찍었다고 치기"),
+            .pairConfirmTitle: .text("두 기기에 같은 단어가 보이나요?"),
+            .pairConfirmHint: .text("같으면 연결해요. 다르면 누군가 중간에 끼어든 거예요 — 연결하지 마세요."),
+            .pairMatch: .text("같아요"),
+            .pairMismatch: .text("달라요"),
+            .pairMismatchNote: .text("연결을 취소했어요. 새 코드로 다시 해 보세요."),
+            .pairSyncing: .text("첫 동기화 중"),
+            .pairSyncProgress: .text("시트 {done}/{total} · {size}"),
+            .pairSyncHint: .text("끝나기 전에 닫아도 이어서 받아요."),
+            .pairWord1: .text("등대"),
+            .pairWord2: .text("물결"),
+            .pairWord3: .text("지도"),
+            .pairWord4: .text("열하나"),
+            .exportScope: .text("범위"),
+            .exportFormat: .text("형식"),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -278,6 +438,86 @@ public enum L10n {
             .navMore: .text("More"),
             .branchKeepMain: .text("Keep current"),
             .branchResolved: .text("Resolved"),
+            .newProjectTitle: .text("New project"),
+            .newProjectCreate: .text("Create"),
+            .newProjectTitlePlaceholder: .text("Project title"),
+            .newProjectFolders: .text("Starting folders"),
+            .newProjectFoldersHint: .text("Uncheck folders you don't need. You can rename them later too."),
+            .welcomeTitle: .text("Welcome to Ithaca"),
+            .welcomeSubtitle: .text("Create your first project and start writing."),
+            .welcomeImport: .text("Import from another app — coming soon"),
+            .searchTitle: .text("Search"),
+            .searchPlaceholder: .text("Search this project"),
+            .searchScopeFolder: .text("This folder"),
+            .searchScopeProject: .text("This project"),
+            .searchScopeAll: .text("All projects"),
+            .searchRecent: .text("Recent searches"),
+            .searchResults: .plural(one: "Found in {count} sheet", other: "Found in {count} sheets"),
+            .searchNone: .text("Nothing found"),
+            .searchNoneHint: .text("Try other words or a wider scope."),
+            .searchPick: .text("Pick a result on the left"),
+            .historyTitle: .text("History"),
+            .historyIntegrity: .plural(one: "{count} record · hashes verified", other: "{count} records · hashes verified"),
+            .historyFilterAll: .text("All"),
+            .historyFilterClaude: .text("By Claude"),
+            .historyFilterDevice: .text("This device"),
+            .historyActorMe: .text("You"),
+            .historyActorClaude: .text("Claude"),
+            .historyKindEdit: .text("Edit"),
+            .historyKindLease: .text("Take over"),
+            .historyKindMerge: .text("Merge"),
+            .historyDelta: .text("+{added} −{removed}"),
+            .historyBefore: .text("Before"),
+            .historyAfter: .text("After"),
+            .historyRestore: .text("Restore this version"),
+            .historyRestoreHint: .text("Nothing is deleted — the restored text is added as a new record."),
+            .historyRestored: .text("Restored — a new record was added"),
+            .historyNoText: .text("This record didn't change any text."),
+            .historyPick: .text("Pick a record on the left"),
+            .exportTitle: .text("Export"),
+            .exportScopeSheet: .text("This sheet"),
+            .exportScopeFolder: .text("Whole folder"),
+            .exportScopeProject: .text("Whole project"),
+            .exportTargetPaste: .text("For pasting"),
+            .exportTargetFile: .text("File"),
+            .exportOptBlankLine: .text("Blank line between paragraphs"),
+            .exportOptIndent: .text("Indent first lines"),
+            .exportOptStripMarkdown: .text("Remove Markdown symbols"),
+            .exportOptIncludeTitle: .text("Include title"),
+            .exportFormatTxt: .text("Plain text (.txt)"),
+            .exportFormatMd: .text("Markdown (.md)"),
+            .exportFormatDocx: .text("Word (.docx)"),
+            .exportFormatEpub: .text("EPUB (.epub) — coming soon"),
+            .exportCopy: .text("Copy to clipboard"),
+            .exportCopied: .text("Copied"),
+            .exportSave: .text("Save as file"),
+            .exportSaved: .text("Saved"),
+            .exportPreview: .text("Preview"),
+            .exportOptions: .text("Options"),
+            .pairTitle: .text("Pair a device"),
+            .pairShowHint: .text("Scan this QR code on the new device, or type the code."),
+            .pairExpires: .text("{time} left"),
+            .pairStep1: .text("Open Ithaca on the new device"),
+            .pairStep2: .text("Settings → Sync → Pair a device"),
+            .pairStep3: .text("Scan the QR code or type the code"),
+            .pairEnterTitle: .text("Enter code"),
+            .pairEnterHint: .text("The 6-digit code shown under Settings → Sync → Pair a device on your other device"),
+            .pairScan: .text("Scan QR code"),
+            .pairSimulate: .text("Pretend the new device scanned it"),
+            .pairConfirmTitle: .text("Do both devices show the same words?"),
+            .pairConfirmHint: .text("If they match, we connect. If not, someone may be in between — don't connect."),
+            .pairMatch: .text("They match"),
+            .pairMismatch: .text("They differ"),
+            .pairMismatchNote: .text("Pairing cancelled. Try again with a new code."),
+            .pairSyncing: .text("First sync"),
+            .pairSyncProgress: .text("Sheets {done}/{total} · {size}"),
+            .pairSyncHint: .text("You can close this — syncing continues in the background."),
+            .pairWord1: .text("lantern"),
+            .pairWord2: .text("tide"),
+            .pairWord3: .text("atlas"),
+            .pairWord4: .text("eleven"),
+            .exportScope: .text("Scope"),
+            .exportFormat: .text("Format"),
         ],
     ]
 }

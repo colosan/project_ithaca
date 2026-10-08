@@ -95,6 +95,8 @@ public enum Tokens {
         public static let toggleWidth: Double = 44
         public static let toggleHeight: Double = 26
         public static let toggleKnob: Double = 22
+        public static let pairQr: Double = 192
+        public static let pairCodeCell: Double = 44
     }
 
     public enum Radius {
