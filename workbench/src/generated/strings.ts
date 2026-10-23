@@ -490,6 +490,45 @@ export type StringKey =
   | "action.hideDetails"
   | "sync.damaged"
   | "library.readOnlyProblems"
+  | "count.postedHint"
+  | "info.posted"
+  | "info.postedHint"
+  | "info.rawWithSpaces"
+  | "info.rawHint"
+  | "sheet.copyForPaste"
+  | "sheet.copiedForPaste"
+  | "palette.setStatus"
+  | "episode.include"
+  | "episode.platform"
+  | "episode.platformPlaceholder"
+  | "sync.savedLocalHint"
+  | "backup.lastAt"
+  | "backup.lastNone"
+  | "sheet.damagedShort"
+  | "mcp.statusCheck"
+  | "mcp.statusAdded"
+  | "mcp.openConfigFolder"
+  | "mcp.addToConfig"
+  | "mcp.addedToConfig"
+  | "mcp.addFailed"
+  | "mcp.addInvalidJson"
+  | "mcp.noClaudeFolder"
+  | "error.notFound"
+  | "error.readOnly"
+  | "error.invalidInput"
+  | "error.io"
+  | "error.corrupt"
+  | "problem.lockedByOther"
+  | "problem.noLocking"
+  | "problem.projectsUnreadable"
+  | "problem.projectSkipped"
+  | "problem.libraryFileMissing"
+  | "problem.updateFailed"
+  | "problem.tocDamaged"
+  | "problem.sheetDamaged"
+  | "problem.unattributed"
+  | "problem.backupPrune"
+  | "problem.other"
   ;
 
 type Value = string | { one: string; other: string };
@@ -772,7 +811,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "about.thirdParty": "오픈소스 라이선스",
     "about.dataFolder": "데이터 폴더",
     "about.openDataFolder": "데이터 폴더 열기",
-    "about.localFirst": "Ithaca는 서버 없이 동작해요. 원고는 내 기기에 있고, 동기화를 켠 곳에만 암호화되어 전달돼요.",
+    "about.localFirst": "Ithaca는 서버 없이 동작해요. 원고는 이 Mac에만 있어요.",
     "palette.title": "명령 팔레트",
     "palette.placeholder": "시트 이름이나 명령을 입력",
     "palette.recent": "최근 시트",
@@ -806,7 +845,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "palette.sheetInfo": "시트 정보",
     "app.firstProject": "첫 작품",
     "editor.noSheet": "열린 시트가 없어요.",
-    "sync.savedLocal": "이 기기에 저장됨",
+    "sync.savedLocal": "이 Mac에 저장됨",
     "reference.none": "참조할 다른 시트가 없어요.",
     "folder.namePlaceholder": "폴더 이름",
     "folder.deleteConfirm": "'{name}' 폴더를 지울까요? 안에 있는 시트 {count}개는 휴지통으로 가요.",
@@ -896,7 +935,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "info.novelpia": "노벨피아",
     "info.chars": "{count}자",
     "info.munpiaPages": "{count}쪽",
-    "info.platformHint": "붙여넣을 글(Markdown 기호 뺌) 기준이에요. 저장된 내용으로 세요.",
+    "info.platformHint": "붙여넣을 글(제목 줄 · Markdown 기호 뺌)을 저장된 내용으로 센 값이에요.",
     "backup.autoDaily": "하루에 한 번 자동으로 백업해요. 최근 7일과 4주치를 남기고, 직접 만든 백업은 지우지 않아요.",
     "backup.kind.auto": "자동",
     "backup.kind.manual": "직접",
@@ -966,7 +1005,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "folderStats.draftsHint": "초고와 퇴고를 합한 수예요.",
     "folderStats.nextRelease": "다음 연재",
     "folderStats.none": "이 폴더에는 시트가 없어요.",
-    "folderStats.hint": "휴지통에 있는 시트는 빼고 세요. 연재처 기준은 저장된 내용으로 세요.",
+    "folderStats.hint": "휴지통에 있는 시트는 세지 않았어요. 글자수는 올릴 본문 기준이고, 연재처 기준은 저장된 내용으로 셌어요.",
     "goal.basis.munpia": "문피아",
     "goal.basis.novelpia": "노벨피아",
     "mcp.readToggle": "Claude가 원고를 읽게 하기",
@@ -981,7 +1020,46 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "action.details": "자세히",
     "action.hideDetails": "접기",
     "sync.damaged": "저장할 수 없음 (손상)",
-    "library.readOnlyProblems": "라이브러리에 문제가 있어서 읽기 전용으로 열었어요. 아무것도 덮어쓰지 않아요."
+    "library.readOnlyProblems": "라이브러리에 문제가 있어서 읽기 전용으로 열었어요. 아무것도 덮어쓰지 않아요.",
+    "count.postedHint": "연재처에 올릴 본문 기준이에요 — 제목 줄과 Markdown 기호는 빼고, 장면 구분은 한 줄로 쳐요. 원고 전체는 {raw}자예요.",
+    "info.posted": "올릴 본문",
+    "info.postedHint": "연재처에 붙여넣을 본문 기준이에요. 제목 줄과 Markdown 기호는 세지 않아요.",
+    "info.rawWithSpaces": "원고 전체 (공백 포함)",
+    "info.rawHint": "제목 줄과 Markdown 기호까지 센 원고 전체 글자수예요.",
+    "sheet.copyForPaste": "연재처에 붙여넣기용 복사",
+    "sheet.copiedForPaste": "복사했어요 · {count}자",
+    "palette.setStatus": "회차 상태 → {status}",
+    "episode.include": "회차 번호에 다시 넣기",
+    "episode.platform": "연재처",
+    "episode.platformPlaceholder": "예: 문피아",
+    "sync.savedLocalHint": "원고는 이 Mac에만 저장돼요.",
+    "backup.lastAt": "마지막 백업 {date}",
+    "backup.lastNone": "아직 백업이 없어요",
+    "sheet.damagedShort": "손상",
+    "mcp.statusCheck": "Claude 데스크톱 설정에 추가했는지 확인하세요",
+    "mcp.statusAdded": "Claude 데스크톱 설정 파일에 들어 있어요. 바꿨다면 Claude를 다시 시작하세요.",
+    "mcp.openConfigFolder": "Claude 데스크톱 설정 폴더 열기",
+    "mcp.addToConfig": "설정 파일에 추가",
+    "mcp.addedToConfig": "설정 파일에 추가했어요. 원래 파일은 {file}로 남겨 두었어요. Claude를 다시 시작하세요.",
+    "mcp.addFailed": "설정 파일에 추가하지 못했어요 — {message}",
+    "mcp.addInvalidJson": "지금 설정 파일이 올바른 JSON이 아니라서 건드리지 않았어요.",
+    "mcp.noClaudeFolder": "Claude 데스크톱 설정 폴더가 없어요. Claude 데스크톱을 설치하고 한 번 연 뒤에 추가할 수 있어요.",
+    "error.notFound": "찾을 수 없어요.",
+    "error.readOnly": "읽기 전용이라 바꿀 수 없어요.",
+    "error.invalidInput": "할 수 없는 요청이에요.",
+    "error.io": "파일을 읽거나 쓰지 못했어요. 디스크 공간과 권한을 확인하세요.",
+    "error.corrupt": "파일 일부가 손상됐어요. 백업에서 되살릴 수 있어요.",
+    "problem.lockedByOther": "다른 Ithaca가 이 라이브러리를 열고 있어서 읽기 전용으로 열었어요. 다른 쪽을 닫고 다시 열면 고칠 수 있어요.",
+    "problem.noLocking": "이 폴더는 잠금을 지원하지 않아요. 두 앱에서 동시에 열지 마세요.",
+    "problem.projectsUnreadable": "작품 폴더를 읽지 못했어요.",
+    "problem.projectSkipped": "작품 하나({name})를 읽지 못해서 건너뛰었어요. 폴더는 그대로 두었어요.",
+    "problem.libraryFileMissing": "library.json이 없지만 폴더에 작품이 있어요. 덮어쓰지 않도록 읽기 전용으로 열었어요.",
+    "problem.updateFailed": "라이브러리를 새 형식으로 바꾸지 못해서 아무것도 바꾸지 않았어요.",
+    "problem.tocDamaged": "‘{title}’의 목차가 손상됐어요. 마지막 온전한 상태를 보여 주고, 바꿀 수 없어요. 백업에서 작품을 되살리세요.",
+    "problem.sheetDamaged": "‘{title}’의 시트 ‘{name}’이 손상됐어요. 마지막 온전한 글을 보여 주고, 백업에서 되살릴 때까지 고칠 수 없어요.",
+    "problem.unattributed": "‘{title}’에 읽을 수 없고 어느 시트에도 속하지 않는 변경 파일이 있어요.",
+    "problem.backupPrune": "오래된 자동 백업을 지우지 못했어요.",
+    "problem.other": "라이브러리를 열면서 문제를 찾았어요. 원문은 마우스를 올리면 보여요."
   },
   "en": {
     "app.name": "Ithaca",
@@ -1290,7 +1368,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "about.thirdParty": "Open-source licenses",
     "about.dataFolder": "Data folder",
     "about.openDataFolder": "Open data folder",
-    "about.localFirst": "Ithaca works without a server. Your manuscripts live on your devices and travel, encrypted, only where you turn sync on",
+    "about.localFirst": "Ithaca works without a server. Your manuscripts stay on this Mac.",
     "palette.title": "Command palette",
     "palette.placeholder": "Type a sheet or a command",
     "palette.recent": "Recent sheets",
@@ -1330,7 +1408,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "palette.sheetInfo": "Sheet info",
     "app.firstProject": "My first project",
     "editor.noSheet": "No sheet is open.",
-    "sync.savedLocal": "Saved on this device",
+    "sync.savedLocal": "Saved on this Mac",
     "reference.none": "No other sheets to refer to.",
     "folder.namePlaceholder": "Folder name",
     "folder.deleteConfirm": {
@@ -1447,7 +1525,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
       "one": "{count} page",
       "other": "{count} pages"
     },
-    "info.platformHint": "Counts the text you would paste (Markdown removed), as last saved.",
+    "info.platformHint": "Counts the text you would paste (no title line, no Markdown marks), as last saved.",
     "backup.autoDaily": "Backs up automatically once a day, keeping the last 7 days and 4 weeks. Backups you make yourself are never removed.",
     "backup.kind.auto": "Automatic",
     "backup.kind.manual": "Manual",
@@ -1535,7 +1613,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "folderStats.draftsHint": "Drafts and revisions together.",
     "folderStats.nextRelease": "Next release",
     "folderStats.none": "This folder has no sheets.",
-    "folderStats.hint": "Sheets in the trash aren't counted. Platform counts use what's saved.",
+    "folderStats.hint": "Sheets in the trash aren't counted. Lengths count the body to post; platform counts use what's saved.",
     "goal.basis.munpia": "Munpia",
     "goal.basis.novelpia": "Novelpia",
     "mcp.readToggle": "Let Claude read your manuscripts",
@@ -1550,7 +1628,49 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "action.details": "Details",
     "action.hideDetails": "Hide details",
     "sync.damaged": "Can't save (damaged)",
-    "library.readOnlyProblems": "Opened read-only because of problems in the library, so nothing gets overwritten."
+    "library.readOnlyProblems": "Opened read-only because of problems in the library, so nothing gets overwritten.",
+    "count.postedHint": "Counts the body you'd post: title line and Markdown marks left out, scene breaks as one line. The whole manuscript is {raw} characters.",
+    "info.posted": "Body to post",
+    "info.postedHint": "Counted as you'd paste it on a platform: no title line, no Markdown marks.",
+    "info.rawWithSpaces": "Whole manuscript (with spaces)",
+    "info.rawHint": "Every character of the manuscript, title line and Markdown marks included.",
+    "sheet.copyForPaste": "Copy for Pasting to Platform",
+    "sheet.copiedForPaste": {
+      "one": "Copied · {count} character",
+      "other": "Copied · {count} characters"
+    },
+    "palette.setStatus": "Episode status → {status}",
+    "episode.include": "Number this episode again",
+    "episode.platform": "Platform",
+    "episode.platformPlaceholder": "e.g. Munpia",
+    "sync.savedLocalHint": "Your manuscripts are stored only on this Mac.",
+    "backup.lastAt": "Last backup {date}",
+    "backup.lastNone": "No backup yet",
+    "sheet.damagedShort": "Damaged",
+    "mcp.statusCheck": "Make sure it's added to Claude Desktop's config",
+    "mcp.statusAdded": "It's in Claude Desktop's config file. Restart Claude if you just changed it.",
+    "mcp.openConfigFolder": "Open Claude Desktop Config Folder",
+    "mcp.addToConfig": "Add to Config File",
+    "mcp.addedToConfig": "Added to the config file. The previous file was kept as {file}. Restart Claude.",
+    "mcp.addFailed": "Couldn't add it to the config file — {message}",
+    "mcp.addInvalidJson": "The config file isn't valid JSON, so it was left untouched.",
+    "mcp.noClaudeFolder": "There's no Claude Desktop config folder. Install Claude Desktop and open it once, then add it here.",
+    "error.notFound": "Not found.",
+    "error.readOnly": "This library is read-only.",
+    "error.invalidInput": "That can't be done.",
+    "error.io": "A file couldn't be read or written. Check disk space and permissions.",
+    "error.corrupt": "Part of a file is damaged. You can recover it from a backup.",
+    "problem.lockedByOther": "Another Ithaca has this library open, so it opened read-only. Close the other one and open again to edit.",
+    "problem.noLocking": "This folder doesn't support locking. Don't open it from two apps at once.",
+    "problem.projectsUnreadable": "The projects folder couldn't be read.",
+    "problem.projectSkipped": "A project ({name}) couldn't be read and was skipped. Its folder was left as it is.",
+    "problem.libraryFileMissing": "library.json is missing but the folder holds projects. Opened read-only so nothing is overwritten.",
+    "problem.updateFailed": "The library couldn't be updated to the new format, so nothing was changed.",
+    "problem.tocDamaged": "The table of contents of “{title}” is damaged. It shows its last good state and can't be changed; restore the project from a backup.",
+    "problem.sheetDamaged": "Sheet “{name}” in “{title}” is damaged. It shows its last good text and can't be edited until it's recovered from a backup.",
+    "problem.unattributed": "“{title}” has change files that can't be read and belong to no known sheet.",
+    "problem.backupPrune": "Old automatic backups couldn't be removed.",
+    "problem.other": "A problem was found while opening the library. Hover to see the original message."
   }
 };
 

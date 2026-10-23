@@ -5,7 +5,9 @@ import SwiftUI
 
 /// The one command list the menu bar and the palette share (app-shell spec: same source).
 enum AppCommand: CaseIterable {
-    case newSheet, newProject, search, focus, sheetInfo, history, export, projectSettings, settings, moveUp, moveDown, showTrash, trashSheet, importWeb
+    case newSheet, newProject, search, focus, sheetInfo, history, export, copyForPaste, projectSettings, settings, moveUp, moveDown, showTrash, trashSheet, importWeb
+    // Episodes (2026-10-24 review): the daily serial steps without the context menu.
+    case publishedThrough, renumber, toggleExclude, statusDraft, statusRevising, statusScheduled, statusPublished
 
     var label: L10nKey {
         switch self {
@@ -23,7 +25,32 @@ enum AppCommand: CaseIterable {
         case .showTrash: .trashTitle
         case .trashSheet: .sheetTrash
         case .importWeb: .importWeb
+        case .copyForPaste: .sheetCopyForPaste
+        case .publishedThrough: .episodePublishedThrough
+        case .renumber: .episodeRenumber
+        case .toggleExclude: .episodeExclude
+        case .statusDraft: .episodeStatusDraft
+        case .statusRevising: .episodeStatusRevising
+        case .statusScheduled: .episodeStatusScheduled
+        case .statusPublished: .episodeStatusPublished
         }
+    }
+
+    var status: EpisodeStatus? {
+        switch self {
+        case .statusDraft: .draft
+        case .statusRevising: .revising
+        case .statusScheduled: .scheduled
+        case .statusPublished: .published
+        default: nil
+        }
+    }
+
+    /// What the palette shows (some labels depend on the open sheet).
+    @MainActor func title(_ m: AppModel) -> String {
+        if status != nil { return m.t(.paletteSetStatus, ["status": m.t(label)]) }
+        if self == .toggleExclude, m.sheet?.episode?.excluded == true { return m.t(.episodeInclude) }
+        return m.t(label)
     }
 
     var icon: IthacaIcon {
@@ -41,15 +68,25 @@ enum AppCommand: CaseIterable {
         case .showTrash: .trash
         case .trashSheet: .delete
         case .importWeb: .backup
+        case .copyForPaste: .copy
+        case .publishedThrough: .check
+        case .renumber: .reorder
+        case .toggleExclude: .edit
+        case .statusDraft, .statusRevising, .statusScheduled, .statusPublished: .sheet
         }
     }
 
     /// Same rule as the menu bar's disabled items: sheet commands need an open sheet, project commands a project.
     @MainActor func available(_ m: AppModel) -> Bool {
         // Read-only library: nothing that writes.
-        if m.readOnly, [.newSheet, .newProject, .moveUp, .moveDown, .trashSheet, .importWeb].contains(self) { return false }
+        if m.readOnly, [.newSheet, .newProject, .moveUp, .moveDown, .trashSheet, .importWeb, .publishedThrough, .renumber, .toggleExclude].contains(self) { return false }
+        if m.readOnly, status != nil { return false }
+        if let status { return m.sheetId != nil && m.sheet?.episode?.status != status }
         return switch self {
-        case .sheetInfo, .history, .moveUp, .moveDown, .trashSheet: m.sheetId != nil
+        case .sheetInfo, .history, .moveUp, .moveDown, .trashSheet, .copyForPaste: m.sheetId != nil
+        case .publishedThrough: m.sheet?.episode != nil
+        case .toggleExclude: m.sheet != nil && (m.sheet?.episode != nil || m.sheet?.folder == m.folders.first?.id)
+        case .renumber: m.folder != nil
         case .export, .projectSettings, .showTrash, .newSheet: m.projectId != nil
         default: true
         }
@@ -71,6 +108,11 @@ enum AppCommand: CaseIterable {
         case .showTrash: m.showingTrash = true; if !m.dockedList { m.libraryOverlay = true }
         case .trashSheet: m.trashSheet()
         case .importWeb: m.importWebBackup()
+        case .copyForPaste: m.copyForPaste()
+        case .publishedThrough: m.markPublishedThrough()
+        case .renumber: m.renumberEpisodes()
+        case .toggleExclude: if let id = m.sheetId { m.toggleExcluded(id) }
+        case .statusDraft, .statusRevising, .statusScheduled, .statusPublished: m.setEpisodeStatus(status)
         }
     }
 }
@@ -246,8 +288,9 @@ struct PaletteView: View {
             }
         }
         if !searchMode || !q.isEmpty {
-            for c in AppCommand.allCases where c.available(m) && (q.isEmpty || m.t(c.label).lowercased().contains(lower)) {
-                out.append(Hit(id: "c:\(c)", group: .command, icon: c.icon, title: m.t(c.label)) { m.overlay = nil; c.run(m) })
+            // The four status commands only once something is typed ("발행", "상태"…): the empty list stays short.
+            for c in AppCommand.allCases where c.available(m) && (q.isEmpty ? c.status == nil : c.title(m).lowercased().contains(lower)) {
+                out.append(Hit(id: "c:\(c)", group: .command, icon: c.icon, title: c.title(m)) { m.overlay = nil; c.run(m) })
             }
         }
         return out

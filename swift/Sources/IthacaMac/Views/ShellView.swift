@@ -169,10 +169,18 @@ struct ToastBar: View {
         HStack(spacing: T.Space.s150) {
             Text(toast.message).textStyle(.label).fixedSize(horizontal: false, vertical: true)
             if let undo = toast.undo {
-                Button(model.t(.actionUndo)) { undo(); model.toast = nil }
-                    .buttonStyle(.plain)
-                    .font(Fonts.swiftUI(.label, weight: T.Typography.heading.weight))
-                    .foregroundStyle(Color.accentSoft)
+                // A real button (ghost on the dark toast), not just bold text.
+                Button { undo(); model.toast = nil } label: {
+                    Text(model.t(.actionUndo))
+                        .font(Fonts.swiftUI(.label, weight: T.Typography.heading.weight))
+                        .padding(.horizontal, T.Space.s100)
+                        .padding(.vertical, T.Space.s25)
+                        .overlay(RoundedRectangle(cornerRadius: T.Radius.control).strokeBorder(Color.surfaceCanvas, lineWidth: T.Size.strokeHairline))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.surfaceCanvas)
+                .fixedSize()
             }
             if toast.sticky || toast.undo == nil {
                 Button { model.toast = nil } label: { Icon(.close, size: T.Size.iconSm, color: .surfaceCanvas) }

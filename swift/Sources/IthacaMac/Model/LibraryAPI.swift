@@ -2,6 +2,7 @@
 // `MockLibrary` keeps everything in memory (previews, snapshots, and running before the core lands).
 // Value types are our own (not the generated ones) so the UI compiles with or without the core bindings.
 import Foundation
+import IthacaDesign
 
 enum ManuscriptLanguage: String, Codable, Sendable, CaseIterable { case ko, en }
 /// (r3) munpia / novelpia: the platform's own count of the text as it would be pasted (Markdown stripped).
@@ -187,10 +188,26 @@ enum LibraryError: Error, LocalizedError, Equatable {
     case io(String)
     case corrupt(String)
 
+    /// In the app's language (ADR-0005): the core's English detail never reaches a Korean screen; it stays in `detail`.
     var errorDescription: String? {
+        let locale = AppModel.locale(defaults: AppEnvironment.defaults)
+        let key: L10nKey = switch self {
+        case .notFound: .errorNotFound
+        case .readOnly: .errorReadOnly
+        case .invalidInput: .errorInvalidInput
+        case .io: .errorIo
+        case .corrupt: .errorCorrupt
+        }
+        let text = L10n.string(key, locale: locale)
+        // English UI: the core's own sentence is already readable, add it.
+        guard locale == .en, !detail.isEmpty else { return text }
+        return text + " (" + detail + ")"
+    }
+
+    /// The core's message (English), for tooltips and logs.
+    var detail: String {
         switch self {
-        case .notFound: "not found"
-        case .readOnly: "read only"
+        case .notFound, .readOnly: ""
         case .invalidInput(let m), .io(let m), .corrupt(let m): m
         }
     }
@@ -257,10 +274,14 @@ protocol LibraryAPI: AnyObject {
     func restoreBackupAsCopies(path: String, suffix: String) async throws -> [ProjectSummary]
 
     // Platform counts (round 2, free functions in the core)
-    func countFor(text: String, rule: CountRule) -> Int
+    /// Pure (no library state): callable off the main thread (live counting).
+    nonisolated func countFor(text: String, rule: CountRule) -> Int
     func munpiaPages(text: String) -> Int
     /// (r3) A sheet's length on a goal basis; munpia / novelpia count the paste-ready body.
     func goalCount(text: String, basis: GoalBasis) -> Int
+    /// (r3) What is pasted into a platform's body field: title line removed, Markdown stripped, scene breaks normalized.
+    /// The app's counts (footer, list rows, inspector, goal) count this text (PRODUCT "글자수 정의", 2026-10-24).
+    nonisolated func platformBody(text: String) -> String
 
     func search(query: String, project: String?) -> [SearchHit]
     /// (qa1) Every live project, `current` first, so one long project can't crowd out the rest.

@@ -62,6 +62,9 @@
     "code": "code",
     "bug": "bug",
     "trash": "trash",
-    "folderOpen": "folder-open"
+    "folderOpen": "folder-open",
+    "savedLocal": "hard-drive",
+    "damaged": "file-warning",
+    "branched": "git-branch"
   }
 }

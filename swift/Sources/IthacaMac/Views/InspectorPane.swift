@@ -111,14 +111,16 @@ private struct InfoTab: View {
 
 private struct SheetInfo: View {
     @Environment(AppModel.self) private var model
+    @State private var platform = ""
 
     var body: some View {
         if let sheet = model.sheet {
-            let c = model.liveCounts
+            // Posted counts first (what the platform will count), the manuscript as written as one secondary row.
+            let c = model.livePostedCounts
+            let raw = model.liveCounts
             let lang = model.language
-            let rows: [(String, String)] = [
-                (model.t(.infoWithSpaces), model.number(c.chars)),
-                (model.t(.infoWithoutSpaces), model.number(c.charsNoSpace)),
+            let details: [(String, String)] = [
+                (model.t(.infoRawWithSpaces), model.number(raw.chars)),
                 lang == .ko ? (model.t(.infoManuscriptPages), model.t(.infoPages, ["count": (c.chars + 199) / 200], count: (c.chars + 199) / 200))
                             : (model.t(.infoWords), model.number(c.words)),
                 (model.t(.infoParagraphs), model.number(c.paragraphs)),
@@ -142,26 +144,59 @@ private struct SheetInfo: View {
                         .disabled(model.readOnly)
                         .padding(.bottom, T.Space.s150)
                 }
+                if let e = sheet.episode, e.status == .scheduled || e.status == .published {
+                    // A small free-text field; the last platform used is the default for the next episode.
+                    LabeledContent(model.t(.episodePlatform)) {
+                        TextField(model.t(.episodePlatformPlaceholder), text: $platform)
+                            .textFieldStyle(.roundedBorder)
+                            .onSubmit { model.setPlatform(platform) }
+                            .disabled(model.readOnly)
+                    }
+                    .textStyle(.body)
+                    .padding(.bottom, T.Space.s150)
+                    .task(id: sheet.id + (e.platform ?? "")) { platform = e.platform ?? "" }
+                    .onDisappear { if platform != (e.platform ?? "") { model.setPlatform(platform) } }
+                }
                 if sheet.episode?.excluded == true {
                     Caption(model.t(.episodeExcluded) + " — " + model.t(.episodeExcludedHint))
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.bottom, T.Space.s150)
                 }
-                ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
-                    HStack(alignment: .firstTextBaseline, spacing: T.Space.s150) {
-                        Text(row.0).foregroundStyle(Color.inkSecondary).layoutPriority(1)
-                        Spacer(minLength: 0)
-                        Text(row.1).fontWeight(.semibold).multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
-                    }
-                    .textStyle(.body)
-                    .padding(.vertical, T.Space.s100)
-                    .hairline(.top, i == 0 ? .clear : .lineSubtle)
+                // The numbers a serial writer checks before posting, in one compact group near the top.
+                VStack(alignment: .leading, spacing: 0) {
+                    Caption(model.t(.infoPosted)).padding(.bottom, T.Space.s50).help(model.t(.infoPostedHint))
+                    CompactRow(model.t(.infoWithSpaces), model.number(c.chars), first: true)
+                    CompactRow(model.t(.infoWithoutSpaces), model.number(c.charsNoSpace))
+                    PlatformCounts(sheet: sheet.id, version: sheet.modified)
                 }
-                PlatformCounts(sheet: sheet.id, version: sheet.modified)
+                .padding(T.Space.s150)
+                .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.surfaceCanvas))
+                .padding(.bottom, T.Space.s150)
+                ForEach(Array(details.enumerated()), id: \.offset) { i, row in
+                    CompactRow(row.0, row.1, first: i == 0)
+                        .help(i == 0 ? model.t(.infoRawHint) : "")
+                }
             }
         } else {
             Caption(model.t(.editorNoSheet))
         }
+    }
+}
+
+/// One label · value line at caption/label size (the Info tab read as a heavy form at body size).
+private struct CompactRow: View {
+    let key: String, value: String, first: Bool
+    init(_ key: String, _ value: String, first: Bool = false) { self.key = key; self.value = value; self.first = first }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: T.Space.s150) {
+            Text(key).foregroundStyle(Color.inkSecondary).layoutPriority(1)
+            Spacer(minLength: 0)
+            Text(value).fontWeight(.semibold).multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
+        }
+        .textStyle(.label)
+        .padding(.vertical, T.Space.s50)
+        .hairline(.top, first ? .clear : .lineSubtle)
     }
 }
 
@@ -232,23 +267,11 @@ private struct PlatformCounts: View {
             let munpia = model.library.countFor(text: text, rule: .munpia)
             let pages = model.library.munpiaPages(text: text)
             let novelpia = model.library.countFor(text: text, rule: .novelpia)
-            VStack(alignment: .leading, spacing: 0) {
-                Caption(model.t(.infoPlatform)).padding(.top, T.Space.s200).padding(.bottom, T.Space.s50).help(model.t(.infoPlatformHint))
-                row(model.t(.infoMunpia), model.t(.infoChars, ["count": munpia], count: munpia) + " · " + model.t(.infoMunpiaPages, ["count": pages], count: pages), first: true)
-                row(model.t(.infoNovelpia), model.t(.infoChars, ["count": novelpia], count: novelpia), first: false)
-            }
+            CompactRow(model.t(.infoMunpia), model.t(.infoChars, ["count": munpia], count: munpia) + " · " + model.t(.infoMunpiaPages, ["count": pages], count: pages))
+                .help(model.t(.infoPlatformHint))
+            CompactRow(model.t(.infoNovelpia), model.t(.infoChars, ["count": novelpia], count: novelpia))
+                .help(model.t(.infoPlatformHint))
         }
-    }
-
-    private func row(_ k: String, _ v: String, first: Bool) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: T.Space.s150) {
-            Text(k).foregroundStyle(Color.inkSecondary)
-            Spacer(minLength: 0)
-            Text(v).fontWeight(.semibold)
-        }
-        .textStyle(.body)
-        .padding(.vertical, T.Space.s100)
-        .hairline(.top, first ? .clear : .lineSubtle)
     }
 }
 
@@ -260,20 +283,27 @@ private struct FolderInfoView: View {
     var body: some View {
         if let st = model.folderStats(folder) {
             let ko = model.language == .ko
+            // Lengths on the posted basis like the rows (the core's FolderStats totals count the text as written).
+            let posted = folder.sheets.map { ($0, model.postedCounts(of: $0)) }
+            let total = posted.reduce(into: Counts()) { $0.chars += $1.1.chars; $0.charsNoSpace += $1.1.charsNoSpace; $0.words += $1.1.words }
+            let episodeChars = posted.filter { $0.0.episode?.excluded != true }.reduce(0) { $0 + $1.1.chars }
+            let episodeWords = posted.filter { $0.0.episode?.excluded != true }.reduce(0) { $0 + $1.1.words }
+            let average = st.episodes == 0 ? 0 : Int((Double(episodeChars) / Double(st.episodes)).rounded())
+            let averageWords = st.episodes == 0 ? 0 : episodeWords / st.episodes
             let next = model.nextRelease(folder)
             VStack(alignment: .leading, spacing: 0) {
                 Text(folder.name).textStyle(.heading).lineLimit(2).padding(.bottom, T.Space.s100)
                 if st.sheets == 0 {
                     Caption(model.t(.folderStatsNone))
                 } else {
-                    InfoRow(model.t(.infoWithSpaces), model.number(st.counts.chars), first: true)
-                    InfoRow(model.t(.infoWithoutSpaces), model.number(st.counts.charsNoSpace))
-                    if !ko { InfoRow(model.t(.infoWords), model.number(st.counts.words)) }
+                    InfoRow(model.t(.infoWithSpaces), model.number(total.chars), first: true).help(model.t(.infoPostedHint))
+                    InfoRow(model.t(.infoWithoutSpaces), model.number(total.charsNoSpace)).help(model.t(.infoPostedHint))
+                    if !ko { InfoRow(model.t(.infoWords), model.number(total.words)) }
                     InfoRow(model.t(.folderStatsSheets), model.t(.sheetListCount, ["count": st.sheets], count: st.sheets))
                     if st.episodes > 0 {
                         InfoRow(model.t(.folderStatsEpisodes), model.t(.folderStatsEpisodeCount, ["count": st.episodes], count: st.episodes))
-                        InfoRow(model.t(.folderStatsAverage), ko ? model.t(.infoChars, ["count": st.averageChars], count: st.averageChars)
-                                                                 : model.t(.countWords, ["count": st.episodes == 0 ? 0 : st.counts.words / st.episodes], count: st.counts.words / max(1, st.episodes)))
+                        InfoRow(model.t(.folderStatsAverage), ko ? model.t(.infoChars, ["count": average], count: average)
+                                                                 : model.t(.countWords, ["count": averageWords], count: averageWords))
                         if ko {
                             Caption(model.t(.infoPlatform)).padding(.top, T.Space.s200).padding(.bottom, T.Space.s50).help(model.t(.infoPlatformHint))
                             InfoRow(model.t(.infoMunpia), model.t(.infoChars, ["count": st.munpia], count: st.munpia), first: true)

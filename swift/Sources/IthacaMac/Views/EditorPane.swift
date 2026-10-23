@@ -130,8 +130,9 @@ struct NoticeBar: View {
                                 VStack(alignment: .leading, spacing: T.Space.s50) {
                                     Caption(model.t(.libraryProblemsTitle))
                                     ForEach(Array(model.info.problems.enumerated()), id: \.offset) { _, p in
-                                        Text("· " + p).textStyle(.caption).foregroundStyle(Color.inkSecondary)
+                                        Text("· " + model.problemText(p)).textStyle(.caption).foregroundStyle(Color.inkSecondary)
                                             .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                                            .help(p)
                                     }
                                 }
                             }
@@ -207,7 +208,9 @@ struct EditorFooter: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
-        let c = model.liveCounts
+        // The body as posted (PRODUCT "글자수 정의"); the whole manuscript is in the tooltip and the Info tab.
+        let c = model.livePostedCounts
+        let raw = model.liveCounts
         let goal = model.project?.goal
         let percent = goal.map { min(100, Int((Double(model.goalValue($0.basis)) / Double(max(1, $0.count)) * 100).rounded())) } ?? 0
         VStack(spacing: 0) {
@@ -221,12 +224,13 @@ struct EditorFooter: View {
                 .frame(height: T.Size.strokeFocus)
             }
             HStack(spacing: T.Space.s150) {
+                let postedHint = model.t(.countPostedHint, ["raw": raw.chars])
                 if model.language == .ko {
-                    Text(model.t(.countWithSpaces, ["count": c.chars])).help(model.t(.countWithSpacesHint))
-                    Text(model.t(.countWithoutSpaces, ["count": c.charsNoSpace])).help(model.t(.countWithoutSpacesHint))
+                    Text(model.t(.countWithSpaces, ["count": c.chars])).help(postedHint)
+                    Text(model.t(.countWithoutSpaces, ["count": c.charsNoSpace])).help(postedHint)
                 } else {
-                    Text(model.t(.countWords, ["count": c.words], count: c.words))
-                    Text(model.t(.countWithSpaces, ["count": c.chars], count: c.chars)).help(model.t(.countWithSpacesHint))
+                    Text(model.t(.countWords, ["count": c.words], count: c.words)).help(postedHint)
+                    Text(model.t(.countWithSpaces, ["count": c.chars], count: c.chars)).help(postedHint)
                 }
                 if let goal {
                     Text(model.t(.goalProgress, ["goal": goal.count, "percent": percent])).foregroundStyle(Color.inkSecondary)
@@ -240,6 +244,11 @@ struct EditorFooter: View {
             .frame(maxWidth: .infinity, minHeight: T.Size.controlMd)
         }
         .hairline(.top)
+    }
+
+    private var savedHint: String {
+        let backup = model.lastBackupAt.map { model.t(.backupLastAt, ["date": model.dateTime($0.date)]) } ?? model.t(.backupLastNone)
+        return model.t(.syncSavedLocalHint) + "\n" + backup
     }
 
     private func goalBasisName(_ b: GoalBasis) -> String {
@@ -265,9 +274,11 @@ struct EditorFooter: View {
     @ViewBuilder private var status: some View {
         switch model.saveStatus {
         case .saved:
-            Label { Text(model.t(.syncSavedLocal)) } icon: { Icon(.synced, size: T.Size.iconSm) }.foregroundStyle(Color.stateSuccess)
+            // A local disk, not a cloud: nothing leaves this Mac. The tooltip says when the last backup was made.
+            Label { Text(model.t(.syncSavedLocal)) } icon: { Icon(.savedLocal, size: T.Size.iconSm) }.foregroundStyle(Color.stateSuccess)
+                .help(savedHint)
         case .pending:
-            Label { Text(model.t(.syncSaving)) } icon: { Icon(.synced, size: T.Size.iconSm) }
+            Label { Text(model.t(.syncSaving)) } icon: { Icon(.savedLocal, size: T.Size.iconSm) }.help(savedHint)
         case .failed(let message):
             // Stays until a save succeeds; retries run on their own (AppModel.retryDelays), the button saves now.
             HStack(spacing: T.Space.s100) {

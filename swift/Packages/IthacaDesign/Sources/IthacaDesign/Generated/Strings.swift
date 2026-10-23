@@ -495,6 +495,45 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case actionHideDetails = "action.hideDetails"
     case syncDamaged = "sync.damaged"
     case libraryReadOnlyProblems = "library.readOnlyProblems"
+    case countPostedHint = "count.postedHint"
+    case infoPosted = "info.posted"
+    case infoPostedHint = "info.postedHint"
+    case infoRawWithSpaces = "info.rawWithSpaces"
+    case infoRawHint = "info.rawHint"
+    case sheetCopyForPaste = "sheet.copyForPaste"
+    case sheetCopiedForPaste = "sheet.copiedForPaste"
+    case paletteSetStatus = "palette.setStatus"
+    case episodeInclude = "episode.include"
+    case episodePlatform = "episode.platform"
+    case episodePlatformPlaceholder = "episode.platformPlaceholder"
+    case syncSavedLocalHint = "sync.savedLocalHint"
+    case backupLastAt = "backup.lastAt"
+    case backupLastNone = "backup.lastNone"
+    case sheetDamagedShort = "sheet.damagedShort"
+    case mcpStatusCheck = "mcp.statusCheck"
+    case mcpStatusAdded = "mcp.statusAdded"
+    case mcpOpenConfigFolder = "mcp.openConfigFolder"
+    case mcpAddToConfig = "mcp.addToConfig"
+    case mcpAddedToConfig = "mcp.addedToConfig"
+    case mcpAddFailed = "mcp.addFailed"
+    case mcpAddInvalidJson = "mcp.addInvalidJson"
+    case mcpNoClaudeFolder = "mcp.noClaudeFolder"
+    case errorNotFound = "error.notFound"
+    case errorReadOnly = "error.readOnly"
+    case errorInvalidInput = "error.invalidInput"
+    case errorIo = "error.io"
+    case errorCorrupt = "error.corrupt"
+    case problemLockedByOther = "problem.lockedByOther"
+    case problemNoLocking = "problem.noLocking"
+    case problemProjectsUnreadable = "problem.projectsUnreadable"
+    case problemProjectSkipped = "problem.projectSkipped"
+    case problemLibraryFileMissing = "problem.libraryFileMissing"
+    case problemUpdateFailed = "problem.updateFailed"
+    case problemTocDamaged = "problem.tocDamaged"
+    case problemSheetDamaged = "problem.sheetDamaged"
+    case problemUnattributed = "problem.unattributed"
+    case problemBackupPrune = "problem.backupPrune"
+    case problemOther = "problem.other"
 }
 
 enum L10nValue: Sendable {
@@ -794,7 +833,7 @@ public enum L10n {
             .aboutThirdParty: .text("오픈소스 라이선스"),
             .aboutDataFolder: .text("데이터 폴더"),
             .aboutOpenDataFolder: .text("데이터 폴더 열기"),
-            .aboutLocalFirst: .text("Ithaca는 서버 없이 동작해요. 원고는 내 기기에 있고, 동기화를 켠 곳에만 암호화되어 전달돼요."),
+            .aboutLocalFirst: .text("Ithaca는 서버 없이 동작해요. 원고는 이 Mac에만 있어요."),
             .paletteTitle: .text("명령 팔레트"),
             .palettePlaceholder: .text("시트 이름이나 명령을 입력"),
             .paletteRecent: .text("최근 시트"),
@@ -828,7 +867,7 @@ public enum L10n {
             .paletteSheetInfo: .text("시트 정보"),
             .appFirstProject: .text("첫 작품"),
             .editorNoSheet: .text("열린 시트가 없어요."),
-            .syncSavedLocal: .text("이 기기에 저장됨"),
+            .syncSavedLocal: .text("이 Mac에 저장됨"),
             .referenceNone: .text("참조할 다른 시트가 없어요."),
             .folderNamePlaceholder: .text("폴더 이름"),
             .folderDeleteConfirm: .text("'{name}' 폴더를 지울까요? 안에 있는 시트 {count}개는 휴지통으로 가요."),
@@ -918,7 +957,7 @@ public enum L10n {
             .infoNovelpia: .text("노벨피아"),
             .infoChars: .text("{count}자"),
             .infoMunpiaPages: .text("{count}쪽"),
-            .infoPlatformHint: .text("붙여넣을 글(Markdown 기호 뺌) 기준이에요. 저장된 내용으로 세요."),
+            .infoPlatformHint: .text("붙여넣을 글(제목 줄 · Markdown 기호 뺌)을 저장된 내용으로 센 값이에요."),
             .backupAutoDaily: .text("하루에 한 번 자동으로 백업해요. 최근 7일과 4주치를 남기고, 직접 만든 백업은 지우지 않아요."),
             .backupKindAuto: .text("자동"),
             .backupKindManual: .text("직접"),
@@ -988,7 +1027,7 @@ public enum L10n {
             .folderStatsDraftsHint: .text("초고와 퇴고를 합한 수예요."),
             .folderStatsNextRelease: .text("다음 연재"),
             .folderStatsNone: .text("이 폴더에는 시트가 없어요."),
-            .folderStatsHint: .text("휴지통에 있는 시트는 빼고 세요. 연재처 기준은 저장된 내용으로 세요."),
+            .folderStatsHint: .text("휴지통에 있는 시트는 세지 않았어요. 글자수는 올릴 본문 기준이고, 연재처 기준은 저장된 내용으로 셌어요."),
             .goalBasisMunpia: .text("문피아"),
             .goalBasisNovelpia: .text("노벨피아"),
             .mcpReadToggle: .text("Claude가 원고를 읽게 하기"),
@@ -1004,6 +1043,45 @@ public enum L10n {
             .actionHideDetails: .text("접기"),
             .syncDamaged: .text("저장할 수 없음 (손상)"),
             .libraryReadOnlyProblems: .text("라이브러리에 문제가 있어서 읽기 전용으로 열었어요. 아무것도 덮어쓰지 않아요."),
+            .countPostedHint: .text("연재처에 올릴 본문 기준이에요 — 제목 줄과 Markdown 기호는 빼고, 장면 구분은 한 줄로 쳐요. 원고 전체는 {raw}자예요."),
+            .infoPosted: .text("올릴 본문"),
+            .infoPostedHint: .text("연재처에 붙여넣을 본문 기준이에요. 제목 줄과 Markdown 기호는 세지 않아요."),
+            .infoRawWithSpaces: .text("원고 전체 (공백 포함)"),
+            .infoRawHint: .text("제목 줄과 Markdown 기호까지 센 원고 전체 글자수예요."),
+            .sheetCopyForPaste: .text("연재처에 붙여넣기용 복사"),
+            .sheetCopiedForPaste: .text("복사했어요 · {count}자"),
+            .paletteSetStatus: .text("회차 상태 → {status}"),
+            .episodeInclude: .text("회차 번호에 다시 넣기"),
+            .episodePlatform: .text("연재처"),
+            .episodePlatformPlaceholder: .text("예: 문피아"),
+            .syncSavedLocalHint: .text("원고는 이 Mac에만 저장돼요."),
+            .backupLastAt: .text("마지막 백업 {date}"),
+            .backupLastNone: .text("아직 백업이 없어요"),
+            .sheetDamagedShort: .text("손상"),
+            .mcpStatusCheck: .text("Claude 데스크톱 설정에 추가했는지 확인하세요"),
+            .mcpStatusAdded: .text("Claude 데스크톱 설정 파일에 들어 있어요. 바꿨다면 Claude를 다시 시작하세요."),
+            .mcpOpenConfigFolder: .text("Claude 데스크톱 설정 폴더 열기"),
+            .mcpAddToConfig: .text("설정 파일에 추가"),
+            .mcpAddedToConfig: .text("설정 파일에 추가했어요. 원래 파일은 {file}로 남겨 두었어요. Claude를 다시 시작하세요."),
+            .mcpAddFailed: .text("설정 파일에 추가하지 못했어요 — {message}"),
+            .mcpAddInvalidJson: .text("지금 설정 파일이 올바른 JSON이 아니라서 건드리지 않았어요."),
+            .mcpNoClaudeFolder: .text("Claude 데스크톱 설정 폴더가 없어요. Claude 데스크톱을 설치하고 한 번 연 뒤에 추가할 수 있어요."),
+            .errorNotFound: .text("찾을 수 없어요."),
+            .errorReadOnly: .text("읽기 전용이라 바꿀 수 없어요."),
+            .errorInvalidInput: .text("할 수 없는 요청이에요."),
+            .errorIo: .text("파일을 읽거나 쓰지 못했어요. 디스크 공간과 권한을 확인하세요."),
+            .errorCorrupt: .text("파일 일부가 손상됐어요. 백업에서 되살릴 수 있어요."),
+            .problemLockedByOther: .text("다른 Ithaca가 이 라이브러리를 열고 있어서 읽기 전용으로 열었어요. 다른 쪽을 닫고 다시 열면 고칠 수 있어요."),
+            .problemNoLocking: .text("이 폴더는 잠금을 지원하지 않아요. 두 앱에서 동시에 열지 마세요."),
+            .problemProjectsUnreadable: .text("작품 폴더를 읽지 못했어요."),
+            .problemProjectSkipped: .text("작품 하나({name})를 읽지 못해서 건너뛰었어요. 폴더는 그대로 두었어요."),
+            .problemLibraryFileMissing: .text("library.json이 없지만 폴더에 작품이 있어요. 덮어쓰지 않도록 읽기 전용으로 열었어요."),
+            .problemUpdateFailed: .text("라이브러리를 새 형식으로 바꾸지 못해서 아무것도 바꾸지 않았어요."),
+            .problemTocDamaged: .text("‘{title}’의 목차가 손상됐어요. 마지막 온전한 상태를 보여 주고, 바꿀 수 없어요. 백업에서 작품을 되살리세요."),
+            .problemSheetDamaged: .text("‘{title}’의 시트 ‘{name}’이 손상됐어요. 마지막 온전한 글을 보여 주고, 백업에서 되살릴 때까지 고칠 수 없어요."),
+            .problemUnattributed: .text("‘{title}’에 읽을 수 없고 어느 시트에도 속하지 않는 변경 파일이 있어요."),
+            .problemBackupPrune: .text("오래된 자동 백업을 지우지 못했어요."),
+            .problemOther: .text("라이브러리를 열면서 문제를 찾았어요. 원문은 마우스를 올리면 보여요."),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -1282,7 +1360,7 @@ public enum L10n {
             .aboutThirdParty: .text("Open-source licenses"),
             .aboutDataFolder: .text("Data folder"),
             .aboutOpenDataFolder: .text("Open data folder"),
-            .aboutLocalFirst: .text("Ithaca works without a server. Your manuscripts live on your devices and travel, encrypted, only where you turn sync on"),
+            .aboutLocalFirst: .text("Ithaca works without a server. Your manuscripts stay on this Mac."),
             .paletteTitle: .text("Command palette"),
             .palettePlaceholder: .text("Type a sheet or a command"),
             .paletteRecent: .text("Recent sheets"),
@@ -1316,7 +1394,7 @@ public enum L10n {
             .paletteSheetInfo: .text("Sheet info"),
             .appFirstProject: .text("My first project"),
             .editorNoSheet: .text("No sheet is open."),
-            .syncSavedLocal: .text("Saved on this device"),
+            .syncSavedLocal: .text("Saved on this Mac"),
             .referenceNone: .text("No other sheets to refer to."),
             .folderNamePlaceholder: .text("Folder name"),
             .folderDeleteConfirm: .plural(one: "Delete the folder '{name}'? Its {count} sheet goes to the trash.", other: "Delete the folder '{name}'? Its {count} sheets go to the trash."),
@@ -1406,7 +1484,7 @@ public enum L10n {
             .infoNovelpia: .text("Novelpia"),
             .infoChars: .plural(one: "{count} char", other: "{count} chars"),
             .infoMunpiaPages: .plural(one: "{count} page", other: "{count} pages"),
-            .infoPlatformHint: .text("Counts the text you would paste (Markdown removed), as last saved."),
+            .infoPlatformHint: .text("Counts the text you would paste (no title line, no Markdown marks), as last saved."),
             .backupAutoDaily: .text("Backs up automatically once a day, keeping the last 7 days and 4 weeks. Backups you make yourself are never removed."),
             .backupKindAuto: .text("Automatic"),
             .backupKindManual: .text("Manual"),
@@ -1476,7 +1554,7 @@ public enum L10n {
             .folderStatsDraftsHint: .text("Drafts and revisions together."),
             .folderStatsNextRelease: .text("Next release"),
             .folderStatsNone: .text("This folder has no sheets."),
-            .folderStatsHint: .text("Sheets in the trash aren't counted. Platform counts use what's saved."),
+            .folderStatsHint: .text("Sheets in the trash aren't counted. Lengths count the body to post; platform counts use what's saved."),
             .goalBasisMunpia: .text("Munpia"),
             .goalBasisNovelpia: .text("Novelpia"),
             .mcpReadToggle: .text("Let Claude read your manuscripts"),
@@ -1492,6 +1570,45 @@ public enum L10n {
             .actionHideDetails: .text("Hide details"),
             .syncDamaged: .text("Can't save (damaged)"),
             .libraryReadOnlyProblems: .text("Opened read-only because of problems in the library, so nothing gets overwritten."),
+            .countPostedHint: .text("Counts the body you'd post: title line and Markdown marks left out, scene breaks as one line. The whole manuscript is {raw} characters."),
+            .infoPosted: .text("Body to post"),
+            .infoPostedHint: .text("Counted as you'd paste it on a platform: no title line, no Markdown marks."),
+            .infoRawWithSpaces: .text("Whole manuscript (with spaces)"),
+            .infoRawHint: .text("Every character of the manuscript, title line and Markdown marks included."),
+            .sheetCopyForPaste: .text("Copy for Pasting to Platform"),
+            .sheetCopiedForPaste: .plural(one: "Copied · {count} character", other: "Copied · {count} characters"),
+            .paletteSetStatus: .text("Episode status → {status}"),
+            .episodeInclude: .text("Number this episode again"),
+            .episodePlatform: .text("Platform"),
+            .episodePlatformPlaceholder: .text("e.g. Munpia"),
+            .syncSavedLocalHint: .text("Your manuscripts are stored only on this Mac."),
+            .backupLastAt: .text("Last backup {date}"),
+            .backupLastNone: .text("No backup yet"),
+            .sheetDamagedShort: .text("Damaged"),
+            .mcpStatusCheck: .text("Make sure it's added to Claude Desktop's config"),
+            .mcpStatusAdded: .text("It's in Claude Desktop's config file. Restart Claude if you just changed it."),
+            .mcpOpenConfigFolder: .text("Open Claude Desktop Config Folder"),
+            .mcpAddToConfig: .text("Add to Config File"),
+            .mcpAddedToConfig: .text("Added to the config file. The previous file was kept as {file}. Restart Claude."),
+            .mcpAddFailed: .text("Couldn't add it to the config file — {message}"),
+            .mcpAddInvalidJson: .text("The config file isn't valid JSON, so it was left untouched."),
+            .mcpNoClaudeFolder: .text("There's no Claude Desktop config folder. Install Claude Desktop and open it once, then add it here."),
+            .errorNotFound: .text("Not found."),
+            .errorReadOnly: .text("This library is read-only."),
+            .errorInvalidInput: .text("That can't be done."),
+            .errorIo: .text("A file couldn't be read or written. Check disk space and permissions."),
+            .errorCorrupt: .text("Part of a file is damaged. You can recover it from a backup."),
+            .problemLockedByOther: .text("Another Ithaca has this library open, so it opened read-only. Close the other one and open again to edit."),
+            .problemNoLocking: .text("This folder doesn't support locking. Don't open it from two apps at once."),
+            .problemProjectsUnreadable: .text("The projects folder couldn't be read."),
+            .problemProjectSkipped: .text("A project ({name}) couldn't be read and was skipped. Its folder was left as it is."),
+            .problemLibraryFileMissing: .text("library.json is missing but the folder holds projects. Opened read-only so nothing is overwritten."),
+            .problemUpdateFailed: .text("The library couldn't be updated to the new format, so nothing was changed."),
+            .problemTocDamaged: .text("The table of contents of “{title}” is damaged. It shows its last good state and can't be changed; restore the project from a backup."),
+            .problemSheetDamaged: .text("Sheet “{name}” in “{title}” is damaged. It shows its last good text and can't be edited until it's recovered from a backup."),
+            .problemUnattributed: .text("“{title}” has change files that can't be read and belong to no known sheet."),
+            .problemBackupPrune: .text("Old automatic backups couldn't be removed."),
+            .problemOther: .text("A problem was found while opening the library. Hover to see the original message."),
         ],
     ]
 }

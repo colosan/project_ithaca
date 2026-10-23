@@ -59,4 +59,7 @@ enum class IthacaIcon(val asset: String) {
     Bug("bug"),
     Trash("trash"),
     FolderOpen("folder-open"),
+    SavedLocal("hard-drive"),
+    Damaged("file-warning"),
+    Branched("git-branch"),
 }

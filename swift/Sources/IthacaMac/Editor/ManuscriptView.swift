@@ -162,8 +162,9 @@ struct ManuscriptView: NSViewRepresentable {
         }
 
         func textDidChange(_ notification: Notification) {
-            guard let tv = textView, !loading else { return }
-            model.textDidChange(tv.string, token: loadedToken)
+            guard let tv = textView, !loading, let storage = tv.textStorage else { return }
+            // No copy of the text per keystroke: the model takes one when it needs it (save, counts).
+            model.textDidChange(token: loadedToken) { Self.nativeCopy(storage.string as NSString) }
             if breakAfterChange { breakAfterChange = false; tv.breakUndoCoalescing() }
             scheduleStyle()
             schedulePauseBreak()
@@ -213,6 +214,20 @@ struct ManuscriptView: NSViewRepresentable {
         }
 
         // MARK: Styling (attributes only)
+
+        /// A native Swift String in one bulk copy + transcode. A bridged NSString is walked through `characterAtIndex:`
+        /// by every later scan (and `makeContiguousUTF8` on it copies one character at a time — ~10 ms at 120k).
+        static func nativeCopy(_ ns: NSString) -> String {
+            let n = ns.length
+            guard n > 0 else { return "" }
+            let buf = UnsafeMutableBufferPointer<unichar>.allocate(capacity: n)
+            defer { buf.deallocate() }
+            ns.getCharacters(buf.baseAddress!, range: NSRange(location: 0, length: n))
+            return String(decoding: buf, as: UTF16.self)
+        }
+
+        /// `--selftest-perf`: what a markup-mode or text-size change costs.
+        func debugRestyleAll() { restyle(NSRange(location: 0, length: (textView?.string as NSString?)?.length ?? 0)) }
 
         private func restyle(_ range: NSRange) {
             guard let tv = textView, let storage = tv.textStorage else { return }

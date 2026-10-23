@@ -133,8 +133,9 @@ private struct BackupSettings: View {
             if !model.info.problems.isEmpty {
                 Section(model.t(.libraryProblemsTitle)) {
                     ForEach(Array(model.info.problems.enumerated()), id: \.offset) { _, p in
-                        Label { Text(p).textSelection(.enabled).fixedSize(horizontal: false, vertical: true) } icon: { Icon(.warning, size: T.Size.iconSm) }
+                        Label { Text(model.problemText(p)).textSelection(.enabled).fixedSize(horizontal: false, vertical: true) } icon: { Icon(.warning, size: T.Size.iconSm) }
                             .foregroundStyle(Color.stateWarning)
+                            .help(p)
                     }
                 }
             }
@@ -209,6 +210,7 @@ private struct BackupSettings: View {
                 message = model.t(.backupDone)
             } catch { message = model.t(.backupFailed, ["message": error.localizedDescription]) }
             list = model.library.backups()
+            model.refreshLastBackup()
         }
     }
 
@@ -226,6 +228,8 @@ private struct ClaudeSettings: View {
     @State private var settings = McpSettings()
     @State private var copied = false
     @State private var error: String?
+    @State private var added = ClaudeDesktopConfig.hasIthaca()
+    @State private var addMessage: String?
 
     var body: some View {
         Form {
@@ -256,6 +260,24 @@ private struct ClaudeSettings: View {
                     Caption(model.t(.mcpProjectsHint))
                 }
                 Section {
+                    // Is the server in Claude Desktop's config? Checked on the file, never assumed.
+                    Label { Text(model.t(added ? .mcpStatusAdded : .mcpStatusCheck)).fixedSize(horizontal: false, vertical: true) }
+                        icon: { Icon(added ? .check : .info, size: T.Size.iconSm) }
+                        .foregroundStyle(added ? Color.stateSuccess : .inkSecondary)
+                    HStack(spacing: T.Space.s100) {
+                        if ClaudeDesktopConfig.folderExists {
+                            KitButton(model.t(.mcpAddToConfig), icon: .add, variant: added ? .secondary : .primary) { addToConfig() }
+                        }
+                        KitButton(model.t(.mcpOpenConfigFolder), icon: .folderOpen) { ClaudeDesktopConfig.reveal() }
+                            .disabled(!ClaudeDesktopConfig.folderExists)
+                        Spacer(minLength: 0)
+                    }
+                    if !ClaudeDesktopConfig.folderExists { Caption(model.t(.mcpNoClaudeFolder)).fixedSize(horizontal: false, vertical: true) }
+                    if let addMessage { Caption(addMessage).fixedSize(horizontal: false, vertical: true) }
+                } header: {
+                    Text(model.t(.mcpConfigTitle))
+                }
+                Section {
                     Text(Self.config)
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(Color.inkSecondary)
@@ -273,23 +295,40 @@ private struct ClaudeSettings: View {
                             .textStyle(.caption)
                             .foregroundStyle(Color.stateWarning)
                     }
-                } header: {
-                    Text(model.t(.mcpConfigTitle))
                 }
             }
             if let error { Text(error).foregroundStyle(Color.stateDanger).fixedSize(horizontal: false, vertical: true) }
         }
         .formStyle(.grouped)
-        .onAppear { settings = model.library.mcpSettings() }
+        .onAppear { settings = model.library.mcpSettings(); added = ClaudeDesktopConfig.hasIthaca() }
+    }
+
+    private func addToConfig() {
+        do {
+            let backup = try ClaudeDesktopConfig.add(server: Self.server)
+            added = ClaudeDesktopConfig.hasIthaca()
+            addMessage = model.t(.mcpAddedToConfig, ["file": backup ?? "-"])
+        } catch ClaudeDesktopConfig.Failure.invalidJSON {
+            addMessage = model.t(.mcpAddInvalidJson)
+        } catch ClaudeDesktopConfig.Failure.noFolder {
+            addMessage = model.t(.mcpNoClaudeFolder)
+        } catch {
+            addMessage = model.t(.mcpAddFailed, ["message": error.localizedDescription])
+        }
     }
 
     /// The running bundle's server, so the pasted config points at this copy of the app.
     static var serverPath: String { Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/ithaca-mcp").path }
 
-    static var config: String {
+    /// The "ithaca" entry of mcpServers.
+    static var server: [String: Any] {
         // A test library (--library / ITHACA_LIBRARY_PATH) is passed on, so Claude reads the same one; the real one needs no args.
         var server: [String: Any] = ["command": serverPath]
         if AppEnvironment.libraryOverride != nil { server["args"] = ["--library", { var p = AppEnvironment.libraryURL.path(percentEncoded: false); while p.count > 1 && p.hasSuffix("/") { p.removeLast() }; return p }()] }
+        return server
+    }
+
+    static var config: String {
         let root: [String: Any] = ["mcpServers": ["ithaca": server]]
         guard let d = try? JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]) else { return "" }
         return String(decoding: d, as: UTF8.self)
@@ -342,5 +381,58 @@ private struct AboutSettings: View {
             }
         }
         .formStyle(.grouped)
+    }
+}
+
+/// Claude Desktop's claude_desktop_config.json: check for and merge in the "ithaca" server. Only when Claude Desktop's folder
+/// exists; the file is copied aside first, other servers and keys are kept, and the new file replaces the old atomically.
+/// ITHACA_CLAUDE_CONFIG_DIR points it elsewhere (tests never touch the real config).
+enum ClaudeDesktopConfig {
+    enum Failure: Error { case noFolder, invalidJSON }
+
+    static var folder: URL {
+        if let o = ProcessInfo.processInfo.environment["ITHACA_CLAUDE_CONFIG_DIR"], !o.isEmpty { return URL(fileURLWithPath: o, isDirectory: true) }
+        return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Claude", isDirectory: true)
+    }
+    static var file: URL { folder.appendingPathComponent("claude_desktop_config.json") }
+    static var folderExists: Bool { var d: ObjCBool = false; return FileManager.default.fileExists(atPath: folder.path, isDirectory: &d) && d.boolValue }
+
+    static func hasIthaca() -> Bool {
+        guard let d = try? Data(contentsOf: file), let root = try? JSONSerialization.jsonObject(with: d) as? [String: Any],
+              let servers = root["mcpServers"] as? [String: Any] else { return false }
+        return servers["ithaca"] != nil
+    }
+
+    static func reveal() {
+        if FileManager.default.fileExists(atPath: file.path) { NSWorkspace.shared.activateFileViewerSelecting([file]) }
+        else { NSWorkspace.shared.open(folder) }
+    }
+
+    /// Returns the backup's file name (nil when there was no file to back up).
+    @discardableResult
+    static func add(server: [String: Any]) throws -> String? {
+        guard folderExists else { throw Failure.noFolder }
+        let fm = FileManager.default
+        var root: [String: Any] = [:]
+        var backupName: String?
+        if fm.fileExists(atPath: file.path) {
+            let data = try Data(contentsOf: file)
+            if !data.isEmpty && !(String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+                guard let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { throw Failure.invalidJSON }
+                root = parsed
+            }
+            let f = DateFormatter()
+            f.locale = Locale(identifier: "en_US_POSIX")
+            f.dateFormat = "yyyyMMdd-HHmmss"
+            let name = "claude_desktop_config.ithaca-backup-\(f.string(from: Date())).json"
+            try fm.copyItem(at: file, to: folder.appendingPathComponent(name))
+            backupName = name
+        }
+        var servers = root["mcpServers"] as? [String: Any] ?? [:]
+        servers["ithaca"] = server
+        root["mcpServers"] = servers
+        let out = try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+        try out.write(to: file, options: .atomic)
+        return backupName
     }
 }

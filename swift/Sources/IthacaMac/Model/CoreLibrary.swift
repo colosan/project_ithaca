@@ -165,7 +165,7 @@ final class CoreLibrary: LibraryAPI {
         try call { Self.sheet(try lib.keepLastGoodText(project: project, sheet: sheet)) }
     }
 
-    func countFor(text: String, rule: CountRule) -> Int {
+    nonisolated func countFor(text: String, rule: CountRule) -> Int {
         let r: IthacaCore.CountRule = switch rule {
         case .withSpaces: .withSpaces
         case .withoutSpaces: .withoutSpaces
@@ -182,6 +182,7 @@ final class CoreLibrary: LibraryAPI {
     // MARK: r3 (core/API.md "(added: r3)")
 
     func goalCount(text: String, basis: GoalBasis) -> Int { Int(IthacaCore.goalCount(text: text, basis: Self.basis(basis))) }
+    nonisolated func platformBody(text: String) -> String { IthacaCore.platformBody(text: text) }
 
     func nextRelease(project: String, folder: String) throws -> Int64? {
         try call { try lib.nextRelease(project: project, folder: folder) }

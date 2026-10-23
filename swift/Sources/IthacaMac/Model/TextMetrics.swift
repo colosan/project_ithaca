@@ -90,7 +90,8 @@ extension String {
     /// Line endings as the core stores them (it turns CRLF / CR into \n on save): \r\n, \r, U+2028, U+2029 → \n.
     /// The editor holds only this form, so the saved text and the buffer compare equal and the save state never sticks.
     var normalizedNewlines: String {
-        guard contains(where: { $0 == "\r\n" || $0 == "\r" || $0 == "\u{2028}" || $0 == "\u{2029}" }) else { return self }
+        // Scalars, not Characters: grapheme breaking a 100k-character sheet just to find no \r was a measurable cost.
+        guard unicodeScalars.contains(where: { $0 == "\r" || $0 == "\u{2028}" || $0 == "\u{2029}" }) else { return self }
         return replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
             .replacingOccurrences(of: "\u{2028}", with: "\n").replacingOccurrences(of: "\u{2029}", with: "\n")
     }

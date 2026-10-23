@@ -59,6 +59,9 @@ public enum IthacaIcon: String, CaseIterable, Sendable {
     case bug
     case trash
     case folderOpen
+    case savedLocal
+    case damaged
+    case branched
 
     /** The Lucide vector this use draws. */
     public var asset: String {
@@ -119,6 +122,9 @@ public enum IthacaIcon: String, CaseIterable, Sendable {
         case .bug: "bug"
         case .trash: "trash"
         case .folderOpen: "folder-open"
+        case .savedLocal: "hard-drive"
+        case .damaged: "file-warning"
+        case .branched: "git-branch"
         }
     }
 }

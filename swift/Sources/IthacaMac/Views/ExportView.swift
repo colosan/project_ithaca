@@ -267,6 +267,9 @@ struct ExportView: View {
         done = true
     }
 
+    /// The paste rules the writer last chose here (⌥⌘C "copy for pasting" reuses them without the dialog).
+    static func lastPasteOptions() -> ExportOptions { load().opts }
+
     private static func load() -> Saved {
         guard let d = AppEnvironment.defaults.data(forKey: "ithaca.export"), let s = try? JSONDecoder().decode(Saved.self, from: d) else { return Saved() }
         return s

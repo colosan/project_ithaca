@@ -339,7 +339,7 @@ final class MockLibrary: LibraryAPI {
     func mcpSettings() -> McpSettings { mcp }
     func setMcpSettings(_ settings: McpSettings) throws -> McpSettings { mcp = settings; return mcp }
 
-    func countFor(text: String, rule: CountRule) -> Int {
+    nonisolated func countFor(text: String, rule: CountRule) -> Int {
         let c = TextMetrics.counts(text)
         switch rule {
         case .withSpaces, .munpia: return c.chars
@@ -351,6 +351,10 @@ final class MockLibrary: LibraryAPI {
     }
 
     func munpiaPages(text: String) -> Int { (countFor(text: text, rule: .munpia) + 469) / 470 }
+
+    nonisolated func platformBody(text: String) -> String {
+        TextMetrics.render(text, title: TextMetrics.title(text), ExportOptions(includeTitle: false))
+    }
 
     func goalCount(text: String, basis: GoalBasis) -> Int {
         switch basis {

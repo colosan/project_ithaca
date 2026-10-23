@@ -11,10 +11,16 @@ import SwiftUI
 @main
 enum Main {
     static func main() {
+        // Before any view or the editor asks for a font.
+        FontRegistry.registerBundledFonts()
         let args = CommandLine.arguments
         if let i = args.firstIndex(of: "--snapshot") {
             let dir = i + 1 < args.count ? args[i + 1] : FileManager.default.currentDirectoryPath + "/snapshots"
             MainActor.assumeIsolated { Snapshot.run(to: URL(fileURLWithPath: dir)) }
+            return
+        }
+        if args.contains("--selftest-perf") {
+            MainActor.assumeIsolated { PerfSelfTest.run() }
             return
         }
         if args.contains("--selftest-editor") {
@@ -128,6 +134,42 @@ enum SelfTest {
             check(library.mcpSettings().enabled == false, "Claude settings off again")
             model.openSheet(here)
         }
+
+        // 2026-10-24 polish: posted counts, auto-numbering, schedule default, Korean core messages, Claude config merge.
+        check(model.postedCounts("# 제목\n\n**가 나**").chars == 3, "posted count leaves out the title line and marks (\(model.postedCounts("# 제목\n\n**가 나**").chars))")
+        if let first = model.folders.first {
+            let lastNumber = first.sheets.compactMap { $0.episode?.excluded == true ? nil : $0.episode?.number }.max() ?? 0
+            if let last = first.sheets.last, last.counts.chars == 0 { model.openSheet(last.id); model.textDidChange("# 채움\n\n글", token: model.loadToken); model.flushSave() }
+            model.newSheet()
+            check(model.sheet?.episode?.number == lastNumber + 1 && model.sheet?.episode?.status == .draft, "new sheet numbered \(lastNumber + 1) (got \(model.sheet?.episode?.number.map(String.init) ?? "nil"))")
+            let scheduled = model.folders.first!.sheets.compactMap { $0.episode?.status == .scheduled ? $0.episode?.publishAt : nil }.max()
+            model.setEpisodeStatus(.scheduled)
+            if let scheduled, let at = model.sheet?.episode?.publishAt {
+                let a = Calendar.current.dateComponents([.hour, .minute], from: scheduled.date), b = Calendar.current.dateComponents([.hour, .minute], from: at.date)
+                check(a == b && Calendar.current.isDateInTomorrow(at.date), "schedule default: tomorrow at the last slot \(b.hour ?? -1):\(b.minute ?? -1)")
+            } else { check(false, "schedule default set") }
+            if let id = model.sheetId { model.trashSheet(id) }
+        }
+        let koIo = CoreMessages.problem("Project abc was skipped and left as it is on disk: oops", locale: .ko)
+        check(koIo.contains("abc") && !koIo.contains("skipped"), "core problem in Korean: \(koIo)")
+        let cfgDir = FileManager.default.temporaryDirectory.appendingPathComponent("ithaca-claude-\(stamp)")
+        if ProcessInfo.processInfo.environment["ITHACA_CLAUDE_CONFIG_DIR"] == nil {
+            print("  · Claude config merge skipped (set ITHACA_CLAUDE_CONFIG_DIR)")
+        } else {
+            let file = ClaudeDesktopConfig.file
+            try? FileManager.default.createDirectory(at: ClaudeDesktopConfig.folder, withIntermediateDirectories: true)
+            try? #"{"mcpServers":{"other":{"command":"/bin/echo"}},"theme":"dark"}"#.write(to: file, atomically: true, encoding: .utf8)
+            let backup = try? ClaudeDesktopConfig.add(server: ["command": "/x/ithaca-mcp"])
+            let root = (try? Data(contentsOf: file)).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+            let servers = root?["mcpServers"] as? [String: Any]
+            check(servers?["other"] != nil && servers?["ithaca"] != nil && root?["theme"] as? String == "dark" && ClaudeDesktopConfig.hasIthaca(), "Claude config merged, other entries kept")
+            check(backup.flatMap { $0 }.map { FileManager.default.fileExists(atPath: ClaudeDesktopConfig.folder.appendingPathComponent($0).path) } == true, "Claude config backed up first")
+            try? "{not json".write(to: file, atomically: true, encoding: .utf8)
+            var refused = false
+            do { try ClaudeDesktopConfig.add(server: [:]) } catch ClaudeDesktopConfig.Failure.invalidJSON { refused = true } catch {}
+            check(refused && (try? String(contentsOf: file, encoding: .utf8)) == "{not json", "invalid config left untouched")
+        }
+        _ = cfgDir
 
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ithaca-selftest-\(stamp)")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -474,6 +516,8 @@ struct IthacaCommands: Commands {
         CommandMenu(t(.shortcutsGroupSheet)) {
             Button(t(.sheetMoveUp), action: go { model in AppCommand.moveUp.run(model) }).keyboardShortcut(.upArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet || menu.readOnly)
             Button(t(.sheetMoveDown), action: go { model in AppCommand.moveDown.run(model) }).keyboardShortcut(.downArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet || menu.readOnly)
+            Divider()
+            Button(t(.sheetCopyForPaste), action: go { model in AppCommand.copyForPaste.run(model) }).keyboardShortcut("c", modifiers: [.command, .option]).disabled(!menu.hasSheet)
             Divider()
             Button(t(.episodePublishedThrough), action: go { model in model.markPublishedThrough() }).disabled(!menu.hasSheet || menu.readOnly)
             Button(t(.episodeRenumber), action: go { model in model.renumberEpisodes() }).disabled(!menu.hasProject || menu.readOnly)

@@ -42,6 +42,11 @@ sed "s/__VERSION__/$VERSION/; s/__BUILD__/$BUILD/" swift/Apps/macOS/Info.plist >
 # SwiftPM resource bundles (design assets etc.) sit next to the binary.
 for b in "$BIN"/*.bundle; do [ -e "$b" ] && cp -R "$b" "$APP/Contents/Resources/"; done
 [ -f swift/Apps/macOS/AppIcon.icns ] && cp swift/Apps/macOS/AppIcon.icns "$APP/Contents/Resources/"
+# Pretendard (OFL-1.1, swift/THIRD_PARTY.md): the four weights the tokens use, registered at launch (FontRegistry.swift).
+FONTS_SRC="$ROOT/node_modules/pretendard/dist/public/static"
+mkdir -p "$APP/Contents/Resources/Fonts"
+for w in Regular Medium SemiBold Bold; do cp "$FONTS_SRC/Pretendard-$w.otf" "$APP/Contents/Resources/Fonts/"; done
+cp swift/Apps/macOS/Fonts/OFL.txt "$APP/Contents/Resources/Fonts/Pretendard-OFL.txt"
 
 MARKER="$HOME/Library/Application Support/Ithaca-Release/signing-identity"
 if [ -z "${SIGN_IDENTITY:-}" ]; then

@@ -77,7 +77,17 @@ final class AppModel {
 
     // MARK: Open sheet buffer
     /// The text view owns the live text; this is the last copy it handed over (not observed per keystroke).
-    @ObservationIgnored private(set) var text = ""
+    /// While typing the editor only says "changed" (`textDidChange(token:pull:)`); the copy is made when something reads
+    /// it (save, counts, export) — copying, normalizing and comparing 100k+ characters per keystroke was the typing lag.
+    private(set) var text: String {
+        get {
+            if let pull = pendingPull { pendingPull = nil; buffer = pull().normalizedNewlines }
+            return buffer
+        }
+        set { pendingPull = nil; buffer = newValue }
+    }
+    @ObservationIgnored private var buffer = ""
+    @ObservationIgnored private var pendingPull: (() -> String)?
     /// Bumped when the editor must load `text` (sheet switch, history restore). Never during typing.
     private(set) var loadToken = 0
     /// Debounced copy of the counts for the footer/inspector — counting 10k characters per keystroke is wasted work.
@@ -94,6 +104,8 @@ final class AppModel {
     /// Selftests: answers the save-failure alert instead of a modal NSAlert. Argument: quitting.
     @ObservationIgnored var saveFailurePrompt: ((Bool) -> SaveFailureChoice)?
     @ObservationIgnored private var countTask: Task<Void, Never>?
+    @ObservationIgnored private var countGeneration = 0
+    @ObservationIgnored private var caretTask: Task<Void, Never>?
     @ObservationIgnored weak var editor: EditorBridge?
 
     // MARK: View state
@@ -145,6 +157,7 @@ final class AppModel {
         menu.readOnly = info.readOnly || info.lockedByOther
         refreshProjects()
         restoreSelection()
+        refreshLastBackup()
     }
 
     // MARK: Locale
@@ -310,7 +323,20 @@ final class AppModel {
 
     func rememberCaret(_ location: Int) {
         guard let sheetId else { return }
+        guard carets[sheetId] != location else { return }
         carets[sheetId] = location
+        // Every caret move while typing: write the defaults a moment later, not per keystroke.
+        caretTask?.cancel()
+        caretTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .milliseconds(1000))
+            guard let self, !Task.isCancelled else { return }
+            persistCarets()
+        }
+    }
+
+    private func persistCarets() {
+        caretTask?.cancel()
+        caretTask = nil
         defaults.set(carets, forKey: "ithaca.carets")
     }
 
@@ -336,25 +362,53 @@ final class AppModel {
         let newText = newText.normalizedNewlines
         guard newText != text else { return }
         text = newText
+        markEdited()
+    }
+
+    /// The per-keystroke path: the editor's text changed; `pull` hands over a copy when something needs it.
+    /// No copy, normalization or comparison here — this runs inside every keystroke, marked-text steps included.
+    func textDidChange(token: Int, pull: @escaping () -> String) {
+        guard token == loadToken, sheetId != nil, !editorLocked else { return }
+        pendingPull = pull
+        markEdited()
+    }
+
+    private func markEdited() {
         dirty = true
-        // A failure stays on screen until a save actually succeeds.
-        if case .failed = saveStatus {} else { saveStatus = .pending }
+        // A failure stays on screen until a save actually succeeds. (Observed: only set on an actual change.)
+        switch saveStatus {
+        case .failed, .pending: break
+        case .saved: saveStatus = .pending
+        }
         updateCounts(now: false)
         scheduleSave()
     }
 
+    /// Counting is O(sheet) (graphemes, regex, words, and the core's platform_body + count_for for the posted counts):
+    /// it runs off the main thread — after a 250 ms pause while typing, right away on open — and a result that a newer
+    /// edit overtook is dropped. Short sheets on open are counted inline so the footer is right on the first frame.
     private func updateCounts(now: Bool) {
         countTask?.cancel()
-        if now {
+        countGeneration += 1
+        let generation = countGeneration
+        if now, text.utf8.count <= 30_000 {
             liveText = text
             liveCounts = TextMetrics.counts(text)
             return
         }
+        nonisolated(unsafe) let lib = library
         countTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(250))
+            if !now { try? await Task.sleep(for: .milliseconds(250)) }
             guard let self, !Task.isCancelled else { return }
-            liveText = text
-            liveCounts = TextMetrics.counts(text)
+            let snapshot = text
+            let (counts, posted) = await Task.detached(priority: .userInitiated) {
+                let c = TextMetrics.counts(snapshot)
+                return (c, Self.postedCounts(snapshot, paragraphs: c.paragraphs, library: lib))
+            }.value
+            guard !Task.isCancelled, generation == countGeneration else { return }
+            postedLiveCache = (snapshot, posted)
+            liveText = snapshot
+            liveCounts = counts
         }
     }
 
@@ -375,6 +429,7 @@ final class AppModel {
         saveTask?.cancel()
         // Composition belongs to the sheet that's loaded now: commit it into this buffer before anything moves on.
         editor?.commitComposition()
+        if caretTask != nil { persistCarets() }
         guard dirty else { return true }
         save()
         return !dirty
@@ -485,6 +540,41 @@ final class AppModel {
         outline = o
     }
 
+    // MARK: Posted counts (PRODUCT "글자수 정의", 2026-10-24)
+
+    /// The footer / inspector / goal number: the open sheet's body as it would be posted (core platform_body — no title
+    /// line, no Markdown marks, scene breaks normalized) counted with count_for. `liveCounts` stays the text as written
+    /// ("원고 전체"). Recounted only when the debounced `liveText` changes.
+    var livePostedCounts: Counts {
+        let t = liveText
+        if let c = postedLiveCache, c.text == t { return c.counts }
+        let c = postedCounts(t, paragraphs: liveCounts.paragraphs)
+        postedLiveCache = (t, c)
+        return c
+    }
+    @ObservationIgnored private var postedLiveCache: (text: String, counts: Counts)?
+
+    /// Counts of what goes up on a platform. Paragraphs stay those of the text as written.
+    func postedCounts(_ text: String, paragraphs: Int? = nil) -> Counts { Self.postedCounts(text, paragraphs: paragraphs, library: library) }
+
+    /// Pure (core free functions / mock text helpers): the live count task runs it off the main thread.
+    nonisolated static func postedCounts(_ text: String, paragraphs: Int?, library: LibraryAPI) -> Counts {
+        let body = library.platformBody(text: text)
+        return Counts(chars: library.countFor(text: body, rule: .withSpaces), charsNoSpace: library.countFor(text: body, rule: .withoutSpaces),
+                      words: library.countFor(text: body, rule: .words), paragraphs: paragraphs ?? TextMetrics.counts(text).paragraphs)
+    }
+
+    /// List rows, folder header and folder totals: a sheet's posted counts (the open sheet's live ones), cached per saved version.
+    @ObservationIgnored private var postedCache: [String: (version: Int64, counts: Counts)] = [:]
+    func postedCounts(of s: SheetSummary) -> Counts {
+        if s.id == sheetId && s.trashed == nil { return livePostedCounts }
+        if let c = postedCache[s.id], c.version == s.modified { return c.counts }
+        guard let projectId, let text = try? library.sheetText(project: projectId, sheet: s.id) else { return s.counts }
+        let c = postedCounts(text.normalizedNewlines, paragraphs: s.counts.paragraphs)
+        postedCache[s.id] = (s.modified, c)
+        return c
+    }
+
     // MARK: Actions
 
     func newSheet() {
@@ -500,8 +590,11 @@ final class AppModel {
         } else {
             do {
                 let s = try library.createSheet(project: projectId, folder: fid, text: "")
-                // New sheets of the serial (first) folder are episodes, numbered when renumbered.
-                if fid == folders.first?.id { try library.setEpisode(project: projectId, sheet: s.id, info: EpisodeInfo(status: .draft)) }
+                // New sheets of the serial (first) folder are the next episode: last number + 1, Draft (PRODUCT 2026-10-24).
+                if fid == folders.first?.id {
+                    let last = folders.first?.sheets.compactMap { $0.episode?.excluded == true ? nil : $0.episode?.number }.max() ?? 0
+                    try library.setEpisode(project: projectId, sheet: s.id, info: EpisodeInfo(number: last + 1, status: .draft))
+                }
                 reloadOutline()
                 openSheet(s.id)
             } catch { fail(error) }
@@ -777,6 +870,38 @@ final class AppModel {
         perform { try library.setEpisode(project: projectId, sheet: sheet.id, info: info) }
     }
 
+    /// The platform the last episode was set to go up on: the default for the next one.
+    var lastPlatform: String? {
+        get { defaults.string(forKey: "ithaca.lastPlatform").flatMap { $0.isEmpty ? nil : $0 } }
+        set { defaults.set(newValue, forKey: "ithaca.lastPlatform") }
+    }
+
+    /// Inspector platform field. Empty clears it.
+    func setPlatform(_ platform: String) {
+        guard let projectId, let sheet, var info = sheet.episode, !readOnly else { return }
+        let p = platform.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (info.platform ?? "") != p else { return }
+        info.platform = p.isEmpty ? nil : p
+        if !p.isEmpty { lastPlatform = p }
+        perform { try library.setEpisode(project: projectId, sheet: sheet.id, info: info) }
+    }
+
+    /// Sheet menu ⌥⌘C / palette: the open sheet as the last paste settings of Export make it, plain text, no dialog.
+    func copyForPaste() {
+        guard let projectId, let sheetId else { return }
+        flushSave()
+        var o = ExportView.lastPasteOptions()
+        o.markdown = false
+        do {
+            let text = try library.exportText(project: projectId, sheets: [sheetId], options: o)
+            // Plain string only: RTF/HTML on the clipboard turns into doubled blank lines on serial platforms.
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(text, forType: .string)
+            let n = library.countFor(text: text, rule: .withSpaces)
+            showToast(Toast(message: t(.sheetCopiedForPaste, ["count": n], count: n)))
+        } catch { fail(error) }
+    }
+
     /// Side story / notice: stays in the folder, not numbered (its number is cleared; renumber skips it).
     func toggleExcluded(_ id: String) {
         guard let projectId, !readOnly, let s = folders.lazy.flatMap(\.sheets).first(where: { $0.id == id }) else { return }
@@ -799,7 +924,8 @@ final class AppModel {
     func goalValue(_ basis: GoalBasis) -> Int {
         switch basis {
         case .munpia, .novelpia: library.goalCount(text: liveText, basis: basis)
-        default: TextMetrics.goalValue(liveCounts, basis)
+        // Same basis as the footer numbers: the body as posted.
+        default: TextMetrics.goalValue(livePostedCounts, basis)
         }
     }
 
@@ -823,12 +949,16 @@ final class AppModel {
         guard let projectId, let sheet, !readOnly else { return }
         var info = sheet.episode ?? EpisodeInfo(status: .draft)
         if let status { info.status = status }
-        // A new schedule starts tomorrow 18:00 so the picker has a sensible date to move from.
+        // A new schedule starts tomorrow at the time of the last scheduled episode (else 18:00): serials keep one slot.
         if status == .scheduled, info.publishAt == nil {
             let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
-            let at = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: tomorrow) ?? tomorrow
+            let lastAt = folders.flatMap(\.sheets).filter { $0.id != sheet.id && $0.episode?.status == .scheduled }
+                .compactMap { $0.episode?.publishAt }.max()
+            let time = lastAt.map { Calendar.current.dateComponents([.hour, .minute], from: $0.date) }
+            let at = Calendar.current.date(bySettingHour: time?.hour ?? 18, minute: time?.minute ?? 0, second: 0, of: tomorrow) ?? tomorrow
             info.publishAt = Int64(at.timeIntervalSince1970 * 1000)
         }
+        if status == .scheduled || status == .published, info.platform == nil, let p = lastPlatform { info.platform = p }
         perform { try library.setEpisode(project: projectId, sheet: sheet.id, info: status == nil ? nil : info) }
     }
 
@@ -907,7 +1037,11 @@ final class AppModel {
         }
     }
 
-    var backingUp = false
+    var backingUp = false { didSet { if !backingUp { refreshLastBackup() } } }
+
+    /// Newest backup's time (footer save-state tooltip). nil = none yet.
+    private(set) var lastBackupAt: Int64?
+    func refreshLastBackup() { lastBackupAt = info.inMemory ? nil : library.backups().map(\.at).max() }
 
     // MARK: View
 

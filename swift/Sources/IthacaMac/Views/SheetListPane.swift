@@ -61,7 +61,8 @@ struct SheetListPane: View {
 
     private func header(trash: Bool, sheets: [SheetSummary]) -> some View {
         let ko = model.language == .ko
-        let total = sheets.reduce(0) { $0 + (ko ? $1.counts.chars : $1.counts.words) }
+        // The body as posted, like the rows and the footer (PRODUCT "글자수 정의").
+        let total = trash ? 0 : sheets.reduce(0) { let c = model.postedCounts(of: $1); return $0 + (ko ? c.chars : c.words) }
         // Short in the header ("29,822 chars"), the full wording in the tooltip: the long form wrapped to 3 lines in English.
         let short = ko ? model.t(.countCharsShort, ["count": total], count: total) : model.t(.countWords, ["count": total], count: total)
         let full = ko ? model.t(.countWithSpaces, ["count": total], count: total) : model.t(.countWords, ["count": total], count: total)
@@ -114,9 +115,13 @@ struct SheetRow: View {
 
     var body: some View {
         let ko = model.language == .ko
-        let length = ko ? model.t(.countCharsShort, ["count": sheet.counts.chars], count: sheet.counts.chars)
-                        : model.t(.countWords, ["count": sheet.counts.words], count: sheet.counts.words)
-        let lengthFull = ko ? model.t(.countWithSpaces, ["count": sheet.counts.chars], count: sheet.counts.chars) : length
+        // The body as posted (no title line, no Markdown marks); trashed rows keep the stored counts.
+        let c = trash ? sheet.counts : model.postedCounts(of: sheet)
+        let length = ko ? model.t(.countCharsShort, ["count": c.chars], count: c.chars)
+                        : model.t(.countWords, ["count": c.words], count: c.words)
+        let lengthFull = ko ? model.t(.countWithSpaces, ["count": c.chars], count: c.chars) : model.t(.countWithSpaces, ["count": c.chars], count: c.chars)
+        // The modified time left the row (2026-10-24 review): it lives in this tooltip and the inspector.
+        let rowHelp = [model.t(.countPostedHint, ["raw": sheet.counts.chars]), model.t(.infoModified) + " " + model.dateTime(sheet.modified.date)].joined(separator: "\n")
         HStack(alignment: .top, spacing: T.Space.s100) {
             VStack(alignment: .leading, spacing: T.Space.s25) {
                 HStack(spacing: T.Space.s50) {
@@ -124,23 +129,22 @@ struct SheetRow: View {
                         .textStyle(.body, weight: T.Typography.heading.weight)
                         .foregroundStyle(sheet.title.isEmpty ? Color.inkTertiary : .inkPrimary)
                         .lineLimit(1)
-                    if sheet.damaged { Icon(.warning, size: T.Size.iconSm, color: .stateDanger).help(model.t(.sheetDamagedHint)) }
-                    else if sheet.branched { Icon(.warning, size: T.Size.iconSm, color: .stateWarning).help(model.t(.sheetBranched)) }
+                    // Two shapes, not only two colours: damaged = file with a warning mark, branched = a branch.
+                    if sheet.damaged { Icon(.damaged, size: T.Size.iconSm, color: .stateDanger).help(model.t(.sheetDamagedHint)).accessibilityLabel(model.t(.sheetDamagedShort)) }
+                    else if sheet.branched { Icon(.branched, size: T.Size.iconSm, color: .stateWarning).help(model.t(.sheetBranched)).accessibilityLabel(model.t(.sheetBranched)) }
                 }
                 if !sheet.excerpt.isEmpty {
                     Text(sheet.excerpt).textStyle(.caption).foregroundStyle(Color.inkSecondary).lineLimit(1)
                 }
-                // One line when it fits; otherwise the episode label gets its own line so the date isn't cut off.
-                let episode = sheet.episode.map { e in
-                    Text(model.episodeLabel(e)).foregroundStyle(e.status == .published ? Color.inkTertiary : .accentPrimary).fixedSize()
-                }
-                let rest = HStack(spacing: T.Space.s100) {
-                    Text(length).help(lengthFull).fixedSize()
-                    Text(trash ? (model.folderName(sheet.folder) ?? "") : model.dateTime(sheet.modified.date))
-                }
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: T.Space.s100) { episode; rest.fixedSize() }
-                    VStack(alignment: .leading, spacing: T.Space.s25) { episode; rest }
+                // One meta line, always (title · excerpt · meta = at most 3 lines in every language):
+                // "4화 · 예약 10/26 18:00 · 4,812자". The length never truncates; a long episode label does.
+                HStack(spacing: T.Space.s100) {
+                    if let e = sheet.episode {
+                        Text(model.episodeLabel(e)).foregroundStyle(e.status == .published ? Color.inkTertiary : .accentPrimary)
+                            .truncationMode(.tail)
+                    }
+                    Text(length).help(lengthFull).fixedSize().layoutPriority(1)
+                    if trash { Text(model.folderName(sheet.folder) ?? "").truncationMode(.tail) }
                 }
                 .lineLimit(1)
                 .textStyle(.caption)
@@ -164,6 +168,7 @@ struct SheetRow: View {
         .overlay(alignment: .top) { if dropAbove { Rectangle().fill(Color.accentPrimary).frame(height: T.Size.strokeFocus) } }
         .hairline(.bottom)
         .contentShape(Rectangle())
+        .help(trash ? "" : rowHelp)
         .onHover { hover = $0 }
         .onTapGesture {
             guard !trash else { return }
@@ -202,6 +207,7 @@ struct SheetRow: View {
         }
         Divider()
         Button(model.t(.navHistory)) { model.openSheet(sheet.id); model.show(.history) }
+        Button(model.t(.sheetCopyForPaste)) { model.openSheet(sheet.id); model.copyForPaste() }
         Button(model.t(.exportTitle) + "…") { model.openSheet(sheet.id); model.show(.export) }
         if !model.readOnly {
             Divider()

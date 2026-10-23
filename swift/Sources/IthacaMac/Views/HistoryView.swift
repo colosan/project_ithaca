@@ -35,7 +35,7 @@ struct HistoryView: View {
                 Spacer()
                 Picker("", selection: $filter) {
                     Text(model.t(.historyFilterAll)).tag(Filter.all)
-                    Text(model.t(.historyFilterClaude)).tag(Filter.claude)
+                    // "By Claude" stays hidden until Claude can write (ADR-0007: nothing that can't do anything is shown).
                     Text(model.t(.historyFilterDevice)).tag(Filter.device)
                 }
                 .pickerStyle(.segmented)
