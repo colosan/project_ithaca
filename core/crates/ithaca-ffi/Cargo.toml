@@ -1,0 +1,24 @@
+[package]
+name = "ithaca-ffi"
+description = "The single API surface the platform apps call (UniFFI)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+crate-type = ["staticlib", "lib"]
+name = "ithaca_ffi"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+
+[dependencies]
+ithaca-model.workspace = true
+ithaca-ledger.workspace = true
+ithaca-store.workspace = true
+uniffi = { workspace = true, features = ["cli"] }
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,0 +1,11 @@
+[package]
+name = "ithaca-model"
+description = "Ithaca data model: projects, folders, sheets, text rules (no IO)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+unicode-segmentation.workspace = true

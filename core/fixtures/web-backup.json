@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "projects": [
+    { "id": "p8k2m1xa9qz1", "title": "등대지기의 딸", "language": "ko", "goal": { "count": 5500, "basis": "withSpaces" }, "created": 1790000000000 },
+    { "id": "pq7w3n0v2bx4", "title": "The Salt Road", "language": "en", "goal": null, "created": 1790500000000 },
+    { "id": "pz0deleted01", "title": "지운 작품", "language": "ko", "goal": null, "created": 1789000000000, "deleted": 1791000000000 }
+  ],
+  "folders": [
+    { "id": "f-serial-01", "projectId": "p8k2m1xa9qz1", "name": "연재", "order": 0 },
+    { "id": "f-lore-0002", "projectId": "p8k2m1xa9qz1", "name": "설정", "order": 1 },
+    { "id": "f-gone-0003", "projectId": "p8k2m1xa9qz1", "name": "버린 초안", "order": 2, "deleted": 1791500000000 },
+    { "id": "f-material4", "projectId": "p8k2m1xa9qz1", "name": "자료", "order": 3 },
+    { "id": "f-chapters5", "projectId": "pq7w3n0v2bx4", "name": "Chapters", "order": 0 },
+    { "id": "f-del-proj6", "projectId": "pz0deleted01", "name": "연재", "order": 0 }
+  ],
+  "sheets": [
+    { "id": "s-ep2-00002", "folderId": "f-serial-01", "order": 1, "created": 1790100000000, "modified": 1790200000000,
+      "body": "# 2화 · 안개\n\n안개가 섬을 삼켰다. 등대의 불빛만이 **희미하게** 깜빡였다.\n\n* * *\n\n“아버지, 배가 와요.”\n\n그녀는 창가에 서서 바다를 보았다. 👨‍👩‍👧 가족사진이 흔들렸다." },
+    { "id": "s-ep1-00001", "folderId": "f-serial-01", "order": 0, "created": 1790000500000, "modified": 1790090000000,
+      "body": "# 1화 · 섬\n\n그 섬에는 등대가 하나 있었다.\n등대지기에게는 딸이 하나 있었다.\n\n---\n\n바람이 불었다." },
+    { "id": "s-ep3-trash", "folderId": "f-serial-01", "order": 2, "created": 1790300000000, "modified": 1790310000000, "trashed": 1790400000000,
+      "body": "# 3화 (버림)\n\n이 원고는 휴지통에 있다." },
+    { "id": "s-ep3-00003", "folderId": "f-serial-01", "order": 3, "created": 1790320000000, "modified": 1790330000000,
+      "body": "# 3화 · 귀항\n\n_배는_ 새벽에 돌아왔다." },
+    { "id": "s-lore-0001", "folderId": "f-lore-0002", "order": 0, "created": 1790001000000, "modified": 1790001000000,
+      "body": "# 인물\n\n- 서연: 등대지기의 딸, 열일곱 살\n- 아버지: 말이 없다" },
+    { "id": "s-gone-0001", "folderId": "f-gone-0003", "order": 0, "created": 1790002000000, "modified": 1790002000000, "trashed": 1791500000000,
+      "body": "버린 초안" },
+    { "id": "s-chap-0001", "folderId": "f-chapters5", "order": 0, "created": 1790500100000, "modified": 1790600000000,
+      "body": "# Chapter One\n\nThe road ran white with salt.\nNobody walked it at noon." },
+    { "id": "s-del-00001", "folderId": "f-del-proj6", "order": 0, "created": 1789000100000, "modified": 1789000200000,
+      "body": "지운 작품의 원고" }
+  ],
+  "prefs": { "locale": "system", "theme": "dark", "textSize": "normal", "confirmDelete": true, "lastBackup": 1791600000000 },
+  "ui": { "projectId": "p8k2m1xa9qz1", "folderId": "f-serial-01", "sheetId": "s-ep2-00002", "last": { "p8k2m1xa9qz1": { "folderId": "f-serial-01", "sheetId": "s-ep2-00002" } } }
+}

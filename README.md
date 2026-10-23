@@ -4,7 +4,7 @@
 
 **연재 작가를 위한 오픈소스 글쓰기 앱.** 서버도 구독도 없이, 내 Claude 가 내 설정집을 읽는다.
 
-> 🚧 Pre-alpha — currently in the **design phase**. Nothing to install yet.
+> 🚧 Pre-alpha — the **Mac app** is being built now (Rust core + SwiftUI). Other platforms follow the design freeze.
 
 ## Why
 
@@ -23,13 +23,16 @@
 | `workbench/` | Design review viewer: every screen × 4 size classes × light/dark × ko/en |
 | `app-web/` | A usable web build for daily writing while the design settles (stored in the browser) |
 | `tools/design-gen/` | Generates Swift · Kotlin · TS from `design/`, and lints it |
-| `core/` · `swift/` · `kotlin/` | App code (after the design freeze) |
+| `core/` | Rust core: model, hash-chain ledger, on-disk store + migrations, FFI (UniFFI) |
+| `swift/` | Mac app (SwiftUI, built with SwiftPM — no Xcode needed) |
+| `kotlin/` | Android · Windows (after the design freeze) |
 | `docs/adr/` | Architecture decisions |
 
 ```bash
 pnpm install
 pnpm wb            # http://localhost:9151
-pnpm app           # http://localhost:9152 — write in it
+pnpm app           # http://localhost:9152 — web version
+tools/mac/build.sh # dist/Ithaca.app — Mac app (needs Rust + Command Line Tools)
 pnpm design:check
 ```
 

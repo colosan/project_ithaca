@@ -1,0 +1,18 @@
+[package]
+name = "ithaca-store"
+description = "On-disk library: immutable change files, format versions, migrations"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+ithaca-model.workspace = true
+ithaca-ledger.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+blake3.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

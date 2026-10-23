@@ -1,0 +1,13 @@
+[package]
+name = "ithaca-ledger"
+description = "Per-sheet hash chain: blocks, heads, branch decisions (ADR-0002). No IO."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+blake3.workspace = true
+similar.workspace = true
+unicode-segmentation.workspace = true
