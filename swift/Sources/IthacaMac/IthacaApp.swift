@@ -19,6 +19,10 @@ enum Main {
             MainActor.assumeIsolated { Snapshot.run(to: URL(fileURLWithPath: dir)) }
             return
         }
+        if args.contains("--selftest-mem") {
+            MainActor.assumeIsolated { PerfSelfTest.runMem() }
+            return
+        }
         if args.contains("--selftest-perf") {
             MainActor.assumeIsolated { PerfSelfTest.run() }
             return

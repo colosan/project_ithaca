@@ -106,6 +106,55 @@ enum PerfSelfTest {
         exit(misses.isEmpty ? 0 : 1)
     }
 
+    /// `--selftest-mem`: the real switching flow (AppModel.openSheet → SwiftUI → editor load), 4 sheets × 20 switches,
+    /// a few typed characters per visit, phys_footprint after each. Exit 1 if memory keeps growing after the first round.
+    static let memKeys = ProcessInfo.processInfo.environment["MEM_KEYS"].flatMap { Int($0) } ?? 20
+    static func runMem() {
+        _ = NSApplication.shared
+        NSApp.setActivationPolicy(.prohibited)
+        let lib = MockLibrary(seeded: false)
+        let suite = "io.github.colosan.ithaca.memtest"
+        UserDefaults().removePersistentDomain(forName: suite)
+        let model = AppModel(library: lib, defaults: UserDefaults(suiteName: suite)!)
+        model.createProject(title: "Mem", language: .ko, folders: ["연재"], goal: nil)
+        let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 1100, height: 800), styleMask: [.titled], backing: .buffered, defer: false)
+        window.contentView = NSHostingView(rootView: ShellView().environment(model))
+        window.makeKeyAndOrderFront(nil)
+        pump(0.5)
+        guard let tv = findTextView(window.contentView) else { fail("no text view") }
+        let pid = model.projectId!
+        let sizes = [120_000, 60_000, 120_000, 20_000]
+        let ids = sizes.map { (try? lib.createSheet(project: pid, folder: model.folders[0].id, text: sample($0)))!.id }
+        model.reloadOutline()
+        pump(0.3)
+        let base = footprintMB()
+        var marks: [Double] = []
+        for i in 0..<20 {
+            autoreleasepool {
+                model.openSheet(ids[i % ids.count])
+                pump(0.3)
+                tv.setSelectedRange(NSRange(location: middle(of: tv.string as NSString), length: 0))
+                for k in 0..<memKeys {
+                    autoreleasepool {
+                        let ch = String(plainText[k % plainText.count])
+                        tv.insertText(ch, replacementRange: tv.selectedRange())
+                        window.displayIfNeeded()
+                    }
+                    pump(0.01)
+                }
+                pump(0.3)
+                model.flushSave()
+            }
+            marks.append(footprintMB())
+        }
+        print(String(format: "phys_footprint MB: start %.0f", base))
+        for (i, m) in marks.enumerated() { print(String(format: "  switch %2d (%6d chars): %6.0f", i + 1, sizes[i % sizes.count], m)) }
+        let firstRound = marks[sizes.count - 1], last = marks.last!
+        let growth = last - firstRound
+        print(String(format: "after round 1 %.0f MB → after 20 switches %.0f MB (Δ %.0f MB)", firstRound, last, growth))
+        exit(growth > 60 ? 1 : 0)
+    }
+
     // MARK: Typing
 
     struct Run {
@@ -135,7 +184,10 @@ enum PerfSelfTest {
     static func type(_ tv: ManuscriptTextView, _ window: NSWindow, _ busy: BusyMeter, composing: Bool) -> Run {
         var run = Run()
         var keystroke = 0
-        func key(_ action: () -> Void) {
+        func key(_ action: () -> Void) { autoreleasepool { keyInPool(action) } }
+        // Each keystroke in its own autorelease pool, like an AppKit event: the bench's code runs outside any run-loop
+        // iteration, so without it every forced display's autoreleased buffers piled up (~0.4 MB per keystroke).
+        func keyInPool(_ action: () -> Void) {
             busy.reset()
             let cpu0 = cpuNow()
             let t0 = now()
