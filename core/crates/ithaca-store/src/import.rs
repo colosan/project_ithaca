@@ -9,7 +9,7 @@ use crate::error::{Result, StoreError};
 pub struct WebProject {
     pub toc: Toc,
     /// (folder index, text, created, modified) in serial order.
-    pub sheets: Vec<(usize, String, i64, i64)>,
+    pub sheets: Vec<crate::NewSheet>,
 }
 
 fn num(v: &Value, key: &str) -> Option<f64> {
@@ -92,12 +92,8 @@ pub fn parse(json: &str) -> Result<Vec<WebProject>> {
         let mut wsheets = Vec::new();
         for (fi, f) in pf.iter().enumerate() {
             let fid = string(f, "id").unwrap_or_default();
-            toc.folders.push(FolderEntry {
-                id: String::new(),
-                name: string(f, "name").unwrap_or_default(),
-                deleted: None,
-                sheets: vec![],
-            });
+            toc.folders
+                .push(FolderEntry::new("", string(f, "name").unwrap_or_default()));
             let mut fs: Vec<&Value> = sheets
                 .iter()
                 .filter(|s| {
@@ -120,17 +116,18 @@ pub fn parse(json: &str) -> Result<Vec<WebProject>> {
             for s in fs {
                 let c = int(s, "created").unwrap_or(created);
                 let m = int(s, "modified").unwrap_or(c).max(c);
-                wsheets.push((fi, string(s, "body").unwrap_or_default(), c, m));
+                wsheets.push(crate::NewSheet {
+                    folder: fi,
+                    text: string(s, "body").unwrap_or_default(),
+                    created: c,
+                    modified: m,
+                    episode: None,
+                });
             }
         }
         if toc.folders.is_empty() {
             // The web app always keeps one live folder; a hand-edited file might not.
-            toc.folders.push(FolderEntry {
-                id: String::new(),
-                name: String::new(),
-                deleted: None,
-                sheets: vec![],
-            });
+            toc.folders.push(FolderEntry::new("", ""));
         }
         for f in &mut toc.folders {
             f.id = uuid::Uuid::new_v4().simple().to_string();

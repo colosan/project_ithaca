@@ -43,7 +43,8 @@ fn deleted_projects(&self) -> Vec<ProjectSummary>;               // most recentl
 fn outline(&self, project: String) -> Result<Outline, CoreError>;  // works for deleted projects too
 // Outline { project: ProjectSummary, folders: Vec<FolderInfo>, trash: Vec<SheetSummary> /* newest trashed first */ }
 // FolderInfo { id, name, order, sheets: Vec<SheetSummary> }      // live folders; live sheets in serial order
-// SheetSummary { id, folder, order, title, excerpt, counts: Counts, created, modified, trashed: Option<i64>, branched: bool }
+// SheetSummary { id, folder, order, title, excerpt, counts: Counts, created, modified, trashed: Option<i64>, branched: bool,
+//                episode: Option<EpisodeInfo> /* (added round 2) default nil; nil = not an episode */ }
 // Counts { chars, chars_no_space, words, paragraphs }            // graphemes; Markdown marks excluded from words
 // `order` = position among the folder's live sheets (for a trashed sheet: its kept slot).
 // `branched` = an offline fork left a branch copy (ADR-0002 §4); the text shown is the winner's.
@@ -67,6 +68,69 @@ fn trash_sheet(&self, project: String, sheet: String) -> Result<(), CoreError>;
 fn restore_sheet(&self, project: String, sheet: String) -> Result<(), CoreError>;     // back to its old slot; revives a deleted folder
 fn delete_sheet_forever(&self, project: String, sheet: String) -> Result<(), CoreError>; // live or trashed; its blocks are removed
 fn empty_trash(&self, project: String) -> Result<(), CoreError>;
+```
+
+## Episodes (added round 2)
+
+```rust
+// EpisodeInfo { number: Option<u32> = nil, status: EpisodeStatus /* no default */, publish_at: Option<i64> = nil,
+//               platform: Option<String> = nil /* free text, e.g. "문피아" */ }
+// EpisodeStatus { Draft /* 초고 */, Revising /* 퇴고 */, Scheduled /* 예약 */, Published /* 발행 */ }
+/// Sets (`Some`) or clears (`None`) a sheet's episode metadata; trashed sheets too. One toc block.
+fn set_episode(&self, project: String, sheet: String, info: Option<EpisodeInfo>) -> Result<SheetSummary, CoreError>;
+/// 비축분: live sheets of a live folder whose status is not Published. A sheet with no episode
+/// metadata counts as not published. Unknown/deleted folder → NotFound.
+fn stock(&self, project: String, folder: String) -> Result<u32, CoreError>;
+/// Numbers the folder's live sheets **that have episode metadata** 1..n in serial order (status, date and
+/// platform untouched; one toc block); returns n. Sheets without metadata (prologue, 공지, notes) are
+/// skipped and use no number — to leave a sheet out of numbering, `set_episode(.., None)`.
+/// Trashed sheets keep their old number. The app gives new sheets of a serial folder `Draft` metadata.
+fn renumber_episodes(&self, project: String, folder: String) -> Result<u32, CoreError>;
+```
+
+## Backups (added round 2)
+
+```rust
+// BackupInfo { path: String /* absolute folder */, at: i64, bytes: u64, kind: BackupKind, projects: u32 }
+// BackupKind { Auto, PreMigration, Manual }
+/// Automatic backup → `<library parent>/Backups/auto-<UTC yyyy-mm-dd-HHMM>[-n]/`, then retention:
+/// autos kept = newest of each of the last 7 days that have one + newest of each of the last 4 weeks
+/// (Monday-based, UTC). Manual and pre-migration backups are never removed. Read-only library → ReadOnly.
+/// Copies every block and library.json (seconds for a typical library; call off the main thread).
+fn backup_now(&self) -> Result<BackupInfo, CoreError>;
+/// Same copy as `manual-<stamp>`; never pruned (Settings → 백업 → "지금 백업").
+fn backup_manual(&self) -> Result<BackupInfo, CoreError>;
+/// Newest first: auto + manual (from backups_dir), pre-migration (from `<library>/Backups`;
+/// `at` = folder mtime, `bytes` = folder size).
+fn backups(&self) -> Vec<BackupInfo>;
+/// No Auto backup in the last 24 h (false on a read-only library). Call on launch / idle, then backup_now.
+fn backup_due(&self) -> bool;
+fn backups_dir(&self) -> String;   // `<library parent>/Backups`, for "Show in Finder"
+/// The live projects of a backup (any library-shaped folder of this library's format, e.g. a `path`
+/// from `backups()`) become NEW projects with new ids; nothing is overwritten. Projects deleted at
+/// backup time, trashed sheets and deleted folders are skipped. Kept: title (as is — the app may
+/// rename), language, goal, folder names/order, sheet text, created/modified, episode metadata.
+/// History is not copied (it stays in the backup). Not a backup, another format, or the library
+/// itself → InvalidInput. Returns the new projects in creation order.
+fn restore_backup_as_copies(&self, path: String) -> Result<Vec<ProjectSummary>, CoreError>;
+```
+
+## Platform counts (added round 2)
+
+Free functions. Count the text **as given** — pass `export_text` output (Markdown stripped) to count
+what will be pasted. Grapheme clusters, like `Counts`. Sources: docs/research/2026-10-24-serial-writers-and-platforms.md §1.1.
+
+```rust
+fn count_for(text: String, rule: CountRule) -> u32;
+fn munpia_pages(text: String) -> u32;   // ⌈count_for(Munpia) / 470⌉; empty → 0
+// CountRule {
+//   WithSpaces     // = Counts.chars (every grapheme except "\n")
+//   WithoutSpaces  // = Counts.chars_no_space
+//   Words          // = Counts.words
+//   Munpia         // 공백 포함, line breaks ("\n", "\r") not counted. Runs of spaces are NOT collapsed (unverified claim).
+//   Novelpia       // no whitespace / line breaks / tabs and no . , ' " ! ? … ; curly quotes “”‘’ still count [미확인]
+//   BytesUtf8      // 조아라: UTF-8 bytes, line breaks included (한글 3 B)
+// }
 ```
 
 ## History (ADR-0002)
@@ -104,6 +168,7 @@ fn export_text(&self, project: String, sheets: Vec<String>, options: ExportOptio
 ## Types
 
 `Language { Ko, En }` · `GoalBasis { WithSpaces, WithoutSpaces, Words }` · `Actor { Me, Claude }` ·
+`EpisodeStatus` · `BackupKind` · `CountRule` (added round 2, above) ·
 `BlockKind { Edit, Lease, Merge, Meta }` · `IssueKind` (above) ·
 `CoreError { NotFound, ReadOnly, InvalidInput{message}, Io{message}, Corrupt{message} }` (uniffi::Error).
 Offsets crossing into Swift are UTF-16 code units.

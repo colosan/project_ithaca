@@ -22,3 +22,7 @@ local.properties
 
 # design:snap output (baselines are per machine; see design/AGENTS.md)
 design/snapshots/
+# Mac build (tools/mac/build.sh)
+swift/.build/
+swift/Sources/IthacaCoreFFI/include/
+swift/Sources/IthacaCore/Generated_*.swift

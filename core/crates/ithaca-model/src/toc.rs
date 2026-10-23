@@ -5,7 +5,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{Goal, Language};
+use serde_json::Value;
+
+use crate::{EpisodeInfo, Goal, Language};
+
+/// Fields a later core added that this one does not know. Kept as they are when the table of
+/// contents is rewritten, so an older core never drops a newer core's data (FORMAT.md §toc).
+pub type Extra = BTreeMap<String, Value>;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct Toc {
@@ -24,6 +30,8 @@ pub struct Toc {
     /// Sheets deleted for good (tombstones, so a replica that still has them knows).
     #[serde(default)]
     pub removed: BTreeSet<String>,
+    #[serde(flatten)]
+    pub extra: Extra,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -35,13 +43,44 @@ pub struct FolderEntry {
     pub deleted: Option<i64>,
     /// Serial order. Trashed sheets keep their slot so a restore puts them back where they were.
     pub sheets: Vec<String>,
+    #[serde(flatten)]
+    pub extra: Extra,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+impl FolderEntry {
+    /// A live, empty folder.
+    pub fn new(id: impl Into<String>, name: impl Into<String>) -> FolderEntry {
+        FolderEntry {
+            id: id.into(),
+            name: name.into(),
+            deleted: None,
+            sheets: vec![],
+            extra: Extra::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SheetEntry {
     pub created: i64,
     #[serde(default)]
     pub trashed: Option<i64>,
+    /// Serial-episode metadata (added in core 0.1 round 2; absent in older tables of contents).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub episode: Option<EpisodeInfo>,
+    #[serde(flatten)]
+    pub extra: Extra,
+}
+
+impl SheetEntry {
+    pub fn new(created: i64) -> SheetEntry {
+        SheetEntry {
+            created,
+            trashed: None,
+            episode: None,
+            extra: Extra::new(),
+        }
+    }
 }
 
 impl Toc {

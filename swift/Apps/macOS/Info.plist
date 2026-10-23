@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key><string>Ithaca</string>
+	<key>CFBundleDisplayName</key><string>Ithaca</string>
+	<key>CFBundleIdentifier</key><string>io.github.colosan.ithaca</string>
+	<key>CFBundleExecutable</key><string>Ithaca</string>
+	<key>CFBundlePackageType</key><string>APPL</string>
+	<key>CFBundleShortVersionString</key><string>__VERSION__</string>
+	<key>CFBundleVersion</key><string>__BUILD__</string>
+	<key>CFBundleDevelopmentRegion</key><string>ko</string>
+	<key>CFBundleLocalizations</key><array><string>ko</string><string>en</string></array>
+	<key>LSMinimumSystemVersion</key><string>14.0</string>
+	<key>LSApplicationCategoryType</key><string>public.app-category.productivity</string>
+	<key>NSHighResolutionCapable</key><true/>
+	<key>NSPrincipalClass</key><string>NSApplication</string>
+	<key>CFBundleIconFile</key><string>AppIcon</string>
+	<!-- Sparkle 2 auto-update (ADR-0008). Private key: this Mac's keychain (account "ithaca"); see tools/mac/README.md. -->
+	<key>SUFeedURL</key><string>https://github.com/colosan/project_ithaca/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key><string>PkGFLOuTw1/ROV1/zqCIjTzslwRsPffmQA7jpx/9v1U=</string>
+	<key>SUEnableAutomaticChecks</key><true/>
+	<key>SUScheduledCheckInterval</key><integer>86400</integer>
+</dict>
+</plist>

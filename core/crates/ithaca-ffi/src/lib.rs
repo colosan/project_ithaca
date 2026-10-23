@@ -14,6 +14,38 @@ pub fn core_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
 }
 
+/// Platform length rules (added round 2). See core/API.md §Platform counts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+pub enum CountRule {
+    WithSpaces,
+    WithoutSpaces,
+    Words,
+    Munpia,
+    Novelpia,
+    BytesUtf8,
+}
+
+/// Length of `text` under a platform rule (added round 2). Counts the text as given.
+#[uniffi::export]
+pub fn count_for(text: String, rule: CountRule) -> u32 {
+    use ithaca_model::CountRule as M;
+    let rule = match rule {
+        CountRule::WithSpaces => M::WithSpaces,
+        CountRule::WithoutSpaces => M::WithoutSpaces,
+        CountRule::Words => M::Words,
+        CountRule::Munpia => M::Munpia,
+        CountRule::Novelpia => M::Novelpia,
+        CountRule::BytesUtf8 => M::BytesUtf8,
+    };
+    ithaca_model::count_for(&text, rule)
+}
+
+/// 문피아 쪽수: ⌈Munpia count / 470⌉ (added round 2).
+#[uniffi::export]
+pub fn munpia_pages(text: String) -> u32 {
+    ithaca_model::munpia_pages(&text)
+}
+
 // ── Types ─────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, uniffi::Error)]
@@ -138,6 +170,50 @@ pub struct SheetSummary {
     pub modified: i64,
     pub trashed: Option<i64>,
     pub branched: bool,
+    /// Added round 2. `None` = not an episode.
+    #[uniffi(default = None)]
+    pub episode: Option<EpisodeInfo>,
+}
+
+/// Added round 2.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, uniffi::Enum)]
+pub enum EpisodeStatus {
+    #[default]
+    Draft,
+    Revising,
+    Scheduled,
+    Published,
+}
+
+/// Added round 2.
+#[derive(Debug, Clone, PartialEq, Eq, Default, uniffi::Record)]
+pub struct EpisodeInfo {
+    #[uniffi(default = None)]
+    pub number: Option<u32>,
+    /// No default in Swift: UniFFI 0.32 proc-macros can't express enum defaults.
+    pub status: EpisodeStatus,
+    #[uniffi(default = None)]
+    pub publish_at: Option<i64>,
+    #[uniffi(default = None)]
+    pub platform: Option<String>,
+}
+
+/// Added round 2.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+pub enum BackupKind {
+    Auto,
+    PreMigration,
+    Manual,
+}
+
+/// Added round 2.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct BackupInfo {
+    pub path: String,
+    pub at: i64,
+    pub bytes: u64,
+    pub kind: BackupKind,
+    pub projects: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
@@ -306,6 +382,58 @@ impl From<store::SheetSummary> for SheetSummary {
             modified: s.modified,
             trashed: s.trashed,
             branched: s.branched,
+            episode: s.episode.map(Into::into),
+        }
+    }
+}
+
+impl From<ithaca_model::EpisodeInfo> for EpisodeInfo {
+    fn from(e: ithaca_model::EpisodeInfo) -> Self {
+        use ithaca_model::EpisodeStatus as S;
+        EpisodeInfo {
+            number: e.number,
+            status: match e.status {
+                S::Draft => EpisodeStatus::Draft,
+                S::Revising => EpisodeStatus::Revising,
+                S::Scheduled => EpisodeStatus::Scheduled,
+                S::Published => EpisodeStatus::Published,
+            },
+            publish_at: e.publish_at,
+            platform: e.platform,
+        }
+    }
+}
+
+impl From<EpisodeInfo> for ithaca_model::EpisodeInfo {
+    fn from(e: EpisodeInfo) -> Self {
+        use ithaca_model::EpisodeStatus as S;
+        ithaca_model::EpisodeInfo {
+            number: e.number,
+            status: match e.status {
+                EpisodeStatus::Draft => S::Draft,
+                EpisodeStatus::Revising => S::Revising,
+                EpisodeStatus::Scheduled => S::Scheduled,
+                EpisodeStatus::Published => S::Published,
+            },
+            publish_at: e.publish_at,
+            platform: e.platform,
+        }
+    }
+}
+
+impl From<store::BackupInfo> for BackupInfo {
+    fn from(b: store::BackupInfo) -> Self {
+        use store::BackupKind as K;
+        BackupInfo {
+            path: b.path,
+            at: b.at,
+            bytes: b.bytes,
+            kind: match b.kind {
+                K::Auto => BackupKind::Auto,
+                K::PreMigration => BackupKind::PreMigration,
+                K::Manual => BackupKind::Manual,
+            },
+            projects: b.projects,
         }
     }
 }
@@ -596,6 +724,54 @@ impl Library {
             .lock()
             .export_text(&project, &sheets, &options.into())?)
     }
+
+    // Episodes (added round 2)
+
+    pub fn set_episode(
+        &self,
+        project: String,
+        sheet: String,
+        info: Option<EpisodeInfo>,
+    ) -> R<SheetSummary> {
+        Ok(self
+            .lock()
+            .set_episode(&project, &sheet, info.map(Into::into))?
+            .into())
+    }
+
+    pub fn stock(&self, project: String, folder: String) -> R<u32> {
+        Ok(self.lock().stock(&project, &folder)?)
+    }
+
+    pub fn renumber_episodes(&self, project: String, folder: String) -> R<u32> {
+        Ok(self.lock().renumber_episodes(&project, &folder)?)
+    }
+
+    // Backups (added round 2)
+
+    pub fn backup_now(&self) -> R<BackupInfo> {
+        Ok(self.lock().backup_now()?.into())
+    }
+
+    pub fn backup_manual(&self) -> R<BackupInfo> {
+        Ok(self.lock().backup_manual()?.into())
+    }
+
+    pub fn backups(&self) -> Vec<BackupInfo> {
+        vec(self.lock().backups())
+    }
+
+    pub fn backup_due(&self) -> bool {
+        self.lock().backup_due()
+    }
+
+    pub fn backups_dir(&self) -> String {
+        self.lock().backups_dir().to_string_lossy().into_owned()
+    }
+
+    pub fn restore_backup_as_copies(&self, path: String) -> R<Vec<ProjectSummary>> {
+        Ok(vec(self.lock().restore_backup_as_copies(&path)?))
+    }
 }
 
 #[cfg(test)]
@@ -661,5 +837,51 @@ mod tests {
             )
             .unwrap();
         assert_eq!(p2.goal.map(|g| g.count), Some(5000));
+    }
+
+    #[test]
+    fn round_2_additions() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("Library");
+        let lib = Library::open(path.to_string_lossy().into(), "mac-1".into()).unwrap();
+        let p = lib
+            .create_project("작품".into(), Language::Ko, vec!["연재".into()])
+            .unwrap();
+        let o = lib.outline(p.id.clone()).unwrap();
+        let (folder, sheet) = (o.folders[0].id.clone(), o.folders[0].sheets[0].id.clone());
+        assert_eq!(o.folders[0].sheets[0].episode, None);
+        let s = lib
+            .set_episode(
+                p.id.clone(),
+                sheet,
+                Some(EpisodeInfo {
+                    status: EpisodeStatus::Published,
+                    ..Default::default()
+                }),
+            )
+            .unwrap();
+        assert_eq!(
+            s.episode.as_ref().map(|e| e.status),
+            Some(EpisodeStatus::Published)
+        );
+        assert_eq!(
+            lib.renumber_episodes(p.id.clone(), folder.clone()).unwrap(),
+            1
+        );
+        assert_eq!(lib.stock(p.id.clone(), folder).unwrap(), 0);
+
+        assert!(lib.backup_due());
+        let b = lib.backup_now().unwrap();
+        assert_eq!(b.kind, BackupKind::Auto);
+        assert!(!lib.backup_due());
+        assert_eq!(lib.backups(), vec![b.clone()]);
+        assert!(b.path.starts_with(&lib.backups_dir()));
+        let copies = lib.restore_backup_as_copies(b.path).unwrap();
+        assert_eq!(copies[0].title, "작품");
+
+        assert_eq!(count_for("\"가!\" 나.".into(), CountRule::Novelpia), 2);
+        assert_eq!(count_for("가 나\n".into(), CountRule::Munpia), 3);
+        assert_eq!(count_for("가".into(), CountRule::BytesUtf8), 3);
+        assert_eq!(munpia_pages("가".repeat(471)), 2);
     }
 }

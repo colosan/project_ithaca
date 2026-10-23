@@ -44,3 +44,10 @@ ADR-0004의 구조(Rust core + SwiftUI)를 그대로 지금 시작한다.
   - 빌드 도구로만 쓰는 것: Rust 툴체인(rustup, Homebrew).
 - 서명이 ad-hoc이라 처음 열 때 Gatekeeper 경고가 뜰 수 있다. 직접 빌드해서 설치한 경우에는 해당하지 않는다.
 - 빌드 기계가 Apple Silicon이라 지금은 arm64 전용 빌드다. 유니버설 빌드는 필요할 때 만든다.
+
+## 보충 (2026-10-24, 릴리스 도구)
+
+- Developer ID가 아닌 서명(ad-hoc · 자체 서명)에는 hardened runtime을 켜지 않는다. 켜면 library validation이 Team ID 없는 Sparkle.framework를 거부할 수 있다. 서명은 안쪽부터, `--deep` 없이 한다.
+- 빌드마다 바뀌는 ad-hoc 서명 대신, 이 Mac에서 한 번 만든 고정 자체 서명 인증서("Ithaca Local Signing", `tools/mac/make-signing-identity.sh`)가 있으면 그것으로 서명한다.
+- EdDSA 비밀키는 키체인(account `ithaca`)에 두고, 무인 릴리스를 위해 내보낸 사본을 저장소 밖 `~/Library/Application Support/Ithaca-Release/`(권한 600)에 둔다.
+- 자세한 절차: `tools/mac/README.md`.

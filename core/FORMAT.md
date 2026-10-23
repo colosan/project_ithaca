@@ -12,6 +12,9 @@ written in format 1 must open in every later core, through a migration if need b
     changes/<hash>                 immutable block files — the only source of truth
     cache/<chain-id>.json          derived; deleting it loses nothing
   Backups/pre-migration-<from>-<to>-<YYYY-MM-DD>[-n]/   full copies made before a migration
+<library parent>/Backups/          automatic and manual backups (§Backups)
+  auto-<YYYY-MM-DD-HHMM>[-n]/      UTC
+  manual-<YYYY-MM-DD-HHMM>[-n]/
 ```
 
 - Ids (project, folder, sheet) are UUID v4 in 32-char lowercase hex. `toc` is reserved (below).
@@ -83,11 +86,18 @@ line keeps deltas small), stored with the same snapshot/delta rules as sheets, `
   "created": 1790000000000,
   "deleted": null,                                       // ms when soft-deleted
   "folders": [ { "id": "…", "name": "연재", "deleted": null, "sheets": ["<sheet id>", …] } ],
-  "sheets": { "<sheet id>": { "created": 1790000000000, "trashed": null } },
+  "sheets": { "<sheet id>": { "created": 1790000000000, "trashed": null,
+                "episode": { "number": 3, "status": "published", "publishAt": 1790000000000, "platform": "문피아" } } },
   "removed": ["<sheet id>"]                              // tombstones of permanently deleted sheets
 }
 ```
 
+- `episode` (optional, added in core 0.1 round 2 within format 1): absent = not an episode. Inside it every
+  field is optional and left out when empty; `status` is `draft | revising | scheduled | published`
+  (default `draft`). Tables of contents written before it existed load unchanged.
+- **Unknown fields are kept.** A core keeps fields it does not know at the top level, in folder entries and
+  in sheet entries, and writes them back when it rewrites the table of contents, so adding an optional
+  field never needs a format bump and an older core never drops a newer core's data.
 - Folder order and serial order are array order. Trashed sheets keep their slot so a restore puts them back.
 - Deleting a folder stamps it and its live sheets with the same time; the folder entry disappears once no
   sheet refers to it.
@@ -102,6 +112,26 @@ line keeps deltas small), stored with the same snapshot/delta rules as sheets, `
 added/removed], "winner", "branches", "text" }` (chain ids that are not plain `[A-Za-z0-9_-]` use the
 first 32 hex of their blake3). On open a cache is trusted only if every block it lists is still in
 `changes/`; blocks no cache lists are read and their chains rebuilt from blocks. Delete `cache/` any time.
+
+## Backups
+
+A backup is a library-shaped folder, so it can be opened or restored like a library:
+
+```
+auto-2026-10-24-0915/
+  backup.json        { "v": 1, "kind": "auto" | "manual", "at": <ms>, "bytes": <n>, "format": 1, "projects": <n> }
+  library.json       copied as is
+  projects/<id>/changes/<hash>   every block file; no cache/, no .tmp- files
+```
+
+- Written as `<parent>/Backups/.tmp-<name>-<pid>/` and renamed into place; a folder without a
+  readable `backup.json` is not listed, and leftover `.tmp-auto-*`/`.tmp-manual-*` folders are removed
+  by the next backup. Blocks are immutable and writes are serialized, so the copy is consistent.
+- `bytes` = sum of copied files (manifest excluded).
+- Retention runs after each automatic backup and deletes only `auto-*` folders with a manifest:
+  keep the newest auto of each of the last 7 UTC days that have one, and of each of the last 4
+  Monday-based UTC weeks that have one. `manual-*` and `pre-migration-*` are never deleted.
+- Restoring never writes into a backup and never overwrites: projects come back as copies with new ids.
 
 ## Versions and migrations (ADR-0008 §5)
 

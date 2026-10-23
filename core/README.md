@@ -4,9 +4,9 @@ Rust core for Ithaca (ADR-0001, ADR-0008). Contract with the apps: [`API.md`](AP
 On-disk format: [`FORMAT.md`](FORMAT.md). Dependencies and licenses: [`DEPENDENCIES.md`](DEPENDENCIES.md).
 
 ```
-crates/ithaca-model    text rules (counts, title, excerpt, export), table of contents — no IO
+crates/ithaca-model    text rules (counts, platform counts, title, excerpt, export), table of contents, episodes — no IO
 crates/ithaca-ledger   blocks, canonical hash, deltas, heads and branch decision — no IO
-crates/ithaca-store    library folder: blocks on disk, cache, formats, migrations, import
+crates/ithaca-store    library folder: blocks on disk, cache, formats, migrations, import, backups
 crates/ithaca-ffi      UniFFI surface (API.md)
 fixtures/              frozen format-1 library and a web-app backup, used by tests
 ```

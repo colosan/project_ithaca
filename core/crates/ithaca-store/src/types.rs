@@ -1,7 +1,7 @@
 //! What the store hands out. ithaca-ffi mirrors these as UniFFI records (core/API.md).
 
 use ithaca_ledger::{Actor, Kind};
-use ithaca_model::{Counts, Goal, Language};
+use ithaca_model::{Counts, EpisodeInfo, Goal, Language};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LibraryInfo {
@@ -47,6 +47,8 @@ pub struct SheetSummary {
     pub modified: i64,
     pub trashed: Option<i64>,
     pub branched: bool,
+    /// Serial-episode metadata; `None` = not an episode (notes, prologue kept out of numbering).
+    pub episode: Option<EpisodeInfo>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -125,4 +127,27 @@ pub struct ImportReport {
     pub projects: u32,
     pub folders: u32,
     pub sheets: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BackupKind {
+    /// `backup_now`: daily, pruned by retention.
+    Auto,
+    /// Made by the core before a format migration (ADR-0008 §5). Never pruned.
+    PreMigration,
+    /// `backup_manual`: the writer asked for it. Never pruned.
+    Manual,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BackupInfo {
+    /// Absolute folder of the backup (a library-shaped folder: `library.json` + `projects/`).
+    pub path: String,
+    /// Unix ms when it was made.
+    pub at: i64,
+    /// Total size of its files.
+    pub bytes: u64,
+    pub kind: BackupKind,
+    /// Project folders in it (deleted ones included).
+    pub projects: u32,
 }

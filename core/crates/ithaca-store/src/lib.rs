@@ -2,6 +2,7 @@
 //!
 //! [`Store`] is single-threaded; ithaca-ffi wraps it in a `Mutex`.
 
+pub mod backup;
 pub mod error;
 pub mod format;
 pub mod fsutil;
@@ -17,8 +18,8 @@ use std::sync::Arc;
 
 use ithaca_ledger::{Actor, Block, Body, Kind, Meta, Op, delta};
 use ithaca_model::{
-    ExportOptions, FolderEntry, Language, RETENTION_MS, SheetEntry, Toc, excerpt_of, export_sheets,
-    title_of,
+    EpisodeInfo, EpisodeStatus, ExportOptions, FolderEntry, Language, RETENTION_MS, SheetEntry,
+    Toc, excerpt_of, export_sheets, title_of,
 };
 
 pub use error::{Result, StoreError};
@@ -69,6 +70,17 @@ pub struct Store {
     clock: Clock,
     /// In creation order is computed on demand; keyed by id.
     projects: BTreeMap<String, Project>,
+}
+
+/// A sheet to write into a new project (import, restore).
+pub(crate) struct NewSheet {
+    /// Index into the new table of contents' folders.
+    pub folder: usize,
+    pub text: String,
+    pub created: i64,
+    /// Time of its block.
+    pub modified: i64,
+    pub episode: Option<EpisodeInfo>,
 }
 
 fn new_id() -> String {
@@ -255,6 +267,7 @@ impl Store {
             modified: chain.and_then(|c| c.head()).map_or(entry.created, |m| m.at),
             trashed: entry.trashed,
             branched: chain.is_some_and(|c| c.branched()),
+            episode: entry.episode.clone(),
         })
     }
 
@@ -346,26 +359,26 @@ impl Store {
             created: self.now(),
             folders: folders
                 .iter()
-                .map(|name| FolderEntry {
-                    id: new_id(),
-                    name: name.clone(),
-                    deleted: None,
-                    sheets: vec![],
-                })
+                .map(|name| FolderEntry::new(new_id(), name.clone()))
                 .collect(),
             ..Default::default()
         };
         let now = toc.created;
-        self.create_project_from(toc, &[(0, String::new(), now, now)])
+        self.create_project_from(
+            toc,
+            &[NewSheet {
+                folder: 0,
+                text: String::new(),
+                created: now,
+                modified: now,
+                episode: None,
+            }],
+        )
     }
 
     /// Writes a new project: its sheets first, then the table of contents that names them, so a crash
-    /// in between leaves only invisible orphans. `sheets` are (folder index, text, created, modified).
-    fn create_project_from(
-        &mut self,
-        mut toc: Toc,
-        sheets: &[(usize, String, i64, i64)],
-    ) -> Result<ProjectSummary> {
+    /// in between leaves only invisible orphans.
+    fn create_project_from(&mut self, mut toc: Toc, sheets: &[NewSheet]) -> Result<ProjectSummary> {
         self.writable()?;
         if toc.folders.is_empty() {
             return Err(invalid("a project needs at least one folder"));
@@ -383,17 +396,13 @@ impl Store {
             },
         );
         let result = (|| {
-            for (folder, text, created, modified) in sheets {
+            for s in sheets {
                 let sid = new_id();
-                self.append(&id, &sid, text, Kind::Edit, *modified)?;
-                toc.folders[*folder].sheets.push(sid.clone());
-                toc.sheets.insert(
-                    sid,
-                    SheetEntry {
-                        created: *created,
-                        trashed: None,
-                    },
-                );
+                self.append(&id, &sid, &s.text, Kind::Edit, s.modified)?;
+                toc.folders[s.folder].sheets.push(sid.clone());
+                let mut entry = SheetEntry::new(s.created);
+                entry.episode = s.episode.clone();
+                toc.sheets.insert(sid, entry);
             }
             let at = self.now();
             self.append(&id, Toc::SHEET_ID, &toc.to_text(), Kind::Meta, at)?;
@@ -513,12 +522,7 @@ impl Store {
         let id = new_id();
         let fid = id.clone();
         self.edit_toc(project, |t, _| {
-            t.folders.push(FolderEntry {
-                id: fid,
-                name: name.to_string(),
-                deleted: None,
-                sheets: vec![],
-            });
+            t.folders.push(FolderEntry::new(fid, name));
             Ok(())
         })?;
         let order = self
@@ -610,13 +614,7 @@ impl Store {
                 .expect("checked")
                 .sheets
                 .push(s.clone());
-            t.sheets.insert(
-                s,
-                SheetEntry {
-                    created: now,
-                    trashed: None,
-                },
-            );
+            t.sheets.insert(s, SheetEntry::new(now));
             Ok(())
         })?;
         Self::sheet_summary(self.project(project)?, &sid)
@@ -746,6 +744,65 @@ impl Store {
             p.remove_chain_files(s);
         }
         Ok(())
+    }
+
+    // ── Episodes ──────────────────────────────────────────────────────
+
+    /// Sets (`Some`) or clears (`None`) a sheet's episode metadata. Works on trashed sheets too.
+    pub fn set_episode(
+        &mut self,
+        project: &str,
+        sheet: &str,
+        info: Option<EpisodeInfo>,
+    ) -> Result<SheetSummary> {
+        self.check_sheet(project, sheet)?;
+        self.edit_toc(project, |t, _| {
+            t.sheets.get_mut(sheet).expect("checked").episode = info;
+            Ok(())
+        })?;
+        self.sheet_summary_of(project, sheet)
+    }
+
+    fn live_folder<'a>(p: &'a Project, folder: &str) -> Result<&'a FolderEntry> {
+        p.toc
+            .folder(folder)
+            .filter(|f| f.deleted.is_none())
+            .ok_or(StoreError::NotFound)
+    }
+
+    /// 비축분: live sheets of the folder that are not `Published`. A sheet without episode metadata
+    /// counts as not published (a serial folder's new sheet is stock until marked otherwise).
+    pub fn stock(&self, project: &str, folder: &str) -> Result<u32> {
+        let p = self.project(project)?;
+        let f = Self::live_folder(p, folder)?;
+        Ok(p.toc
+            .live_sheets(f)
+            .filter(|s| {
+                p.toc.sheets[*s]
+                    .episode
+                    .as_ref()
+                    .is_none_or(|e| e.status != EpisodeStatus::Published)
+            })
+            .count() as u32)
+    }
+
+    /// Numbers the folder's live sheets that have episode metadata 1..n in serial order (one toc
+    /// block). Sheets without metadata (prologue, notes, 공지) are skipped and don't use a number.
+    /// Returns n.
+    pub fn renumber_episodes(&mut self, project: &str, folder: &str) -> Result<u32> {
+        Self::live_folder(self.project(project)?, folder)?;
+        self.edit_toc(project, |t, _| {
+            let f = t.folder(folder).expect("checked");
+            let ids: Vec<String> = t.live_sheets(f).cloned().collect();
+            let mut n = 0;
+            for id in ids {
+                if let Some(e) = t.sheets.get_mut(&id).and_then(|e| e.episode.as_mut()) {
+                    n += 1;
+                    e.number = Some(n);
+                }
+            }
+            Ok(n)
+        })
     }
 
     // ── History ───────────────────────────────────────────────────────
