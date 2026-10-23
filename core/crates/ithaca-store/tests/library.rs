@@ -239,7 +239,7 @@ fn trash_restore_keeps_order() {
     s.restore_sheet(&p, &ids[1]).unwrap();
     assert_eq!(live(&s), ids);
 
-    // Move: 4화 before 2화, then to the other folder.
+    // Move: `4화` before `2화`, then to the other folder.
     s.move_sheet(&p, &ids[3], &f, Some(&ids[1])).unwrap();
     assert_eq!(
         live(&s),

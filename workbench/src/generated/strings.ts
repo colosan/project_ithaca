@@ -348,6 +348,59 @@ export type StringKey =
   | "palette.projects"
   | "sheet.moveUp"
   | "sheet.moveDown"
+  | "update.checkMenu"
+  | "update.autoCheck"
+  | "update.lastChecked"
+  | "update.neverChecked"
+  | "web.macMove"
+  | "about.core"
+  | "app.moveToApplications"
+  | "app.moveToApplicationsHint"
+  | "backup.libraryFolder"
+  | "backup.reveal"
+  | "count.withSpacesHint"
+  | "count.withoutSpacesHint"
+  | "history.empty"
+  | "history.integrityFailed"
+  | "import.web"
+  | "import.webHint"
+  | "import.webDone"
+  | "import.webFailed"
+  | "library.inMemory"
+  | "library.migrated"
+  | "library.openFailed"
+  | "library.readOnly"
+  | "menu.findInSheet"
+  | "prefs.editor.spellAutoHint"
+  | "sync.saveFailedApp"
+  | "welcome.importWeb"
+  | "welcome.startFresh"
+  | "episode.number"
+  | "episode.status"
+  | "episode.status.draft"
+  | "episode.status.revising"
+  | "episode.status.scheduled"
+  | "episode.status.published"
+  | "episode.none"
+  | "episode.stock"
+  | "episode.stockHint"
+  | "episode.renumber"
+  | "episode.renumbered"
+  | "info.platform"
+  | "info.munpia"
+  | "info.novelpia"
+  | "info.chars"
+  | "info.munpiaPages"
+  | "info.platformHint"
+  | "backup.autoDaily"
+  | "backup.kind.auto"
+  | "backup.kind.manual"
+  | "backup.kind.preMigration"
+  | "backup.metaProjects"
+  | "backup.none"
+  | "backup.restoreCopies"
+  | "backup.restoredCopies"
+  | "backup.failed"
   ;
 
 type Value = string | { one: string; other: string };
@@ -697,7 +750,60 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "palette.folders": "폴더",
     "palette.projects": "작품",
     "sheet.moveUp": "시트를 위로",
-    "sheet.moveDown": "시트를 아래로"
+    "sheet.moveDown": "시트를 아래로",
+    "update.checkMenu": "업데이트 확인…",
+    "update.autoCheck": "업데이트 자동으로 확인하기",
+    "update.lastChecked": "마지막 확인: {date}",
+    "update.neverChecked": "아직 확인하지 않았어요",
+    "web.macMove": "Mac 앱이 나왔어요. 여기서 백업 파일을 받아 Mac 앱의 '웹 버전에서 가져오기'로 옮기세요.",
+    "about.core": "코어",
+    "app.moveToApplications": "Ithaca를 응용 프로그램 폴더로 옮겨 주세요",
+    "app.moveToApplicationsHint": "다운로드한 자리에서 바로 열면 자동 업데이트가 동작하지 않아요. 앱을 끄고 응용 프로그램 폴더로 옮긴 뒤 다시 열어 주세요.",
+    "backup.libraryFolder": "라이브러리 폴더",
+    "backup.reveal": "Finder에서 보기",
+    "count.withSpacesHint": "줄바꿈을 뺀 모든 글자(공백 포함)",
+    "count.withoutSpacesHint": "공백과 줄바꿈을 뺀 글자",
+    "history.empty": "아직 기록이 없어요.",
+    "history.integrityFailed": "해시 검증에서 문제를 찾았어요 — {message}",
+    "import.web": "웹 버전에서 가져오기",
+    "import.webHint": "웹 버전의 백업 파일(JSON)을 새 작품으로 추가해요. 지금 있는 작품은 그대로예요.",
+    "import.webDone": "웹 버전에서 작품 {projects}개, 시트 {sheets}개를 가져왔어요.",
+    "import.webFailed": "가져오지 못했어요 — {message}",
+    "library.inMemory": "미리보기 저장소예요. 앱을 끄면 쓴 내용이 사라져요.",
+    "library.migrated": "라이브러리를 새 형식으로 옮겼어요 (형식 {from}에서). 옮기기 전 내용은 여기에 백업해 두었어요: {path}",
+    "library.openFailed": "라이브러리를 열지 못했어요 — {message}. 지금은 미리보기 저장소로 열었어요.",
+    "library.readOnly": "이 라이브러리는 더 새 버전의 Ithaca로 만들어져서 읽기만 할 수 있어요. 앱을 업데이트해 주세요.",
+    "menu.findInSheet": "시트에서 찾기…",
+    "prefs.editor.spellAutoHint": "시스템 사전을 써요. 한국어 원고는 기본으로 꺼져 있어요.",
+    "sync.saveFailedApp": "저장하지 못했어요 — {message}",
+    "welcome.importWeb": "웹 버전을 쓰고 있었나요?",
+    "welcome.startFresh": "새로 시작하기",
+    "episode.number": "{number}화",
+    "episode.status": "회차 상태",
+    "episode.status.draft": "초고",
+    "episode.status.revising": "퇴고",
+    "episode.status.scheduled": "예약",
+    "episode.status.published": "발행",
+    "episode.none": "회차 아님",
+    "episode.stock": "비축 {count}화",
+    "episode.stockHint": "아직 발행하지 않은 회차 수예요.",
+    "episode.renumber": "회차 번호 다시 매기기",
+    "episode.renumbered": "{count}화까지 번호를 다시 매겼어요.",
+    "info.platform": "연재처 기준",
+    "info.munpia": "문피아",
+    "info.novelpia": "노벨피아",
+    "info.chars": "{count}자",
+    "info.munpiaPages": "{count}쪽",
+    "info.platformHint": "붙여넣을 글(Markdown 기호 뺌) 기준이에요. 저장된 내용으로 세요.",
+    "backup.autoDaily": "하루에 한 번 자동으로 백업해요. 최근 7일과 4주치를 남기고, 직접 만든 백업은 지우지 않아요.",
+    "backup.kind.auto": "자동",
+    "backup.kind.manual": "직접",
+    "backup.kind.preMigration": "형식 변환 전",
+    "backup.metaProjects": "{size} · 작품 {count}개",
+    "backup.none": "아직 백업이 없어요.",
+    "backup.restoreCopies": "사본으로 복원",
+    "backup.restoredCopies": "백업의 작품 {count}개를 사본으로 추가했어요.",
+    "backup.failed": "백업하지 못했어요 — {message}"
   },
   "en": {
     "app.name": "Ithaca",
@@ -1097,7 +1203,75 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "palette.folders": "Folders",
     "palette.projects": "Projects",
     "sheet.moveUp": "Move sheet up",
-    "sheet.moveDown": "Move sheet down"
+    "sheet.moveDown": "Move sheet down",
+    "update.checkMenu": "Check for Updates…",
+    "update.autoCheck": "Check for updates automatically",
+    "update.lastChecked": "Last checked {date}",
+    "update.neverChecked": "Not checked yet",
+    "web.macMove": "The Mac app is here. Download a backup file and use 'Import from Web Version' in the Mac app.",
+    "about.core": "Core",
+    "app.moveToApplications": "Move Ithaca to the Applications folder",
+    "app.moveToApplicationsHint": "Opened straight from where it was downloaded, Ithaca can't update itself. Quit, move it to Applications, and open it again.",
+    "backup.libraryFolder": "Library folder",
+    "backup.reveal": "Show in Finder",
+    "count.withSpacesHint": "Every character except line breaks, spaces included",
+    "count.withoutSpacesHint": "Characters without spaces and line breaks",
+    "history.empty": "No records yet.",
+    "history.integrityFailed": "Hash check found a problem — {message}",
+    "import.web": "Import from the web version",
+    "import.webHint": "Adds the web version's backup file (JSON) as new projects. Nothing here is replaced.",
+    "import.webDone": "Imported {projects} projects and {sheets} sheets from the web version.",
+    "import.webFailed": "Couldn't import — {message}",
+    "library.inMemory": "Preview storage — what you write is lost when you quit.",
+    "library.migrated": "Moved the library to the new format (from format {from}). The previous copy is backed up at {path}",
+    "library.openFailed": "Couldn't open the library — {message}. Opened preview storage instead.",
+    "library.readOnly": "This library was made by a newer Ithaca, so it's read-only here. Please update the app.",
+    "menu.findInSheet": "Find in Sheet…",
+    "prefs.editor.spellAutoHint": "Uses the system dictionary. Off by default for Korean manuscripts.",
+    "sync.saveFailedApp": "Not saved — {message}",
+    "welcome.importWeb": "Coming from the web version?",
+    "welcome.startFresh": "Start fresh",
+    "episode.number": "Ep. {number}",
+    "episode.status": "Episode status",
+    "episode.status.draft": "Draft",
+    "episode.status.revising": "Revising",
+    "episode.status.scheduled": "Scheduled",
+    "episode.status.published": "Published",
+    "episode.none": "Not an episode",
+    "episode.stock": "{count} in stock",
+    "episode.stockHint": "Episodes not published yet.",
+    "episode.renumber": "Renumber Episodes",
+    "episode.renumbered": {
+      "one": "Renumbered {count} episode.",
+      "other": "Renumbered {count} episodes."
+    },
+    "info.platform": "Platform counts",
+    "info.munpia": "Munpia",
+    "info.novelpia": "Novelpia",
+    "info.chars": {
+      "one": "{count} char",
+      "other": "{count} chars"
+    },
+    "info.munpiaPages": {
+      "one": "{count} page",
+      "other": "{count} pages"
+    },
+    "info.platformHint": "Counts the text you would paste (Markdown removed), as last saved.",
+    "backup.autoDaily": "Backs up automatically once a day, keeping the last 7 days and 4 weeks. Backups you make yourself are never removed.",
+    "backup.kind.auto": "Automatic",
+    "backup.kind.manual": "Manual",
+    "backup.kind.preMigration": "Before migration",
+    "backup.metaProjects": {
+      "one": "{size} · {count} project",
+      "other": "{size} · {count} projects"
+    },
+    "backup.none": "No backups yet.",
+    "backup.restoreCopies": "Restore as copies",
+    "backup.restoredCopies": {
+      "one": "Added {count} project from the backup as a copy.",
+      "other": "Added {count} projects from the backup as copies."
+    },
+    "backup.failed": "Backup failed — {message}"
   }
 };
 

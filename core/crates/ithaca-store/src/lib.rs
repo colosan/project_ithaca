@@ -770,7 +770,7 @@ impl Store {
             .ok_or(StoreError::NotFound)
     }
 
-    /// 비축분: live sheets of the folder that are not `Published`. A sheet without episode metadata
+    /// `비축분`: live sheets of the folder that are not `Published`. A sheet without episode metadata
     /// counts as not published (a serial folder's new sheet is stock until marked otherwise).
     pub fn stock(&self, project: &str, folder: &str) -> Result<u32> {
         let p = self.project(project)?;
@@ -787,7 +787,7 @@ impl Store {
     }
 
     /// Numbers the folder's live sheets that have episode metadata 1..n in serial order (one toc
-    /// block). Sheets without metadata (prologue, notes, 공지) are skipped and don't use a number.
+    /// block). Sheets without metadata (prologue, notes, `공지`) are skipped and don't use a number.
     /// Returns n.
     pub fn renumber_episodes(&mut self, project: &str, folder: &str) -> Result<u32> {
         Self::live_folder(self.project(project)?, folder)?;

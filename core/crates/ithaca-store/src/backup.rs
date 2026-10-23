@@ -1,4 +1,4 @@
-//! Local backups (design/PRODUCT.md 백업, research §5 P0 "매일 로컬 백업"; core/FORMAT.md §Backups).
+//! Local backups (design/PRODUCT.md `백업`, research §5 P0 "매일 로컬 백업"; core/FORMAT.md §Backups).
 //!
 //! A backup is a library-shaped folder — `library.json`, `projects/<id>/changes/<hash>` and a
 //! `backup.json` manifest — next to the library: `<library parent>/Backups/auto-<UTC yyyy-mm-dd-HHMM>/`.

@@ -18,6 +18,7 @@ export const OUT = {
   ktStrings: "kotlin/design/src/commonMain/kotlin/io/github/colosan/ithaca/design/generated/Strings.kt",
   iconsTs: "workbench/src/generated/icons.ts",
   swiftIcons: "swift/Packages/IthacaDesign/Sources/IthacaDesign/Generated/Icons.swift",
+  swiftIconVectors: "swift/Packages/IthacaDesign/Sources/IthacaDesign/Generated/IconVectors.swift",
   ktIcons: "kotlin/design/src/commonMain/kotlin/io/github/colosan/ithaca/design/generated/Icons.kt",
 };
 
@@ -37,7 +38,40 @@ export function loadDesign() {
   const locales = ["ko", "en"];
   const strings = Object.fromEntries(locales.map((l) => [l, readJson(`design/strings/${l}.json`)]));
   const icons = readJson("design/icons.json");
-  return { tokens, locales, strings, icons };
+  const vectors = loadLucideVectors(Object.values(icons.icons));
+  return { tokens, locales, strings, icons, vectors };
+}
+
+/**
+ * Lucide icon nodes (`[["path", { d }], ["circle", { cx, cy, r }], …]` on a 24×24 grid) read from the
+ * installed lucide-react, so native apps draw the exact vectors the workbench draws.
+ */
+function loadLucideVectors(names) {
+  const dir = join(ROOT, "node_modules/lucide-react/dist/esm/icons");
+  const out = {};
+  for (const name of [...new Set(names)].sort()) {
+    let src;
+    let file = `${name}.mjs`;
+    // Renamed icons are re-export stubs (`export { default } from './rotate-ccw-clock.mjs'`); follow them.
+    for (let hops = 0; hops < 4; hops++) {
+      try {
+        src = readFileSync(join(dir, file), "utf8");
+      } catch {
+        throw new Error(`Lucide 아이콘 '${name}' 을 node_modules/lucide-react 에서 찾지 못함 — pnpm install 후 다시`);
+      }
+      const alias = src.match(/export \{ default \} from '\.\/([a-z0-9-]+\.mjs)'/);
+      if (!alias) break;
+      file = alias[1];
+    }
+    const m = src.match(/const __iconData = (\{[\s\S]*?\n\});/);
+    if (!m) throw new Error(`Lucide 아이콘 '${name}' 의 형식을 읽지 못함`);
+    // The data is a plain object literal (strings and arrays only).
+    out[name] = new Function(`return (${m[1]});`)().node.map(([tag, attrs]) => {
+      const { key: _key, ...rest } = attrs;
+      return [tag, rest];
+    });
+  }
+  return out;
 }
 
 /** Ensure every locale has the same key set before generating; otherwise the Swift/Kotlin tables would have holes. */
@@ -258,6 +292,8 @@ function buildSwiftStrings({ locales, strings }) {
   return [
     `// ${HEADER}`,
     `// ADR-0005: read this table directly instead of OS resources so the language can switch in-app instantly.`,
+    ``,
+    `import Foundation`,
     ``,
     `public enum L10nLocale: String, CaseIterable, Sendable {`,
     ...locales.map((l) => `    case ${l}`),
@@ -590,10 +626,72 @@ function buildIconsTs({ icons }) {
 function buildSwiftIcons({ icons }) {
   return [
     `// ${HEADER}`,
-    `// ${icons.set.name} (${icons.set.license}) vectors, bundled as template assets named by rawValue. Stroke ${icons.set.strokeWidth}.`,
+    `// ${icons.set.name} (${icons.set.license}) vectors, bundled as template assets named by \`asset\`. Stroke ${icons.set.strokeWidth}.`,
+    `// Several uses can share one vector (forward and collapsed are both chevron-right), so the case name is the key.`,
     ``,
     `public enum IthacaIcon: String, CaseIterable, Sendable {`,
-    ...Object.entries(icons.icons).map(([k, v]) => `    case ${k} = ${swiftStr(v)}`),
+    ...Object.keys(icons.icons).map((k) => `    case ${k}`),
+    ``,
+    `    /** The ${icons.set.name} vector this use draws. */`,
+    `    public var asset: String {`,
+    `        switch self {`,
+    ...Object.entries(icons.icons).map(([k, v]) => `        case .${k}: ${swiftStr(v)}`),
+    `        }`,
+    `    }`,
+    `}`,
+    ``,
+  ].join("\n");
+}
+
+const iconNum = (v) => swiftDouble(Number(v ?? 0));
+const iconPoints = (pts) => `[${String(pts).trim().split(/[\s,]+/).map(iconNum).join(", ")}]`;
+
+function swiftIconElement([tag, a]) {
+  switch (tag) {
+    case "path": return `.path(${swiftStr(a.d)})`;
+    case "circle": return `.circle(cx: ${iconNum(a.cx)}, cy: ${iconNum(a.cy)}, r: ${iconNum(a.r)})`;
+    case "ellipse": return `.ellipse(cx: ${iconNum(a.cx)}, cy: ${iconNum(a.cy)}, rx: ${iconNum(a.rx)}, ry: ${iconNum(a.ry)})`;
+    case "rect": return `.rect(x: ${iconNum(a.x)}, y: ${iconNum(a.y)}, width: ${iconNum(a.width)}, height: ${iconNum(a.height)}, rx: ${iconNum(a.rx ?? a.ry)})`;
+    case "line": return `.line(x1: ${iconNum(a.x1)}, y1: ${iconNum(a.y1)}, x2: ${iconNum(a.x2)}, y2: ${iconNum(a.y2)})`;
+    case "polyline": return `.polyline(${iconPoints(a.points)})`;
+    case "polygon": return `.polygon(${iconPoints(a.points)})`;
+    default: throw new Error(`Lucide 요소 '${tag}' 은 Swift 생성기가 모름`);
+  }
+}
+
+function buildSwiftIconVectors({ icons, vectors }) {
+  return [
+    `// ${HEADER}`,
+    `// ${icons.set.name} (${icons.set.license}) icon nodes on a 24×24 grid, copied from lucide-react. Stroke them with`,
+    `// round caps and joins at IconVectors.strokeWidth (scaled with the icon), no fill.`,
+    ``,
+    `public enum IconElement: Sendable, Equatable {`,
+    `    /// SVG path data (M L H V C S Q T A Z, absolute and relative).`,
+    `    case path(String)`,
+    `    case circle(cx: Double, cy: Double, r: Double)`,
+    `    case ellipse(cx: Double, cy: Double, rx: Double, ry: Double)`,
+    `    case rect(x: Double, y: Double, width: Double, height: Double, rx: Double)`,
+    `    case line(x1: Double, y1: Double, x2: Double, y2: Double)`,
+    `    /// x, y pairs.`,
+    `    case polyline([Double])`,
+    `    case polygon([Double])`,
+    `}`,
+    ``,
+    `public enum IconVectors {`,
+    `    public static let viewBox: Double = 24`,
+    `    public static let strokeWidth: Double = ${icons.set.strokeWidth}`,
+    ``,
+    `    /// Elements for a ${icons.set.name} name (IthacaIcon.asset). Empty for an unknown name.`,
+    `    public static func elements(_ asset: String) -> [IconElement] {`,
+    `        switch asset {`,
+    ...Object.entries(vectors).map(([name, els]) => `        case ${swiftStr(name)}: return [${els.map(swiftIconElement).join(", ")}]`),
+    `        default: return []`,
+    `        }`,
+    `    }`,
+    `}`,
+    ``,
+    `public extension IthacaIcon {`,
+    `    var elements: [IconElement] { IconVectors.elements(asset) }`,
     `}`,
     ``,
   ].join("\n");
@@ -626,6 +724,7 @@ export function buildOutputs(design = loadDesign()) {
     [OUT.ktStrings]: buildKtStrings(design),
     [OUT.iconsTs]: buildIconsTs(design),
     [OUT.swiftIcons]: buildSwiftIcons(design),
+    [OUT.swiftIconVectors]: buildSwiftIconVectors(design),
     [OUT.ktIcons]: buildKtIcons(design),
   };
 }

@@ -90,6 +90,7 @@ export function Library({ full }: { full?: boolean }) {
           {trashCount > 0 && <span style={{ ...type.caption, color: color.inkTertiary }}>{trashCount}</span>}
         </Row>
       </div>
+      <MacMove />
       <BackupReminder />
       <div style={{ display: "flex", alignItems: "center", gap: space[100], padding: space[100], borderTop: hairline(color.lineSubtle) }}>
         <Button variant="ghost" icon="add" onClick={() => setOverlay("newProject")}>{t("library.newProject")}</Button>
@@ -167,6 +168,24 @@ function BackupReminder() {
     >
       <Icon name="backup" size="sm" />
       <span style={{ flex: 1, minWidth: 0 }}>{days === null ? t("backup.reminderNever") : t("backup.reminder", { count: days })}</span>
+    </div>
+  );
+}
+
+/** The Mac app is the real one now (ADR-0008): point writers here at the way to carry their manuscripts over. */
+function MacMove() {
+  const t = useT();
+  const app = useApp();
+  const { ringStyle, ...press } = usePressable(() => openSettings(app, "backup"));
+  if (!app.state.sheets.some((s) => s.body.trim())) return null;
+  return (
+    <div
+      {...press}
+      role="button"
+      style={{ display: "flex", gap: space[100], alignItems: "flex-start", margin: `0 ${space[100]} ${space[100]}`, padding: space[150], borderRadius: radius.panel, background: color.surfaceList, border: `${size.strokeHairline} solid ${color.lineSubtle}`, color: color.inkSecondary, ...type.caption, cursor: "pointer", ...ringStyle }}
+    >
+      <Icon name="deviceLaptop" size="sm" />
+      <span style={{ flex: 1, minWidth: 0 }}>{t("web.macMove")}</span>
     </div>
   );
 }

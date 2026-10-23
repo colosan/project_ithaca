@@ -3,18 +3,18 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Where an episode stands. 비축분 (stock) = episodes not yet `Published`.
+/// Where an episode stands. `비축분` (stock) = episodes not yet `Published`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum EpisodeStatus {
-    /// 초고
+    /// `초고`
     #[default]
     Draft,
-    /// 퇴고
+    /// `퇴고`
     Revising,
-    /// 예약 — handed to a platform with a publish time.
+    /// `예약` — handed to a platform with a publish time.
     Scheduled,
-    /// 발행
+    /// `발행`
     Published,
 }
 

@@ -40,7 +40,7 @@ pub fn count_for(text: String, rule: CountRule) -> u32 {
     ithaca_model::count_for(&text, rule)
 }
 
-/// 문피아 쪽수: ⌈Munpia count / 470⌉ (added round 2).
+/// `문피아 쪽수`: ⌈Munpia count / 470⌉ (added round 2).
 #[uniffi::export]
 pub fn munpia_pages(text: String) -> u32 {
     ithaca_model::munpia_pages(&text)

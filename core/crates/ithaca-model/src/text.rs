@@ -217,7 +217,7 @@ mod tests {
             c.chars_no_space,
             "#1화그날밤,비가왔다.그는우산이없었다.".chars().count() as u32
         );
-        assert_eq!(c.words, 8); // 1화 그날 밤 비가 왔다 그는 우산이 없었다
+        assert_eq!(c.words, 8); // `1화 그날 밤 비가 왔다 그는 우산이 없었다`
         assert_eq!(c.paragraphs, 2); // heading excluded
     }
 

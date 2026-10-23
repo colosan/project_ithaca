@@ -216,7 +216,7 @@ const CODE_EXT = /\.(mjs|js|ts|tsx|css|swift|kt|rs)$/;
 const HANGUL = /[가-힣]/;
 const walk = (dir) =>
   readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
-    if (d.name === "node_modules" || d.name === "dist" || d.name.startsWith(".")) return [];
+    if (d.name === "node_modules" || d.name === "dist" || d.name === "target" || d.name.startsWith(".") || d.name.startsWith("Generated_")) return [];
     const p = join(dir, d.name);
     return d.isDirectory() ? walk(p) : CODE_EXT.test(d.name) ? [p] : [];
   });
@@ -230,7 +230,9 @@ for (const top of CODE_DIRS) {
         line.match(/(?:^|\s)\/\/(.*)$/)?.[1] ??
         line.match(/^\s*(?:\/\*|\*)(.*)$/)?.[1] ??
         line.match(/\/\*(.*?)\*\//)?.[1];
-      if (c && HANGUL.test(c)) block(`${file.slice(ROOT.length + 1).replace(/\\/g, "/")}:${i + 1}`, `코드 주석은 영어로 → ${c.trim().slice(0, 40)}`);
+      // Quoted Korean (sample text, platform names, terms in `…`, "…", 「…」) is data, not prose — allowed.
+      const prose = c?.replace(/`[^`]*`|"[^"]*"|「[^」]*」|“[^”]*”/g, "");
+      if (prose && HANGUL.test(prose)) block(`${file.slice(ROOT.length + 1).replace(/\\/g, "/")}:${i + 1}`, `코드 주석은 영어로 → ${c.trim().slice(0, 40)}`);
     });
   }
 }
