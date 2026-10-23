@@ -35,8 +35,8 @@ enum Snapshot {
     static var scenes: [Scene] {
         let wide = CGSize(width: 1240, height: 800)
         let updater = UpdaterViewModel()
-        func settings(_ tab: SettingsSection) -> Scene {
-            Scene(name: "settings-\(tab.rawValue)", size: CGSize(width: 640, height: 560),
+        func settings(_ tab: SettingsSection, _ locale: LocalePref = .ko) -> Scene {
+            Scene(name: "settings-\(tab.rawValue)\(locale == .ko ? "" : "-\(locale.rawValue)")", size: CGSize(width: 640, height: 560), locale: locale,
                   setup: { _, d in d.set(tab.rawValue, forKey: "ithaca.settingsTab") }, titled: false,
                   view: { _ in AnyView(SettingsView(updater: updater, only: tab)) })
         }
@@ -51,6 +51,7 @@ enum Snapshot {
         return [
             Scene(name: "shell-ko-light", size: wide),
             Scene(name: "shell-ko-dark", size: wide, dark: true),
+            Scene(name: "shell-ko-lines-wider-narrow", size: wide, setup: { m, _ in m.lineSpacing = .wider; m.lineWidth = .narrow }),
             Scene(name: "shell-en-light", size: wide, locale: .en),
             Scene(name: "shell-900", size: CGSize(width: 900, height: 700)),
             Scene(name: "shell-700-library-overlay", size: CGSize(width: 700, height: 700), setup: { m, _ in m.libraryOverlay = true }),
@@ -87,7 +88,7 @@ enum Snapshot {
             Scene(name: "new-project-first-run", size: CGSize(width: 560, height: 640), view: { _ in AnyView(NewProjectView(firstRun: true)) }),
             Scene(name: "new-project-en", size: CGSize(width: 560, height: 480), locale: .en, view: { _ in AnyView(NewProjectView(firstRun: false)) }),
             Scene(name: "project-settings", size: CGSize(width: 560, height: 560), view: { _ in AnyView(ProjectSettingsView()) }),
-            settings(.general), settings(.editor), settings(.backup), settings(.about),
+            settings(.general), settings(.editor), settings(.editor, .en), settings(.backup), settings(.about),
             // r3: release schedule, folder stats, platform goal, Claude connector.
             Scene(name: "shell-1240-scheduled-sheet", size: wide, setup: { m, d in
                 if let s = m.folder?.sheets.first(where: { $0.episode?.status == .scheduled }) { m.openSheet(s.id) }

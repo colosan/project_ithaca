@@ -211,6 +211,15 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case prefsEditorSmall = "prefs.editor.small"
     case prefsEditorNormal = "prefs.editor.normal"
     case prefsEditorLarge = "prefs.editor.large"
+    case prefsEditorLineSpacing = "prefs.editor.lineSpacing"
+    case prefsEditorLineSpacingNormal = "prefs.editor.lineSpacing.normal"
+    case prefsEditorLineSpacingWide = "prefs.editor.lineSpacing.wide"
+    case prefsEditorLineSpacingWider = "prefs.editor.lineSpacing.wider"
+    case prefsEditorWidth = "prefs.editor.width"
+    case prefsEditorWidthHint = "prefs.editor.widthHint"
+    case prefsEditorWidthNarrow = "prefs.editor.width.narrow"
+    case prefsEditorWidthNormal = "prefs.editor.width.normal"
+    case prefsEditorWidthWide = "prefs.editor.width.wide"
     case prefsEditorMarkup = "prefs.editor.markup"
     case prefsEditorMarkupHint = "prefs.editor.markupHint"
     case prefsEditorMarkupShow = "prefs.editor.markup.show"
@@ -759,6 +768,15 @@ public enum L10n {
             .prefsEditorSmall: .text("작게"),
             .prefsEditorNormal: .text("보통"),
             .prefsEditorLarge: .text("크게"),
+            .prefsEditorLineSpacing: .text("줄 간격"),
+            .prefsEditorLineSpacingNormal: .text("보통"),
+            .prefsEditorLineSpacingWide: .text("넓게"),
+            .prefsEditorLineSpacingWider: .text("아주 넓게"),
+            .prefsEditorWidth: .text("글줄 너비"),
+            .prefsEditorWidthHint: .text("창이 넓어도 한 줄은 여기서 멈춰요"),
+            .prefsEditorWidthNarrow: .text("좁게"),
+            .prefsEditorWidthNormal: .text("보통"),
+            .prefsEditorWidthWide: .text("넓게"),
             .prefsEditorMarkup: .text("Markdown 기호"),
             .prefsEditorMarkupHint: .text("# · - · ** 같은 기호를 원고에서 어떻게 보일지 골라요."),
             .prefsEditorMarkupShow: .text("보이기"),
@@ -1286,6 +1304,15 @@ public enum L10n {
             .prefsEditorSmall: .text("Small"),
             .prefsEditorNormal: .text("Default"),
             .prefsEditorLarge: .text("Large"),
+            .prefsEditorLineSpacing: .text("Line spacing"),
+            .prefsEditorLineSpacingNormal: .text("Default"),
+            .prefsEditorLineSpacingWide: .text("Wide"),
+            .prefsEditorLineSpacingWider: .text("Wider"),
+            .prefsEditorWidth: .text("Line width"),
+            .prefsEditorWidthHint: .text("Lines stop here however wide the window is"),
+            .prefsEditorWidthNarrow: .text("Narrow"),
+            .prefsEditorWidthNormal: .text("Default"),
+            .prefsEditorWidthWide: .text("Wide"),
             .prefsEditorMarkup: .text("Markdown symbols"),
             .prefsEditorMarkupHint: .text("How # · - · ** appear in the manuscript"),
             .prefsEditorMarkupShow: .text("Show"),

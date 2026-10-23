@@ -139,17 +139,18 @@ struct ManuscriptView: NSViewRepresentable {
         /// Fonts and paragraph styles follow the text-size, markup and spelling preferences.
         func configure(sizeClass: T.Layout.SizeClass, force: Bool) {
             guard let tv = textView else { return }
-            let key = StyleKey(size: model.textSize, markup: model.markup, sizeClass: sizeClass, spell: model.spellCheckActive, readOnly: model.editorLocked)
+            let key = StyleKey(size: model.textSize, spacing: model.lineSpacing, width: model.lineWidth, markup: model.markup, sizeClass: sizeClass, spell: model.spellCheckActive, readOnly: model.editorLocked)
             tv.isEditable = !model.editorLocked && model.sheetId != nil
             tv.padX = T.Layout.Editor.paddingX(sizeClass)
             tv.typewriter = model.typewriter
+            tv.measure = (T.Layout.Editor.measure * model.lineWidth.scale).rounded()
             guard force || key != style else { return }
             style = key
             tv.isContinuousSpellCheckingEnabled = key.spell
             tv.updateInsets()
-            tv.typingAttributes = Styles.base(model.textSize)
+            tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing)
             tv.setValue(NSAttributedString(string: "\(model.t(.sheetPlaceholderTitle))\n\(model.t(.sheetPlaceholderBody))",
-                                           attributes: Styles.base(model.textSize).merging([.foregroundColor: NSColor.token(T.Color.inkTertiary)]) { $1 }),
+                                           attributes: Styles.base(model.textSize, model.lineSpacing).merging([.foregroundColor: NSColor.token(T.Color.inkTertiary)]) { $1 }),
                         forKey: "placeholderAttributedString")
             if !isComposing { restyle(NSRange(location: 0, length: (tv.string as NSString).length)) }
         }
@@ -232,19 +233,19 @@ struct ManuscriptView: NSViewRepresentable {
         private func restyle(_ range: NSRange) {
             guard let tv = textView, let storage = tv.textStorage else { return }
             let ns = storage.string as NSString
-            guard ns.length > 0 else { tv.typingAttributes = Styles.base(model.textSize); return }
+            guard ns.length > 0 else { tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing); return }
             let start = min(range.location, ns.length)
             let para = ns.paragraphRange(for: NSRange(location: start, length: min(range.length, ns.length - start)))
             let selection = tv.selectedRanges
             storage.beginEditing()
-            Styles.apply(to: storage, in: para, size: model.textSize, markup: model.markup)
+            Styles.apply(to: storage, in: para, size: model.textSize, spacing: model.lineSpacing, markup: model.markup)
             storage.endEditing()
             tv.selectedRanges = selection
             // New characters take the style of the line the caret is on.
             let caret = min(tv.selectedRange().location, ns.length)
             let line = ns.paragraphRange(for: NSRange(location: caret, length: 0))
             let heading = TextMetrics.isHeading(Substring(ns.substring(with: line)))
-            tv.typingAttributes = heading ? Styles.heading(model.textSize) : Styles.base(model.textSize)
+            tv.typingAttributes = heading ? Styles.heading(model.textSize, model.lineSpacing) : Styles.base(model.textSize, model.lineSpacing)
         }
 
         // MARK: Focus mode (rendering attributes: drawn on top, storage untouched)
@@ -293,7 +294,7 @@ struct ManuscriptView: NSViewRepresentable {
             guard screen != .zero else { return }
             let caret = tv.convert(window.convertFromScreen(screen), from: nil)
             let visible = scroll.documentVisibleRect
-            let line = Styles.lineHeight(model.textSize)
+            let line = Styles.lineHeight(model.textSize, model.lineSpacing)
             var y: CGFloat?
             if center || model.typewriter {
                 y = caret.midY - visible.height / (model.typewriter ? 2 : 3)
@@ -314,6 +315,8 @@ struct ManuscriptView: NSViewRepresentable {
 
     struct StyleKey: Equatable {
         var size: TextSize = .normal
+        var spacing: LineSpacing = .normal
+        var width: LineWidth = .normal
         var markup: MarkupMode = .dim
         var sizeClass: T.Layout.SizeClass = .large
         var spell = false
@@ -325,6 +328,8 @@ struct ManuscriptView: NSViewRepresentable {
 final class ManuscriptTextView: NSTextView {
     var padX: CGFloat = T.Layout.Editor.paddingX(.large)
     var typewriter = false
+    /// Line length cap (editor.measure × the line-width preference).
+    var measure: CGFloat = T.Layout.Editor.measure
 
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
@@ -332,8 +337,8 @@ final class ManuscriptTextView: NSTextView {
     }
 
     func updateInsets() {
-        // The line stops at editor.measure however wide the window gets; the rest is margin on both sides.
-        let side = max(padX, (bounds.width - T.Layout.Editor.measure) / 2)
+        // The line stops at the chosen measure however wide the window gets; the rest is margin on both sides.
+        let side = max(padX, (bounds.width - measure) / 2)
         if abs(textContainerInset.width - side) > 0.5 { textContainerInset = NSSize(width: side, height: T.Space.s300) }
         if let scroll = enclosingScrollView {
             // Let the last line scroll up to the comfortable band instead of sitting on the bottom edge.
@@ -371,7 +376,7 @@ enum Styles {
         }
     }
 
-    static func lineHeight(_ size: TextSize) -> CGFloat { token(size).lineHeight }
+    static func lineHeight(_ size: TextSize, _ spacing: LineSpacing = .normal) -> CGFloat { (token(size).lineHeight * spacing.scale).rounded() }
 
     private static func paragraph(lineHeight: CGFloat) -> NSParagraphStyle {
         let p = NSMutableParagraphStyle()
@@ -383,10 +388,10 @@ enum Styles {
         return p
     }
 
-    private static func attrs(_ t: TextStyleToken, scale: Double = 1) -> [NSAttributedString.Key: Any] {
+    private static func attrs(_ t: TextStyleToken, scale: Double = 1, spacing: LineSpacing = .normal) -> [NSAttributedString.Key: Any] {
         let base = Fonts.ns(t)
         let font = scale == 1 ? base : (NSFont(descriptor: base.fontDescriptor, size: (t.size * scale).rounded()) ?? base)
-        let lineHeight = (t.lineHeight * scale).rounded()
+        let lineHeight = (t.lineHeight * scale * spacing.scale).rounded()
         let natural = font.ascender - font.descender
         return [
             .font: font,
@@ -397,20 +402,20 @@ enum Styles {
         ]
     }
 
-    static func base(_ size: TextSize) -> [NSAttributedString.Key: Any] { attrs(token(size)) }
+    static func base(_ size: TextSize, _ spacing: LineSpacing = .normal) -> [NSAttributedString.Key: Any] { attrs(token(size), spacing: spacing) }
 
     /// Headings scale with the chosen text size.
-    static func heading(_ size: TextSize) -> [NSAttributedString.Key: Any] {
-        attrs(T.Typography.editorHeading, scale: token(size).size / T.Typography.editorBody.size)
+    static func heading(_ size: TextSize, _ spacing: LineSpacing = .normal) -> [NSAttributedString.Key: Any] {
+        attrs(T.Typography.editorHeading, scale: token(size).size / T.Typography.editorBody.size, spacing: spacing)
     }
 
     private static let headingRe = try! NSRegularExpression(pattern: #"^(#{1,6})([ \t]+)"#, options: [.anchorsMatchLines])
     private static let listRe = try! NSRegularExpression(pattern: #"^[ \t]*([-*+>]|\d+\.)[ \t]+"#, options: [.anchorsMatchLines])
     private static let emphasisRe = try! NSRegularExpression(pattern: #"(\*\*|__|\*|_|~~|`)(?=\S)(.+?)(?<=\S)\1"#)
 
-    static func apply(to storage: NSTextStorage, in range: NSRange, size: TextSize, markup: MarkupMode) {
+    static func apply(to storage: NSTextStorage, in range: NSRange, size: TextSize, spacing: LineSpacing = .normal, markup: MarkupMode) {
         let ns = storage.string as NSString
-        storage.setAttributes(base(size), range: range)
+        storage.setAttributes(base(size, spacing), range: range)
         let markColor: NSColor = switch markup {
         case .show: .token(T.Color.inkSecondary)
         case .dim: .token(T.Color.inkMarkup)
@@ -418,7 +423,7 @@ enum Styles {
         }
         ns.enumerateSubstrings(in: range, options: [.byParagraphs, .substringNotRequired]) { _, line, _, _ in
             if let m = headingRe.firstMatch(in: storage.string, range: line) {
-                storage.setAttributes(heading(size), range: line)
+                storage.setAttributes(heading(size, spacing), range: line)
                 storage.addAttribute(.foregroundColor, value: markColor, range: NSRange(location: m.range.location, length: m.range(at: 1).length))
                 return
             }

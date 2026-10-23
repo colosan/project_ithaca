@@ -82,6 +82,18 @@ private struct EditorSettings: View {
                 Text(model.t(.prefsEditorLarge)).tag(TextSize.large)
             }
             .pickerStyle(.segmented)
+            Picker(model.t(.prefsEditorLineSpacing), selection: $m.lineSpacing) {
+                Text(model.t(.prefsEditorLineSpacingNormal)).tag(LineSpacing.normal)
+                Text(model.t(.prefsEditorLineSpacingWide)).tag(LineSpacing.wide)
+                Text(model.t(.prefsEditorLineSpacingWider)).tag(LineSpacing.wider)
+            }
+            .pickerStyle(.segmented)
+            Picker(selection: $m.lineWidth) {
+                Text(model.t(.prefsEditorWidthNarrow)).tag(LineWidth.narrow)
+                Text(model.t(.prefsEditorWidthNormal)).tag(LineWidth.normal)
+                Text(model.t(.prefsEditorWidthWide)).tag(LineWidth.wide)
+            } label: { labeled(.prefsEditorWidth, .prefsEditorWidthHint) }
+            .pickerStyle(.segmented)
             Picker(selection: $m.markup) {
                 Text(model.t(.prefsEditorMarkupShow)).tag(MarkupMode.show)
                 Text(model.t(.prefsEditorMarkupDim)).tag(MarkupMode.dim)

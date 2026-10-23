@@ -40,6 +40,16 @@ struct Toast: Identifiable {
 }
 
 enum TextSize: String, CaseIterable { case small, normal, large }
+/// Editor line height = the text-size token's line height × this.
+enum LineSpacing: String, CaseIterable {
+    case normal, wide, wider
+    var scale: Double { switch self { case .normal: 1; case .wide: 1.2; case .wider: 1.4 } }
+}
+/// Editor line length cap = `editor.measure` × this.
+enum LineWidth: String, CaseIterable {
+    case narrow, normal, wide
+    var scale: Double { switch self { case .narrow: 0.85; case .normal: 1; case .wide: 1.2 } }
+}
 enum ThemePref: String, CaseIterable { case system, light, dark }
 enum LocalePref: String, CaseIterable { case system, ko, en }
 enum MarkupMode: String, CaseIterable { case show, dim, hide }
@@ -128,6 +138,8 @@ final class AppModel {
     var localePref: LocalePref { didSet { defaults.set(localePref.rawValue, forKey: "ithaca.locale"); menu.locale = locale } }
     var theme: ThemePref { didSet { defaults.set(theme.rawValue, forKey: "ithaca.theme"); applyTheme() } }
     var textSize: TextSize { didSet { defaults.set(textSize.rawValue, forKey: "ithaca.textSize") } }
+    var lineSpacing: LineSpacing { didSet { defaults.set(lineSpacing.rawValue, forKey: "ithaca.lineSpacing") } }
+    var lineWidth: LineWidth { didSet { defaults.set(lineWidth.rawValue, forKey: "ithaca.lineWidth") } }
     var markup: MarkupMode { didSet { defaults.set(markup.rawValue, forKey: "ithaca.markup") } }
     var focusScope: FocusScope { didSet { defaults.set(focusScope.rawValue, forKey: "ithaca.focusScope") } }
     var typewriter: Bool { didSet { defaults.set(typewriter, forKey: "ithaca.typewriter") } }
@@ -147,6 +159,8 @@ final class AppModel {
         localePref = LocalePref(rawValue: defaults.string(forKey: "ithaca.locale") ?? "") ?? .system
         theme = ThemePref(rawValue: defaults.string(forKey: "ithaca.theme") ?? "") ?? .system
         textSize = TextSize(rawValue: defaults.string(forKey: "ithaca.textSize") ?? "") ?? .normal
+        lineSpacing = LineSpacing(rawValue: defaults.string(forKey: "ithaca.lineSpacing") ?? "") ?? .normal
+        lineWidth = LineWidth(rawValue: defaults.string(forKey: "ithaca.lineWidth") ?? "") ?? .normal
         markup = MarkupMode(rawValue: defaults.string(forKey: "ithaca.markup") ?? "") ?? .dim
         focusScope = FocusScope(rawValue: defaults.string(forKey: "ithaca.focusScope") ?? "") ?? .paragraph
         typewriter = defaults.object(forKey: "ithaca.typewriter") as? Bool ?? false

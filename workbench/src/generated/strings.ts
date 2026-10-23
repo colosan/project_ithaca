@@ -206,6 +206,15 @@ export type StringKey =
   | "prefs.editor.small"
   | "prefs.editor.normal"
   | "prefs.editor.large"
+  | "prefs.editor.lineSpacing"
+  | "prefs.editor.lineSpacing.normal"
+  | "prefs.editor.lineSpacing.wide"
+  | "prefs.editor.lineSpacing.wider"
+  | "prefs.editor.width"
+  | "prefs.editor.widthHint"
+  | "prefs.editor.width.narrow"
+  | "prefs.editor.width.normal"
+  | "prefs.editor.width.wide"
   | "prefs.editor.markup"
   | "prefs.editor.markupHint"
   | "prefs.editor.markup.show"
@@ -737,6 +746,15 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "prefs.editor.small": "작게",
     "prefs.editor.normal": "보통",
     "prefs.editor.large": "크게",
+    "prefs.editor.lineSpacing": "줄 간격",
+    "prefs.editor.lineSpacing.normal": "보통",
+    "prefs.editor.lineSpacing.wide": "넓게",
+    "prefs.editor.lineSpacing.wider": "아주 넓게",
+    "prefs.editor.width": "글줄 너비",
+    "prefs.editor.widthHint": "창이 넓어도 한 줄은 여기서 멈춰요",
+    "prefs.editor.width.narrow": "좁게",
+    "prefs.editor.width.normal": "보통",
+    "prefs.editor.width.wide": "넓게",
     "prefs.editor.markup": "Markdown 기호",
     "prefs.editor.markupHint": "# · - · ** 같은 기호를 원고에서 어떻게 보일지 골라요.",
     "prefs.editor.markup.show": "보이기",
@@ -1285,6 +1303,15 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "prefs.editor.small": "Small",
     "prefs.editor.normal": "Default",
     "prefs.editor.large": "Large",
+    "prefs.editor.lineSpacing": "Line spacing",
+    "prefs.editor.lineSpacing.normal": "Default",
+    "prefs.editor.lineSpacing.wide": "Wide",
+    "prefs.editor.lineSpacing.wider": "Wider",
+    "prefs.editor.width": "Line width",
+    "prefs.editor.widthHint": "Lines stop here however wide the window is",
+    "prefs.editor.width.narrow": "Narrow",
+    "prefs.editor.width.normal": "Default",
+    "prefs.editor.width.wide": "Wide",
     "prefs.editor.markup": "Markdown symbols",
     "prefs.editor.markupHint": "How # · - · ** appear in the manuscript",
     "prefs.editor.markup.show": "Show",
