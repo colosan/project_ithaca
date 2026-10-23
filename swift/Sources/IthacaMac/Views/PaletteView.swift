@@ -44,6 +44,15 @@ enum AppCommand: CaseIterable {
         }
     }
 
+    /// Same rule as the menu bar's disabled items: sheet commands need an open sheet, project commands a project.
+    @MainActor func available(_ m: AppModel) -> Bool {
+        switch self {
+        case .sheetInfo, .history, .moveUp, .moveDown, .trashSheet: m.sheetId != nil
+        case .export, .projectSettings, .showTrash, .newSheet: m.projectId != nil
+        default: true
+        }
+    }
+
     @MainActor func run(_ m: AppModel) {
         switch self {
         case .newSheet: m.newSheet()
@@ -184,8 +193,13 @@ struct PaletteView: View {
         let q = query.trimmingCharacters(in: .whitespaces)
         let lower = q.lowercased()
         let m = model
-        func open(_ sheet: String, _ range: NSRange? = nil) -> () -> Void {
-            { m.overlay = nil; m.showingTrash = false; m.libraryOverlay = false; m.openSheet(sheet, at: range); m.editor?.focus() }
+        func open(_ sheet: String, _ range: NSRange? = nil, project: String? = nil) -> () -> Void {
+            {
+                m.overlay = nil; m.showingTrash = false; m.libraryOverlay = false
+                // A hit in another project (searchAll): switch to it first.
+                if let project, project != m.projectId { m.selectProject(project); guard m.projectId == project else { return } }
+                m.openSheet(sheet, at: range); m.editor?.focus()
+            }
         }
         var out: [Hit] = []
         let all = m.folders.flatMap { f in f.sheets.map { (f, $0) } }
@@ -200,7 +214,8 @@ struct PaletteView: View {
                 seen.insert(s.id)
                 out.append(Hit(id: "t:" + s.id, group: .sheet, icon: .sheet, title: s.title.isEmpty ? m.t(.sheetUntitled) : s.title, meta: f.name, run: open(s.id)))
             }
-            let found = m.library.search(query: q, project: m.projectId)
+            // Every project, the open one first (core search_all).
+            let found = m.library.searchAll(query: q, current: m.projectId)
             let counts = Dictionary(grouping: found, by: \.sheet).mapValues(\.count)
             var n: [String: Int] = [:]
             for h in found.prefix(30) {
@@ -213,8 +228,8 @@ struct PaletteView: View {
                 detail += AttributedString(h.after.replacingOccurrences(of: "\n", with: " "))
                 let total = counts[h.sheet] ?? 1
                 let title = (h.title.isEmpty ? m.t(.sheetUntitled) : h.title) + (total > 1 ? " (\(n[h.sheet]!)/\(total))" : "")
-                let folderName = all.first { $0.1.id == h.sheet }?.0.name
-                out.append(Hit(id: h.id, group: .sheet, icon: .sheet, title: title, detail: detail, meta: folderName, run: open(h.sheet, NSRange(location: h.offset, length: h.length))))
+                let place = h.project == m.projectId ? all.first { $0.1.id == h.sheet }?.0.name : m.projects.first { $0.id == h.project }?.title
+                out.append(Hit(id: h.id, group: .sheet, icon: .sheet, title: title, detail: detail, meta: place, run: open(h.sheet, NSRange(location: h.offset, length: h.length), project: h.project)))
             }
             _ = seen
             for f in m.folders where f.name.lowercased().contains(lower) {
@@ -229,7 +244,7 @@ struct PaletteView: View {
             }
         }
         if !searchMode || !q.isEmpty {
-            for c in AppCommand.allCases where q.isEmpty || m.t(c.label).lowercased().contains(lower) {
+            for c in AppCommand.allCases where c.available(m) && (q.isEmpty || m.t(c.label).lowercased().contains(lower)) {
                 out.append(Hit(id: "c:\(c)", group: .command, icon: c.icon, title: m.t(c.label)) { m.overlay = nil; c.run(m) })
             }
         }

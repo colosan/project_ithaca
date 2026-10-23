@@ -177,6 +177,10 @@ pub struct SheetSummary {
     /// Added round 2. `None` = not an episode.
     #[uniffi(default = None)]
     pub episode: Option<EpisodeInfo>,
+    /// (added: qa1) Blocks are broken or missing: `sheet_text` is the last good text, writes return
+    /// `Corrupt` until `recover_sheet_from_backup` or `keep_last_good_text`.
+    #[uniffi(default = false)]
+    pub damaged: bool,
 }
 
 /// Added round 2.
@@ -275,11 +279,25 @@ pub struct SearchHit {
     pub snippet_after: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Record)]
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct ImportReport {
     pub projects: u32,
     pub folders: u32,
     pub sheets: u32,
+    /// (added: txt-import) Files `import_text_folder` left out, "relative/path (reason)".
+    #[uniffi(default)]
+    pub skipped: Vec<String>,
+}
+
+impl From<ithaca_store::ImportReport> for ImportReport {
+    fn from(r: ithaca_store::ImportReport) -> Self {
+        ImportReport {
+            projects: r.projects,
+            folders: r.folders,
+            sheets: r.sheets,
+            skipped: r.skipped,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Record)]
@@ -387,6 +405,7 @@ impl From<store::SheetSummary> for SheetSummary {
             trashed: s.trashed,
             branched: s.branched,
             episode: s.episode.map(Into::into),
+            damaged: s.damaged,
         }
     }
 }
@@ -408,17 +427,23 @@ impl From<ithaca_model::EpisodeInfo> for EpisodeInfo {
     }
 }
 
+impl From<EpisodeStatus> for ithaca_model::EpisodeStatus {
+    fn from(s: EpisodeStatus) -> Self {
+        use ithaca_model::EpisodeStatus as S;
+        match s {
+            EpisodeStatus::Draft => S::Draft,
+            EpisodeStatus::Revising => S::Revising,
+            EpisodeStatus::Scheduled => S::Scheduled,
+            EpisodeStatus::Published => S::Published,
+        }
+    }
+}
+
 impl From<EpisodeInfo> for ithaca_model::EpisodeInfo {
     fn from(e: EpisodeInfo) -> Self {
-        use ithaca_model::EpisodeStatus as S;
         ithaca_model::EpisodeInfo {
             number: e.number,
-            status: match e.status {
-                EpisodeStatus::Draft => S::Draft,
-                EpisodeStatus::Revising => S::Revising,
-                EpisodeStatus::Scheduled => S::Scheduled,
-                EpisodeStatus::Published => S::Published,
-            },
+            status: e.status.into(),
             publish_at: e.publish_at,
             platform: e.platform,
         }
@@ -712,12 +737,7 @@ impl Library {
     }
 
     pub fn import_web_backup(&self, json: String) -> R<ImportReport> {
-        let r = self.lock().import_web_backup(&json)?;
-        Ok(ImportReport {
-            projects: r.projects,
-            folders: r.folders,
-            sheets: r.sheets,
-        })
+        Ok(self.lock().import_web_backup(&json)?.into())
     }
 
     pub fn export_text(
@@ -777,6 +797,73 @@ impl Library {
 
     pub fn restore_backup_as_copies(&self, path: String) -> R<Vec<ProjectSummary>> {
         Ok(vec(self.lock().restore_backup_as_copies(&path)?))
+    }
+
+    // Added: qa1
+
+    /// Like `restore_backup_as_copies`, with `suffix` appended to every title ("" = as is).
+    pub fn restore_backup_as_copies_with_suffix(
+        &self,
+        path: String,
+        suffix: String,
+    ) -> R<Vec<ProjectSummary>> {
+        Ok(vec(self
+            .lock()
+            .restore_backup_as_copies_with_suffix(&path, &suffix)?))
+    }
+
+    /// Like `import_web_backup`, with `suffix` appended to every title ("" = as is).
+    pub fn import_web_backup_with_suffix(&self, json: String, suffix: String) -> R<ImportReport> {
+        Ok(self
+            .lock()
+            .import_web_backup_with_suffix(&json, &suffix)?
+            .into())
+    }
+
+    /// (added: txt-import) A folder of `.txt` / `.md` manuscripts → one new project. All or nothing.
+    pub fn import_text_folder(
+        &self,
+        path: String,
+        title: Option<String>,
+        language: Option<Language>,
+    ) -> R<ImportReport> {
+        Ok(self
+            .lock()
+            .import_text_folder(&path, title.as_deref(), language.map(Into::into))?
+            .into())
+    }
+
+    /// Every live project, `current` first; ≤ 200 hits per project, ≤ 500 in all.
+    pub fn search_all(&self, query: String, current: Option<String>) -> Vec<SearchHit> {
+        vec(self.lock().search_all(&query, current.as_deref()))
+    }
+
+    /// Sets `status` on every live sheet of `folder` up to and including `sheet` (serial order).
+    pub fn set_status_through(
+        &self,
+        project: String,
+        folder: String,
+        sheet: String,
+        status: EpisodeStatus,
+    ) -> R<u32> {
+        Ok(self
+            .lock()
+            .set_status_through(&project, &folder, &sheet, status.into())?)
+    }
+
+    pub fn damaged_sheets(&self, project: String) -> R<Vec<SheetSummary>> {
+        Ok(vec(self.lock().damaged_sheets(&project)?))
+    }
+
+    pub fn recover_sheet_from_backup(&self, project: String, sheet: String) -> R<SheetSummary> {
+        Ok(self
+            .lock()
+            .recover_sheet_from_backup(&project, &sheet)?
+            .into())
+    }
+
+    pub fn keep_last_good_text(&self, project: String, sheet: String) -> R<SheetSummary> {
+        Ok(self.lock().keep_last_good_text(&project, &sheet)?.into())
     }
 }
 
@@ -876,6 +963,11 @@ mod tests {
         );
         assert_eq!(lib.stock(p.id.clone(), folder).unwrap(), 0);
 
+        assert!(!lib.backup_due(), "nothing to back up yet");
+        let first = lib.outline(p.id.clone()).unwrap().folders[0].sheets[0]
+            .id
+            .clone();
+        lib.save_sheet(p.id.clone(), first, "글".into()).unwrap();
         assert!(lib.backup_due());
         let b = lib.backup_now().unwrap();
         assert_eq!(b.kind, BackupKind::Auto);

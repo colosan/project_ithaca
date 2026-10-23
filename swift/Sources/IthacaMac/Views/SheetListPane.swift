@@ -11,23 +11,28 @@ struct SheetListPane: View {
         VStack(spacing: 0) {
             header(trash: trash, sheets: sheets)
             if trash && !sheets.isEmpty {
-                HStack(spacing: T.Space.s100) {
+                // Hint on its own line, buttons below: side by side they clipped in a 280 pt list (English worst).
+                VStack(alignment: .leading, spacing: T.Space.s100) {
                     Caption(model.t(.trashHint)).fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                    KitButton(model.t(.trashRestoreAll), icon: .restore, variant: .ghost) { model.restoreAll() }
-                    KitButton(model.t(.trashEmpty), variant: .danger) { model.emptyTrash() }
+                    HStack(spacing: T.Space.s100) {
+                        KitButton(model.t(.trashRestoreAll), icon: .restore) { model.restoreAll() }.help(model.t(.trashRestoreAll))
+                        KitButton(model.t(.trashEmpty), icon: .delete, variant: .danger) { model.emptyTrash() }.help(model.t(.trashEmpty))
+                        Spacer(minLength: 0)
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, T.Space.s200)
                 .padding(.vertical, T.Space.s100)
                 .hairline(.bottom)
             }
+            ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
                     if sheets.isEmpty {
                         Caption(trash ? model.t(.trashEmptyState) : model.t(.sheetListEmpty)).padding(T.Space.s300)
                     }
                     ForEach(sheets) { s in
-                        SheetRow(sheet: s, trash: trash, active: !trash && s.id == model.sheetId)
+                        SheetRow(sheet: s, trash: trash, active: !trash && s.id == model.sheetId).id(s.id)
                     }
                     // Dropping below the last row moves a sheet to the end.
                     Color.clear.frame(height: T.Size.rowSheet)
@@ -38,27 +43,41 @@ struct SheetListPane: View {
                         }
                 }
             }
+            // New sheet, reorder (⌥⌘↑↓, drag), search hit: keep the open sheet in view.
+            .onChange(of: model.sheetId) { reveal(proxy) }
+            .onChange(of: sheets.map(\.id)) { reveal(proxy) }
+            .onAppear { reveal(proxy) }
+            }
         }
         .frame(maxHeight: .infinity)
         .background(Color.surfaceList)
         .hairline(.trailing)
     }
 
+    private func reveal(_ proxy: ScrollViewProxy) {
+        guard !model.showingTrash, let id = model.sheetId, model.folder?.sheets.contains(where: { $0.id == id }) == true else { return }
+        DispatchQueue.main.async { withAnimation(.easeOut(duration: 0.15)) { proxy.scrollTo(id) } }
+    }
+
     private func header(trash: Bool, sheets: [SheetSummary]) -> some View {
-        let total = sheets.reduce(0) { $0 + (model.language == .ko ? $1.counts.chars : $1.counts.words) }
-        let unit = model.language == .ko ? model.t(.countWithSpaces, ["count": total]) : model.t(.countWords, ["count": total], count: total)
+        let ko = model.language == .ko
+        let total = sheets.reduce(0) { $0 + (ko ? $1.counts.chars : $1.counts.words) }
+        // Short in the header ("29,822 chars"), the full wording in the tooltip: the long form wrapped to 3 lines in English.
+        let short = ko ? model.t(.countCharsShort, ["count": total], count: total) : model.t(.countWords, ["count": total], count: total)
+        let full = ko ? model.t(.countWithSpaces, ["count": total], count: total) : model.t(.countWords, ["count": total], count: total)
+        let stock = trash ? nil : model.folder.flatMap { model.stock($0) }
+        let line = model.t(.sheetListCount, ["count": sheets.count], count: sheets.count)
+            + (!trash && !sheets.isEmpty ? " · \(short)" : "")
+            + (stock.map { " · " + model.t(.episodeStock, ["count": $0]) } ?? "")
+        let tip = [model.t(.sheetListCount, ["count": sheets.count], count: sheets.count), trash || sheets.isEmpty ? nil : full,
+                   stock.map { model.t(.episodeStock, ["count": $0]) + " — " + model.t(.episodeStockHint) }].compactMap { $0 }.joined(separator: "\n")
         return HStack(spacing: T.Space.s50) {
             if !model.dockedLibrary && !model.libraryOverlay {
                 IconButton(.library, label: model.t(.libraryShow)) { model.libraryOverlay = true }
             }
             VStack(alignment: .leading, spacing: 0) {
                 Text(trash ? model.t(.trashTitle) : model.folder?.name ?? "").textStyle(.heading).lineLimit(1)
-                HStack(spacing: 0) {
-                    Caption(model.t(.sheetListCount, ["count": sheets.count], count: sheets.count) + (!trash && !sheets.isEmpty ? " · \(unit)" : ""))
-                    if !trash, let f = model.folder, let stock = model.stock(f) {
-                        Caption(" · " + model.t(.episodeStock, ["count": stock])).help(model.t(.episodeStockHint))
-                    }
-                }
+                Caption(line).lineLimit(1).truncationMode(.tail).help(tip)
             }
             Spacer(minLength: 0)
             IconButton(.search, label: model.t(.searchTitle)) { model.show(.palette(search: true)) }
@@ -82,8 +101,10 @@ struct SheetRow: View {
     @State private var dropAbove = false
 
     var body: some View {
-        let length = model.language == .ko ? model.t(.countWithSpaces, ["count": sheet.counts.chars])
-                                           : model.t(.countWords, ["count": sheet.counts.words], count: sheet.counts.words)
+        let ko = model.language == .ko
+        let length = ko ? model.t(.countCharsShort, ["count": sheet.counts.chars], count: sheet.counts.chars)
+                        : model.t(.countWords, ["count": sheet.counts.words], count: sheet.counts.words)
+        let lengthFull = ko ? model.t(.countWithSpaces, ["count": sheet.counts.chars], count: sheet.counts.chars) : length
         HStack(alignment: .top, spacing: T.Space.s100) {
             VStack(alignment: .leading, spacing: T.Space.s25) {
                 HStack(spacing: T.Space.s50) {
@@ -91,16 +112,17 @@ struct SheetRow: View {
                         .textStyle(.body, weight: T.Typography.heading.weight)
                         .foregroundStyle(sheet.title.isEmpty ? Color.inkTertiary : .inkPrimary)
                         .lineLimit(1)
-                    if sheet.branched { Icon(.warning, size: T.Size.iconSm, color: .stateWarning).help(model.t(.sheetBranched)) }
+                    if sheet.damaged { Icon(.warning, size: T.Size.iconSm, color: .stateDanger).help(model.t(.sheetDamagedHint)) }
+                    else if sheet.branched { Icon(.warning, size: T.Size.iconSm, color: .stateWarning).help(model.t(.sheetBranched)) }
                 }
                 if !sheet.excerpt.isEmpty {
                     Text(sheet.excerpt).textStyle(.caption).foregroundStyle(Color.inkSecondary).lineLimit(1)
                 }
                 HStack(spacing: T.Space.s100) {
                     if let e = sheet.episode {
-                        Text(model.episodeLabel(e)).foregroundStyle(e.status == .published ? Color.inkTertiary : .accentPrimary)
+                        Text(model.episodeLabel(e)).foregroundStyle(e.status == .published ? Color.inkTertiary : .accentPrimary).fixedSize()
                     }
-                    Text(length)
+                    Text(length).help(lengthFull).fixedSize()
                     Text(trash ? (model.folderName(sheet.folder) ?? "") : sheet.modified.date.formatted(.dateTime.month(.abbreviated).day().hour().minute().locale(Locale(identifier: model.locale.rawValue))))
                 }
                 .lineLimit(1)
@@ -148,6 +170,10 @@ struct SheetRow: View {
             Menu(model.t(.sheetMove)) {
                 ForEach(others) { f in Button(f.name) { model.move(sheet: sheet.id, to: f.id, before: nil) } }
             }
+        }
+        if sheet.episode != nil && !model.readOnly {
+            Divider()
+            Button(model.t(.episodePublishedThrough)) { model.markPublishedThrough(sheet.id) }
         }
         Divider()
         Button(model.t(.navHistory)) { model.openSheet(sheet.id); model.show(.history) }

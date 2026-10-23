@@ -18,18 +18,32 @@ fn lib(dir: &Path) -> std::path::PathBuf {
     dir.join("Library")
 }
 
+/// A project whose first sheet has text (an empty library is never backed up automatically).
+fn seed(s: &mut Store) -> String {
+    let p = s
+        .create_project("등대", Language::Ko, &["연재".into()])
+        .unwrap()
+        .id;
+    let sheet = s.outline(&p).unwrap().folders[0].sheets[0].id.clone();
+    s.save_sheet(&p, &sheet, "첫 문장.").unwrap();
+    p
+}
+
 #[test]
 fn backup_now_then_restore_as_copies() {
     let dir = tempfile::tempdir().unwrap();
     let (clock, mut s) = open(&lib(dir.path()));
-    assert!(s.backup_due(), "a new library has no backup");
+    assert!(!s.backup_due(), "an empty library is not backed up");
     let p = s
         .create_project("등대", Language::Ko, &["연재".into(), "설정".into()])
         .unwrap()
         .id;
     let o = s.outline(&p).unwrap();
     let (serial, ep1) = (o.folders[0].id.clone(), o.folders[0].sheets[0].id.clone());
+    assert!(!s.backup_due(), "still no text");
+    assert!(matches!(s.backup_now(), Err(StoreError::InvalidInput(_))));
     s.save_sheet(&p, &ep1, "# 1화\n\n바다.").unwrap();
+    assert!(s.backup_due(), "text and no backup yet");
     let ep2 = s.create_sheet(&p, &serial, "# 2화\n\n안개.").unwrap().id;
     let gone = s.create_sheet(&p, &serial, "버린 글").unwrap().id;
     s.trash_sheet(&p, &gone).unwrap();
@@ -72,13 +86,11 @@ fn backup_now_then_restore_as_copies() {
     assert_eq!(b.bytes, total);
     assert_eq!(s.backups(), vec![b.clone()]);
     assert!(!s.backup_due());
-    clock.advance(23 * HOUR);
-    assert!(!s.backup_due());
-    clock.advance(2 * HOUR);
-    assert!(s.backup_due());
-
+    clock.advance(25 * HOUR);
+    assert!(!s.backup_due(), "nothing changed since the backup");
     // Change the library after the backup; the restore brings back the backup's state as new projects.
     s.save_sheet(&p, &ep1, "# 1화\n\n다 고쳤다.").unwrap();
+    assert!(s.backup_due(), "changed, and the backup is over a day old");
     let before = s.projects().len();
     let copies = s.restore_backup_as_copies(&b.path).unwrap();
     assert_eq!(copies.len(), 1, "the deleted project is not restored");
@@ -130,8 +142,7 @@ fn backup_now_then_restore_as_copies() {
 fn retention_keeps_dailies_weeklies_manual_and_pre_migration() {
     let dir = tempfile::tempdir().unwrap();
     let (clock, mut s) = open(&lib(dir.path()));
-    s.create_project("등대", Language::Ko, &["연재".into()])
-        .unwrap();
+    seed(&mut s);
     // A pre-migration backup made by an earlier open, and a manual one.
     let pre_dir = s.root().join("Backups/pre-migration-1-2-2026-10-01");
     let pre = pre_dir.join("projects/x");
@@ -192,6 +203,7 @@ fn retention_keeps_dailies_weeklies_manual_and_pre_migration() {
 fn half_written_backup_is_never_listed_and_is_cleaned() {
     let dir = tempfile::tempdir().unwrap();
     let (_c, mut s) = open(&lib(dir.path()));
+    seed(&mut s);
     let tmp = dir.path().join("Backups/.tmp-auto-2026-10-23-2359-1");
     fs::create_dir_all(tmp.join("projects")).unwrap();
     // A fresh one may be another library's backup in progress (the folder is shared): kept.

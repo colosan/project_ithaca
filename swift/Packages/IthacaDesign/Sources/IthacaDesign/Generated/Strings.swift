@@ -422,6 +422,30 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case libraryLockedByOther = "library.lockedByOther"
     case libraryProblems = "library.problems"
     case libraryProblemsTitle = "library.problemsTitle"
+    case sheetDamaged = "sheet.damaged"
+    case sheetDamagedHint = "sheet.damagedHint"
+    case sheetRecoverFromBackup = "sheet.recoverFromBackup"
+    case sheetRecovered = "sheet.recovered"
+    case sheetRecoverFailed = "sheet.recoverFailed"
+    case episodePublishedThrough = "episode.publishedThrough"
+    case episodePublishedThroughDone = "episode.publishedThroughDone"
+    case episodeRenumberedNone = "episode.renumberedNone"
+    case busyImportWeb = "busy.importWeb"
+    case busyRestoreBackup = "busy.restoreBackup"
+    case countCharsShort = "count.charsShort"
+    case sheetKeepLastGood = "sheet.keepLastGood"
+    case sheetNoBackupHasIt = "sheet.noBackupHasIt"
+    case sheetKeptLastGood = "sheet.keptLastGood"
+    case projectTocDamaged = "project.tocDamaged"
+    case projectTocDamagedAction = "project.tocDamagedAction"
+    case importTextFolder = "import.textFolder"
+    case importTextFolderHint = "import.textFolderHint"
+    case importTextFolderDone = "import.textFolderDone"
+    case importSkippedCount = "import.skippedCount"
+    case importSkippedTitle = "import.skippedTitle"
+    case importSkippedHint = "import.skippedHint"
+    case busyImportTextFolder = "busy.importTextFolder"
+    case menuQuit = "menu.quit"
 }
 
 enum L10nValue: Sendable {
@@ -805,7 +829,7 @@ public enum L10n {
             .historyIntegrityFailed: .text("해시 검증에서 문제를 찾았어요 — {message}"),
             .importWeb: .text("웹 버전에서 가져오기"),
             .importWebHint: .text("웹 버전의 백업 파일(JSON)을 새 작품으로 추가해요. 지금 있는 작품은 그대로예요."),
-            .importWebDone: .text("웹 버전에서 작품 {projects}개, 시트 {sheets}개를 가져왔어요."),
+            .importWebDone: .text("웹 버전에서 작품 {projects}개, 시트 {sheets}개를 가져왔어요 — {names}"),
             .importWebFailed: .text("가져오지 못했어요 — {message}"),
             .libraryInMemory: .text("미리보기 저장소예요. 앱을 끄면 쓴 내용이 사라져요."),
             .libraryMigrated: .text("라이브러리를 새 형식으로 옮겼어요 (형식 {from}에서). 옮기기 전 내용은 여기에 백업해 두었어요: {path}"),
@@ -814,7 +838,7 @@ public enum L10n {
             .menuFindInSheet: .text("시트에서 찾기…"),
             .prefsEditorSpellAutoHint: .text("시스템 사전을 써요. 한국어 원고는 기본으로 꺼져 있어요."),
             .syncSaveFailedApp: .text("저장하지 못했어요 — {message}"),
-            .welcomeImportWeb: .text("웹 버전을 쓰고 있었나요?"),
+            .welcomeImportWeb: .text("쓰던 원고가 있나요?"),
             .welcomeStartFresh: .text("새로 시작하기"),
             .episodeNumber: .text("{number}화"),
             .episodeStatus: .text("회차 상태"),
@@ -826,7 +850,7 @@ public enum L10n {
             .episodeStock: .text("비축 {count}화"),
             .episodeStockHint: .text("아직 발행하지 않은 회차 수예요."),
             .episodeRenumber: .text("회차 번호 다시 매기기"),
-            .episodeRenumbered: .text("{count}화까지 번호를 다시 매겼어요."),
+            .episodeRenumbered: .text("1화부터 {count}화까지 번호를 다시 매겼어요."),
             .infoPlatform: .text("연재처 기준"),
             .infoMunpia: .text("문피아"),
             .infoNovelpia: .text("노벨피아"),
@@ -840,7 +864,7 @@ public enum L10n {
             .backupMetaProjects: .text("{size} · 작품 {count}개"),
             .backupNone: .text("아직 백업이 없어요."),
             .backupRestoreCopies: .text("사본으로 복원"),
-            .backupRestoredCopies: .text("백업의 작품 {count}개를 사본으로 추가했어요."),
+            .backupRestoredCopies: .text("백업의 작품 {count}개를 사본으로 추가했어요 — {names}"),
             .backupFailed: .text("백업하지 못했어요 — {message}"),
             .actionRetry: .text("다시 시도"),
             .saveFailedTitle: .text("저장하지 못한 글이 있어요"),
@@ -858,6 +882,30 @@ public enum L10n {
             .libraryLockedByOther: .text("다른 Ithaca가 이 라이브러리를 쓰고 있어요 — 읽기 전용이에요."),
             .libraryProblems: .text("라이브러리를 열면서 문제를 {count}개 찾았어요. 자세한 내용은 환경설정 → 백업에 있어요."),
             .libraryProblemsTitle: .text("열면서 찾은 문제"),
+            .sheetDamaged: .text("이 시트의 기록 일부가 손상됐어요 — 마지막으로 온전한 내용을 보여주고 있어요."),
+            .sheetDamagedHint: .text("기록 일부가 손상된 시트예요. 열어서 백업에서 되살릴 수 있어요."),
+            .sheetRecoverFromBackup: .text("백업에서 되살리기"),
+            .sheetRecovered: .text("백업에서 되살렸어요 — {title}"),
+            .sheetRecoverFailed: .text("백업에서 되살리지 못했어요 — {message}"),
+            .episodePublishedThrough: .text("여기까지 발행으로 표시"),
+            .episodePublishedThroughDone: .text("‘{title}’까지 발행으로 표시했어요."),
+            .episodeRenumberedNone: .text("번호를 매길 시트가 없어요."),
+            .busyImportWeb: .text("웹 버전 백업을 가져오는 중이에요…"),
+            .busyRestoreBackup: .text("백업을 사본으로 복원하는 중이에요…"),
+            .countCharsShort: .text("{count}자"),
+            .sheetKeepLastGood: .text("마지막 온전한 내용으로 계속 쓰기"),
+            .sheetNoBackupHasIt: .text("이 시트가 온전하게 든 백업이 없어요. 마지막 온전한 내용으로 계속 쓸 수 있어요."),
+            .sheetKeptLastGood: .text("마지막 온전한 내용으로 이어서 쓸 수 있어요 — {title}"),
+            .projectTocDamaged: .text("이 작품의 목차 기록이 손상돼서 시트 추가·이동 같은 변경을 저장할 수 없어요. 환경설정 → 백업에서 사본으로 복원해 보세요."),
+            .projectTocDamagedAction: .text("백업 열기"),
+            .importTextFolder: .text("텍스트 폴더 가져오기"),
+            .importTextFolderHint: .text("한글·메모장·Scrivener에서 내보낸 .txt·.md 파일 폴더를 새 작품 하나로 가져와요. 하위 폴더는 폴더가 돼요."),
+            .importTextFolderDone: .text("텍스트 폴더에서 시트 {sheets}개를 가져왔어요 — {names}"),
+            .importSkippedCount: .text("파일 {count}개는 건너뛰었어요."),
+            .importSkippedTitle: .text("건너뛴 파일"),
+            .importSkippedHint: .text("아래 파일은 가져오지 않았어요. 나머지는 모두 새 작품에 들어 있어요."),
+            .busyImportTextFolder: .text("텍스트 폴더를 가져오는 중이에요…"),
+            .menuQuit: .text("Ithaca 종료"),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -1220,7 +1268,7 @@ public enum L10n {
             .historyIntegrityFailed: .text("Hash check found a problem — {message}"),
             .importWeb: .text("Import from the web version"),
             .importWebHint: .text("Adds the web version's backup file (JSON) as new projects. Nothing here is replaced."),
-            .importWebDone: .text("Imported {projects} projects and {sheets} sheets from the web version."),
+            .importWebDone: .text("Imported {projects} projects and {sheets} sheets from the web version — {names}"),
             .importWebFailed: .text("Couldn't import — {message}"),
             .libraryInMemory: .text("Preview storage — what you write is lost when you quit."),
             .libraryMigrated: .text("Moved the library to the new format (from format {from}). The previous copy is backed up at {path}"),
@@ -1229,7 +1277,7 @@ public enum L10n {
             .menuFindInSheet: .text("Find in Sheet…"),
             .prefsEditorSpellAutoHint: .text("Uses the system dictionary. Off by default for Korean manuscripts."),
             .syncSaveFailedApp: .text("Not saved — {message}"),
-            .welcomeImportWeb: .text("Coming from the web version?"),
+            .welcomeImportWeb: .text("Bringing work from elsewhere?"),
             .welcomeStartFresh: .text("Start fresh"),
             .episodeNumber: .text("Ep. {number}"),
             .episodeStatus: .text("Episode status"),
@@ -1241,7 +1289,7 @@ public enum L10n {
             .episodeStock: .text("{count} in stock"),
             .episodeStockHint: .text("Episodes not published yet."),
             .episodeRenumber: .text("Renumber Episodes"),
-            .episodeRenumbered: .plural(one: "Renumbered {count} episode.", other: "Renumbered {count} episodes."),
+            .episodeRenumbered: .plural(one: "Numbered episode 1.", other: "Numbered episodes 1–{count}."),
             .infoPlatform: .text("Platform counts"),
             .infoMunpia: .text("Munpia"),
             .infoNovelpia: .text("Novelpia"),
@@ -1255,7 +1303,7 @@ public enum L10n {
             .backupMetaProjects: .plural(one: "{size} · {count} project", other: "{size} · {count} projects"),
             .backupNone: .text("No backups yet."),
             .backupRestoreCopies: .text("Restore as copies"),
-            .backupRestoredCopies: .plural(one: "Added {count} project from the backup as a copy.", other: "Added {count} projects from the backup as copies."),
+            .backupRestoredCopies: .plural(one: "Added {count} project from the backup as a copy — {names}", other: "Added {count} projects from the backup as copies — {names}"),
             .backupFailed: .text("Backup failed — {message}"),
             .actionRetry: .text("Try again"),
             .saveFailedTitle: .text("Some of your writing isn't saved"),
@@ -1273,6 +1321,30 @@ public enum L10n {
             .libraryLockedByOther: .text("Another Ithaca is using this library — read-only here."),
             .libraryProblems: .plural(one: "Found {count} problem while opening the library. Details are in Settings → Backup.", other: "Found {count} problems while opening the library. Details are in Settings → Backup."),
             .libraryProblemsTitle: .text("Problems found when opening"),
+            .sheetDamaged: .text("Part of this sheet's history is damaged — showing the last intact text."),
+            .sheetDamagedHint: .text("Part of this sheet's history is damaged. Open it to recover from a backup."),
+            .sheetRecoverFromBackup: .text("Recover from backup"),
+            .sheetRecovered: .text("Recovered from the backup — {title}"),
+            .sheetRecoverFailed: .text("Couldn't recover from the backup — {message}"),
+            .episodePublishedThrough: .text("Mark published up to here"),
+            .episodePublishedThroughDone: .text("Marked everything up to “{title}” as published."),
+            .episodeRenumberedNone: .text("There are no sheets to number."),
+            .busyImportWeb: .text("Importing the web backup…"),
+            .busyRestoreBackup: .text("Restoring the backup as copies…"),
+            .countCharsShort: .plural(one: "{count} char", other: "{count} chars"),
+            .sheetKeepLastGood: .text("Keep writing from the last intact text"),
+            .sheetNoBackupHasIt: .text("No backup has this sheet intact. You can keep writing from the last intact text."),
+            .sheetKeptLastGood: .text("You can keep writing from the last intact text — {title}"),
+            .projectTocDamaged: .text("This project's table of contents is damaged, so changes like adding or moving sheets can't be saved. Try restoring it as a copy from Settings → Backup."),
+            .projectTocDamagedAction: .text("Open backups"),
+            .importTextFolder: .text("Import Text Folder"),
+            .importTextFolderHint: .text("Brings a folder of .txt and .md files (from Hangul, Notepad, Scrivener…) in as one new project. Subfolders become folders."),
+            .importTextFolderDone: .text("Imported {sheets} sheets from the text folder — {names}"),
+            .importSkippedCount: .plural(one: "Skipped {count} file.", other: "Skipped {count} files."),
+            .importSkippedTitle: .text("Skipped files"),
+            .importSkippedHint: .text("These files weren't imported. Everything else is in the new project."),
+            .busyImportTextFolder: .text("Importing the text folder…"),
+            .menuQuit: .text("Quit Ithaca"),
         ],
     ]
 }

@@ -4,6 +4,8 @@ use crate::types::SearchHit;
 
 /// Stop after this many hits in one search.
 pub const MAX_HITS: usize = 500;
+/// Stop after this many hits in one project when searching several (added: qa1).
+pub const MAX_PER_PROJECT: usize = 200;
 const BEFORE: usize = 24;
 const AFTER: usize = 48;
 

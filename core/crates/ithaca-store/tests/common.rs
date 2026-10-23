@@ -27,6 +27,8 @@ impl TestClock {
 pub fn opts(clock: Clock) -> OpenOptions {
     OpenOptions {
         clock,
+        // Backup folder names in UTC, whatever zone the test machine is in.
+        local_offset: Arc::new(|_| 0),
         ..Default::default()
     }
 }

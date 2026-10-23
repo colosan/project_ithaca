@@ -23,15 +23,17 @@ fn imports_web_backup_as_new_projects() {
         ImportReport {
             projects: 2,
             folders: 4,
-            sheets: 5
+            sheets: 5,
+            skipped: vec![]
         }
     );
     let ps = s.projects();
     assert_eq!(ps.len(), 3);
-    // Imported projects keep their creation time, so they sort before the newer existing one.
+    // (qa1) Projects are listed in the order they came into this library: imports go last, even
+    // though they keep their (older) creation time.
     assert_eq!(
-        ps[2].id, existing,
-        "nothing overwritten, creation order kept"
+        ps[0].id, existing,
+        "nothing overwritten, library order kept"
     );
     let ko = ps.iter().find(|p| p.title == "등대지기의 딸").unwrap();
     assert_eq!(
@@ -72,6 +74,21 @@ fn imports_web_backup_as_new_projects() {
         1_790_200_000_000
     );
     assert!(o.trash.is_empty());
+    // (qa1) The first folder's sheets become episodes 1..n, Draft; other folders get none.
+    let eps: Vec<_> = serial
+        .iter()
+        .map(|x| x.episode.as_ref().map(|e| (e.number, e.status)))
+        .collect();
+    assert_eq!(
+        eps,
+        [1, 2, 3].map(|n| Some((Some(n), ithaca_model::EpisodeStatus::Draft)))
+    );
+    assert!(
+        o.folders[1..]
+            .iter()
+            .flat_map(|f| &f.sheets)
+            .all(|x| x.episode.is_none())
+    );
     assert!(
         s.sheet_text(&ko.id, &serial[1].id)
             .unwrap()
@@ -85,9 +102,12 @@ fn imports_web_backup_as_new_projects() {
         (Language::En, None, 13)
     );
 
-    // Importing again adds copies; still nothing overwritten.
-    s.import_web_backup(&json).unwrap();
-    assert_eq!(s.projects().len(), 5);
+    // Importing again adds copies at the end; still nothing overwritten. A suffix marks them.
+    s.import_web_backup_with_suffix(&json, " (웹)").unwrap();
+    let ps = s.projects();
+    assert_eq!(ps.len(), 5);
+    assert!(ps[3..].iter().all(|p| p.title.ends_with(" (웹)")), "{ps:?}");
+    assert!(ps[..3].iter().all(|p| !p.title.ends_with(" (웹)")));
 }
 
 #[test]

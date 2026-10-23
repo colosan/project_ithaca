@@ -137,6 +137,7 @@ pub fn backup(root: &Path, from: u32, to: u32, now: i64) -> Result<PathBuf> {
             format: from,
             projects: crate::backup::project_count(&tmp),
             complete: true,
+            text_sheets: None,
         };
         write_atomic(&tmp.join(MANIFEST_FILE), &manifest.to_bytes(), true)?;
         fs::rename(&tmp, &path)?;

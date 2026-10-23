@@ -103,6 +103,21 @@ pub fn list(dir: &Path) -> io::Result<Vec<String>> {
 }
 
 /// `YYYY-MM-DD` (UTC) for a Unix time in milliseconds.
+/// Offset of the system's local time from UTC at `ms`, in ms; 0 if unknown.
+#[cfg(unix)]
+pub fn local_offset_ms(ms: i64) -> i64 {
+    let t = ms.div_euclid(1000) as libc::time_t;
+    // SAFETY: `localtime_r` only writes the `tm` we pass and reads `t`; a zeroed `tm` is valid.
+    let mut tm: libc::tm = unsafe { std::mem::zeroed() };
+    let ok = unsafe { !libc::localtime_r(&t, &mut tm).is_null() };
+    if ok { tm.tm_gmtoff as i64 * 1000 } else { 0 }
+}
+
+#[cfg(not(unix))]
+pub fn local_offset_ms(_ms: i64) -> i64 {
+    0
+}
+
 pub fn utc_date(ms: i64) -> String {
     // Howard Hinnant's civil_from_days.
     let z = ms.div_euclid(86_400_000) + 719_468;

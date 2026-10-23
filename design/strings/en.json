@@ -413,7 +413,7 @@
   "history.integrityFailed": "Hash check found a problem — {message}",
   "import.web": "Import from the web version",
   "import.webHint": "Adds the web version's backup file (JSON) as new projects. Nothing here is replaced.",
-  "import.webDone": "Imported {projects} projects and {sheets} sheets from the web version.",
+  "import.webDone": "Imported {projects} projects and {sheets} sheets from the web version — {names}",
   "import.webFailed": "Couldn't import — {message}",
   "library.inMemory": "Preview storage — what you write is lost when you quit.",
   "library.migrated": "Moved the library to the new format (from format {from}). The previous copy is backed up at {path}",
@@ -422,7 +422,7 @@
   "menu.findInSheet": "Find in Sheet…",
   "prefs.editor.spellAutoHint": "Uses the system dictionary. Off by default for Korean manuscripts.",
   "sync.saveFailedApp": "Not saved — {message}",
-  "welcome.importWeb": "Coming from the web version?",
+  "welcome.importWeb": "Bringing work from elsewhere?",
   "welcome.startFresh": "Start fresh",
   "episode.number": "Ep. {number}",
   "episode.status": "Episode status",
@@ -435,8 +435,8 @@
   "episode.stockHint": "Episodes not published yet.",
   "episode.renumber": "Renumber Episodes",
   "episode.renumbered": {
-    "one": "Renumbered {count} episode.",
-    "other": "Renumbered {count} episodes."
+    "one": "Numbered episode 1.",
+    "other": "Numbered episodes 1–{count}."
   },
   "info.platform": "Platform counts",
   "info.munpia": "Munpia",
@@ -461,8 +461,8 @@
   "backup.none": "No backups yet.",
   "backup.restoreCopies": "Restore as copies",
   "backup.restoredCopies": {
-    "one": "Added {count} project from the backup as a copy.",
-    "other": "Added {count} projects from the backup as copies."
+    "one": "Added {count} project from the backup as a copy — {names}",
+    "other": "Added {count} projects from the backup as copies — {names}"
   },
   "backup.failed": "Backup failed — {message}",
   "action.retry": "Try again",
@@ -483,5 +483,35 @@
     "one": "Found {count} problem while opening the library. Details are in Settings → Backup.",
     "other": "Found {count} problems while opening the library. Details are in Settings → Backup."
   },
-  "library.problemsTitle": "Problems found when opening"
+  "library.problemsTitle": "Problems found when opening",
+  "sheet.damaged": "Part of this sheet's history is damaged — showing the last intact text.",
+  "sheet.damagedHint": "Part of this sheet's history is damaged. Open it to recover from a backup.",
+  "sheet.recoverFromBackup": "Recover from backup",
+  "sheet.recovered": "Recovered from the backup — {title}",
+  "sheet.recoverFailed": "Couldn't recover from the backup — {message}",
+  "episode.publishedThrough": "Mark published up to here",
+  "episode.publishedThroughDone": "Marked everything up to “{title}” as published.",
+  "episode.renumberedNone": "There are no sheets to number.",
+  "busy.importWeb": "Importing the web backup…",
+  "busy.restoreBackup": "Restoring the backup as copies…",
+  "count.charsShort": {
+    "one": "{count} char",
+    "other": "{count} chars"
+  },
+  "sheet.keepLastGood": "Keep writing from the last intact text",
+  "sheet.noBackupHasIt": "No backup has this sheet intact. You can keep writing from the last intact text.",
+  "sheet.keptLastGood": "You can keep writing from the last intact text — {title}",
+  "project.tocDamaged": "This project's table of contents is damaged, so changes like adding or moving sheets can't be saved. Try restoring it as a copy from Settings → Backup.",
+  "project.tocDamagedAction": "Open backups",
+  "import.textFolder": "Import Text Folder",
+  "import.textFolderHint": "Brings a folder of .txt and .md files (from Hangul, Notepad, Scrivener…) in as one new project. Subfolders become folders.",
+  "import.textFolderDone": "Imported {sheets} sheets from the text folder — {names}",
+  "import.skippedCount": {
+    "one": "Skipped {count} file.",
+    "other": "Skipped {count} files."
+  },
+  "import.skippedTitle": "Skipped files",
+  "import.skippedHint": "These files weren't imported. Everything else is in the new project.",
+  "busy.importTextFolder": "Importing the text folder…",
+  "menu.quit": "Quit Ithaca"
 }

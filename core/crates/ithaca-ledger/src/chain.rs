@@ -137,6 +137,89 @@ pub struct Rebuilt {
 /// applies to its first parent's text; anything downstream of an invalid block is left out too.
 pub fn rebuild(blocks: impl IntoIterator<Item = Block>) -> Rebuilt {
     let blocks: HashMap<String, Block> = blocks.into_iter().map(|b| (b.hash.clone(), b)).collect();
+    let (mut out, mut texts) = rebuild_texts(&blocks);
+    out.head_text = out
+        .heads
+        .winner
+        .as_ref()
+        .and_then(|w| texts.remove(w))
+        .unwrap_or_default();
+    out
+}
+
+/// What [`salvage`] found in a chain with invalid blocks.
+#[derive(Debug, Clone, Default)]
+pub struct Salvaged {
+    /// The valid blocks plus every block that verifies from a snapshot cut off by the damage.
+    /// Metas keep their real parents.
+    pub metas: BTreeMap<String, Meta>,
+    /// The newest (by `at`) head among them: the last good text.
+    pub head: Option<String>,
+    pub text: String,
+    /// The winner of the strictly valid part (the longest verifiable prefix), which new blocks
+    /// may extend once the damage is dealt with.
+    pub valid_head: Option<String>,
+    pub valid_text: String,
+}
+
+/// For a chain with invalid blocks: the last good text. Strict validity ([`rebuild`]) keeps only the
+/// blocks before the damage. A snapshot written after the damage is self-contained, though, so
+/// it — and the deltas that follow it — still verify; the newer of the two lines is the last good
+/// text. Nothing here is written anywhere.
+pub fn salvage(blocks: impl IntoIterator<Item = Block>) -> Salvaged {
+    let mut blocks: HashMap<String, Block> =
+        blocks.into_iter().map(|b| (b.hash.clone(), b)).collect();
+    let (strict, mut strict_texts) = rebuild_texts(&blocks);
+    let valid_text = strict
+        .heads
+        .winner
+        .as_ref()
+        .and_then(|w| strict_texts.remove(w))
+        .unwrap_or_default();
+    // Cut the snapshots among the invalid blocks loose from their (broken) parents.
+    let mut cut: HashMap<String, Vec<String>> = HashMap::new();
+    for (h, _) in &strict.invalid {
+        if let Some(b) = blocks.get_mut(h)
+            && matches!(b.body, Body::Snapshot(_))
+            && !b.parents.is_empty()
+        {
+            cut.insert(h.clone(), std::mem::take(&mut b.parents));
+        }
+    }
+    let (mut loose, mut texts) = rebuild_texts(&blocks);
+    for (h, parents) in cut {
+        if let Some(m) = loose.metas.get_mut(&h) {
+            m.parents = parents;
+        }
+    }
+    let head = loose
+        .metas
+        .values()
+        .filter(|m| texts.contains_key(&m.hash))
+        .filter(|m| {
+            // A head of the loosened chain: nobody valid builds on it.
+            !loose
+                .metas
+                .values()
+                .any(|c| c.parents.first() == Some(&m.hash))
+        })
+        .max_by(|a, b| a.at.cmp(&b.at).then_with(|| fork_order(a, b)))
+        .map(|m| m.hash.clone());
+    let text = head
+        .as_ref()
+        .and_then(|h| texts.remove(h))
+        .unwrap_or_default();
+    Salvaged {
+        metas: loose.metas,
+        head,
+        text,
+        valid_head: strict.heads.winner,
+        valid_text,
+    }
+}
+
+/// [`rebuild`] without picking the head text: every valid block's text, by hash.
+fn rebuild_texts(blocks: &HashMap<String, Block>) -> (Rebuilt, HashMap<String, String>) {
     let mut out = Rebuilt::default();
     let mut texts: HashMap<String, String> = HashMap::new();
     // Kahn's algorithm over parent edges; blocks whose parents never resolve are invalid.
@@ -192,13 +275,7 @@ pub fn rebuild(blocks: impl IntoIterator<Item = Block>) -> Rebuilt {
     }
     out.invalid.sort_by(|a, b| a.0.cmp(&b.0));
     out.heads = select_heads(&out.metas);
-    out.head_text = out
-        .heads
-        .winner
-        .as_ref()
-        .and_then(|w| texts.remove(w))
-        .unwrap_or_default();
-    out
+    (out, texts)
 }
 
 /// The text after block `hash`, loading blocks back along the first-parent line to the nearest snapshot.
@@ -317,6 +394,24 @@ mod tests {
         assert_eq!(r.heads.winner, Some(m.hash));
         assert!(r.heads.branches.is_empty());
         assert_eq!(r.head_text, "xlr");
+    }
+
+    #[test]
+    fn salvage_finds_the_newest_text_that_verifies() {
+        let a = edit(None, 1, "d1", 1, Body::Snapshot("abc".into()));
+        let b = edit(Some(&a), 1, "d1", 2, delta("abc", "abcd"));
+        let c = edit(Some(&b), 1, "d1", 3, Body::Snapshot("abcde".into()));
+        let d = edit(Some(&c), 1, "d1", 4, delta("abcde", "abcdef"));
+        // `b` is lost: strictly only `a` is valid, but the snapshot `c` and its delta `d` verify.
+        let s = salvage([a.clone(), c.clone(), d.clone()]);
+        assert_eq!(s.valid_head, Some(a.hash.clone()));
+        assert_eq!(s.valid_text, "abc");
+        assert_eq!(s.head, Some(d.hash.clone()));
+        assert_eq!(s.text, "abcdef");
+        assert_eq!(s.metas[&c.hash].parents, vec![b.hash.clone()]);
+        // Without a later snapshot, the prefix is all there is.
+        let s = salvage([a.clone(), d]);
+        assert_eq!((s.head, s.text.as_str()), (Some(a.hash), "abc"));
     }
 
     #[test]

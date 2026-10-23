@@ -86,6 +86,29 @@ enum SelfTest {
         model.textDidChange("옛 시트의 글", token: model.loadToken - 1)
         check(model.text == before && !model.dirty, "stale-token edit ignored")
 
+        // qa1: renumber numbers every sheet; "published up to here"; text-folder import reports skipped files.
+        model.renumberEpisodes()
+        let serial = model.folders.first?.sheets ?? []
+        check(!serial.isEmpty && serial.enumerated().allSatisfy { $0.element.episode?.number == $0.offset + 1 }, "renumber numbered all \(serial.count) sheets")
+        if let first = serial.first {
+            model.markPublishedThrough(first.id)
+            check(model.folders.first?.sheets.first?.episode?.status == .published, "marked published through the first sheet")
+        }
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ithaca-selftest-\(stamp)")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? "1화\n\n첫 글".write(to: dir.appendingPathComponent("1화.txt"), atomically: true, encoding: .utf8)
+        try? "10화\n\n열째 글".write(to: dir.appendingPathComponent("10화.txt"), atomically: true, encoding: .utf8)
+        try? Data([0xff, 0xd8]).write(to: dir.appendingPathComponent("표지.jpg"))
+        var report: Result<ImportReport, Error>?
+        Task { @MainActor in
+            do { report = .success(try await library.importTextFolder(path: dir.path, title: "Selftest import", language: nil)) } catch { report = .failure(error) }
+        }
+        while report == nil { RunLoop.main.run(until: Date().addingTimeInterval(0.05)) }
+        if case .success(let r)? = report { check(r.sheets == 2 && r.skipped.count == 1, "text folder: \(r.sheets) sheets, skipped \(r.skipped)") }
+        else { check(false, "text folder import: \(String(describing: report))") }
+        if let p = library.projects().first(where: { $0.title == "Selftest import" }) { try? library.deleteProject(id: p.id) }
+        try? FileManager.default.removeItem(at: dir)
+
         model.openSheet(here)
         model.textDidChange("# 왕복 시험\n\n한글 문장 \(stamp)", token: model.loadToken)
         model.flushSave()
@@ -113,6 +136,8 @@ enum AppEnvironment {
         .flatMap { $0.isEmpty ? nil : UserDefaults(suiteName: $0) } ?? .standard
 
     static var isTestLibrary: Bool { libraryOverride != nil || defaults != .standard }
+    /// ITHACA_DEFAULTS_SUITE is set: nothing may land in the real app's defaults domain (window frames, Sparkle, restoration).
+    static let isolatedDefaults = !(ProcessInfo.processInfo.environment["ITHACA_DEFAULTS_SUITE"] ?? "").isEmpty
 
     /// One per install (ADR-0008 §6), kept in UserDefaults and handed to the core on open.
     static let deviceId: String = {
@@ -257,7 +282,57 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     static var model: AppModel?
     static var reopenMainWindow: (() -> Void)?
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        if AppEnvironment.isolatedDefaults {
+            // Test runs share the bundle id with the real app: keep window frames and restoration state out of its domain.
+            NSWindow.allowsAutomaticWindowTabbing = false
+            for name in [NSWindow.didBecomeKeyNotification, NSWindow.didBecomeMainNotification, NSWindow.didUpdateNotification] {
+                NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { n in
+                    let id = (n.object as? NSWindow).map(ObjectIdentifier.init)
+                    MainActor.assumeIsolated { NSApp.windows.filter { ObjectIdentifier($0) == id }.forEach(Self.isolate) }
+                }
+            }
+        }
+        // ⌘Q while a sheet (the first-run welcome dialog…) is up: AppKit routes the key to the sheet, which can't quit.
+        // Close the sheet and quit; applicationShouldTerminate still guards unsaved text.
+        quitMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            guard flags == .command, event.charactersIgnoringModifiers?.lowercased() == "q",
+                  NSApp.windows.contains(where: { $0.attachedSheet != nil }) else { return event }
+            MainActor.assumeIsolated { Self.quitClosingSheets() }
+            return nil
+        }
+    }
+
+    private var quitMonitor: Any?
+
+    /// Quit Apple event (Dock → Quit, logout, `osascript … to quit`): same path as ⌘Q.
+    @objc func handleQuitEvent(_ event: NSAppleEventDescriptor, withReply reply: NSAppleEventDescriptor) {
+        Self.quitClosingSheets()
+    }
+
+    /// Dismiss any sheet first (SwiftUI refuses to quit under one it can't close), then quit normally:
+    /// applicationShouldTerminate still guards unsaved text.
+    static func quitClosingSheets() {
+        let hadSheet = model?.overlay != nil || NSApp.windows.contains { $0.attachedSheet != nil }
+        if let model, model.overlay != nil { model.overlay = nil }
+        for w in NSApp.windows { if let sheet = w.attachedSheet { w.endSheet(sheet) } }
+        if hadSheet {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { NSApp.terminate(nil) }
+        } else {
+            NSApp.terminate(nil)
+        }
+    }
+
+    private static func isolate(_ w: NSWindow) {
+        if !w.frameAutosaveName.isEmpty { w.setFrameAutosaveName("") }
+        if w.isRestorable { w.isRestorable = false }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if AppEnvironment.isolatedDefaults { NSApp.windows.forEach(Self.isolate) }
+        NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(handleQuitEvent(_:withReply:)),
+                                                     forEventClass: AEEventClass(kCoreEventClass), andEventID: AEEventID(kAEQuitApplication))
         startWindowSnapshots()
         // No model = the library didn't open; the window shows LibraryErrorView and "Try again" calls didOpen.
         guard let model = Self.model else { return }
@@ -302,6 +377,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// Quit only once the open sheet is saved, or the writer chose (twice) to quit without it.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // A sheet (welcome dialog that can't be dismissed interactively, export, history) must not hold up the quit.
+        if let model = Self.model, model.overlay != nil, model.busy == nil { model.overlay = nil }
+        for w in NSApp.windows { if let sheet = w.attachedSheet { w.endSheet(sheet) } }
         guard let model = Self.model, !model.ensureSaved(quitting: true) else { return .terminateNow }
         // Closing the last window started this quit; bring the window (and the unsaved text) back.
         if !NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeMain }) { Self.reopenMainWindow?() }
@@ -325,12 +403,17 @@ struct IthacaCommands: Commands {
     private func go(_ f: @escaping (AppModel) -> Void) -> () -> Void { { if let m = host.model { f(m) } } }
 
     var body: some Commands {
+        // Our own Quit: SwiftUI cancels a quit while a sheet that can't be dismissed (the first-run welcome) is up.
+        CommandGroup(replacing: .appTermination) {
+            Button(t(.menuQuit)) { AppDelegate.quitClosingSheets() }.keyboardShortcut("q")
+        }
         CommandGroup(replacing: .newItem) {
             Button(t(.sheetNew), action: go { model in AppCommand.newSheet.run(model) }).keyboardShortcut("n").disabled(!menu.hasProject)
             Button(t(.libraryNewProject) + "…", action: go { model in AppCommand.newProject.run(model) }).keyboardShortcut("n", modifiers: [.command, .shift])
             Divider()
             Button(t(.exportTitle) + "…", action: go { model in AppCommand.export.run(model) }).keyboardShortcut("e", modifiers: [.command, .shift]).disabled(!menu.hasProject)
             Button(t(.importWeb) + "…", action: go { model in AppCommand.importWeb.run(model) })
+            Button(t(.importTextFolder) + "…", action: go { model in model.importTextFolder() })
         }
         CommandGroup(after: .textEditing) {
             Divider()
@@ -357,10 +440,11 @@ struct IthacaCommands: Commands {
             Button(t(.sheetMoveUp), action: go { model in AppCommand.moveUp.run(model) }).keyboardShortcut(.upArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet)
             Button(t(.sheetMoveDown), action: go { model in AppCommand.moveDown.run(model) }).keyboardShortcut(.downArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet)
             Divider()
+            Button(t(.episodePublishedThrough), action: go { model in model.markPublishedThrough() }).disabled(!menu.hasSheet)
             Button(t(.episodeRenumber), action: go { model in model.renumberEpisodes() }).disabled(!menu.hasProject)
             Divider()
             Button(t(.historyTitle) + "…", action: go { model in AppCommand.history.run(model) }).keyboardShortcut("h", modifiers: [.command, .shift]).disabled(!menu.hasSheet)
-            Button(t(.paletteSheetInfo), action: go { model in AppCommand.sheetInfo.run(model) })
+            Button(t(.paletteSheetInfo), action: go { model in AppCommand.sheetInfo.run(model) }).disabled(!menu.hasSheet)
             Button(t(.projectSettingsTitle) + "…", action: go { model in AppCommand.projectSettings.run(model) }).disabled(!menu.hasProject)
             Divider()
             Button(t(.trashTitle), action: go { model in AppCommand.showTrash.run(model) }).disabled(!menu.hasProject)

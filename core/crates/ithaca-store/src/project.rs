@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use ithaca_ledger::block::is_hash_name;
-use ithaca_ledger::{Block, Heads, LedgerError, Meta, rebuild, reconstruct};
+use ithaca_ledger::{Block, Heads, LedgerError, Meta, rebuild, reconstruct, salvage};
 use ithaca_model::{Counts, Toc, counts};
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +15,8 @@ use crate::fsutil::{is_temp, list, write_atomic};
 
 pub const CHANGES_DIR: &str = "changes";
 pub const CACHE_DIR: &str = "cache";
+/// Block files taken out of `changes/` when a damaged sheet is recovered (added: qa1). Kept, never read.
+pub const DAMAGED_DIR: &str = "damaged";
 /// 2 (added: safety): `head` and `textHash` bind the cached text to the chain head. Version-1
 /// caches are ignored and rebuilt from blocks.
 const CACHE_VERSION: u32 = 2;
@@ -101,6 +103,28 @@ pub struct Project {
     pub dir: PathBuf,
     pub toc: Toc,
     pub chains: HashMap<String, Chain>,
+    /// (added: qa1) Chains that lost blocks: chain id → the block files behind the damage (files
+    /// that don't read or don't match their hash, and blocks that no longer verify because of
+    /// them). A damaged chain shows its last good text and takes no new blocks until recovered.
+    /// A sheet the table of contents names but that has no block left is damaged with no files.
+    pub damage: BTreeMap<String, Vec<String>>,
+    /// Block files that don't read and whose chain can't be told.
+    pub unattributed: Vec<String>,
+}
+
+/// The chain a block file that doesn't parse probably belongs to: its `"sheet"` field, read as
+/// leniently as possible (the damage may be anywhere else in the file).
+fn guess_chain(dir: &Path, name: &str) -> Option<String> {
+    let bytes = fs::read(changes_dir(dir).join(name)).ok()?;
+    if let Ok(v) = serde_json::from_slice::<serde_json::Value>(&bytes)
+        && let Some(s) = v.get("sheet").and_then(|s| s.as_str())
+    {
+        return Some(s.to_string());
+    }
+    let text = String::from_utf8_lossy(&bytes);
+    let start = text.find("\"sheet\":\"")? + "\"sheet\":\"".len();
+    let len = text[start..].find('"')?;
+    Some(text[start..start + len].to_string())
 }
 
 /// Cache file name for a chain id; ids that aren't plain get hashed so they stay valid file names.
@@ -234,12 +258,24 @@ impl Project {
         }
         // Blocks no cache knows about: read them to learn their chain.
         let mut fresh: HashMap<String, Vec<Block>> = HashMap::new();
+        // Files that don't read or don't verify, with the chain they seem to belong to.
+        let mut bad: Vec<(String, Option<String>)> = Vec::new();
         for name in names.iter().filter(|n| !covered.contains(*n)) {
-            if let Ok(b) = read_block(dir, name) {
-                fresh.entry(b.sheet.clone()).or_default().push(b);
+            match read_block(dir, name) {
+                Ok(b) => fresh.entry(b.sheet.clone()).or_default().push(b),
+                Err(_) => bad.push((name.clone(), guess_chain(dir, name))),
             }
         }
-        for sheet in fresh.keys() {
+        let mut unattributed = Vec::new();
+        let mut by_chain: HashMap<String, Vec<String>> = HashMap::new();
+        for (name, chain) in bad {
+            match chain {
+                Some(c) => by_chain.entry(c).or_default().push(name),
+                None => unattributed.push(name),
+            }
+        }
+        // A chain with new or broken blocks no cache knows is rebuilt from all its blocks.
+        for sheet in fresh.keys().chain(by_chain.keys()) {
             if let Some(chain) = chains.remove(sheet) {
                 dirty
                     .entry(sheet.clone())
@@ -247,42 +283,85 @@ impl Project {
                     .extend(chain.metas.into_keys());
             }
         }
+        // Every rebuilt chain's blocks are read below, so their hashes are verified (Block::parse).
         let mut rebuilt_ids = BTreeSet::new();
+        let mut damage: BTreeMap<String, Vec<String>> = BTreeMap::new();
         for sheet in dirty
             .keys()
             .chain(fresh.keys())
+            .chain(by_chain.keys())
             .cloned()
             .collect::<BTreeSet<_>>()
         {
             let mut blocks: Vec<Block> = fresh.remove(&sheet).unwrap_or_default();
+            let mut broken = by_chain.remove(&sheet).unwrap_or_default();
             for h in dirty.remove(&sheet).unwrap_or_default() {
-                if let Ok(b) = read_block(dir, &h) {
-                    blocks.push(b);
+                match read_block(dir, &h) {
+                    Ok(b) => blocks.push(b),
+                    Err(_) => broken.push(h),
                 }
             }
-            let r = rebuild(blocks);
-            if r.metas.is_empty() {
+            let r = rebuild(blocks.clone());
+            if broken.is_empty() && r.invalid.is_empty() {
+                if r.metas.is_empty() {
+                    continue;
+                }
+                chains.insert(sheet.clone(), Chain::new(r.metas, r.heads, r.head_text));
+                rebuilt_ids.insert(sheet);
                 continue;
             }
-            chains.insert(sheet.clone(), Chain::new(r.metas, r.heads, r.head_text));
-            rebuilt_ids.insert(sheet);
+            // Damaged: show the last good text, remember what is broken, never cache it (so
+            // every open finds the damage again until it is recovered).
+            broken.extend(r.invalid.into_iter().map(|(h, _)| h));
+            broken.sort();
+            broken.dedup();
+            let s = salvage(blocks);
+            if !s.metas.is_empty() {
+                let heads = Heads {
+                    winner: s.head.clone(),
+                    branches: vec![],
+                };
+                chains.insert(sheet.clone(), Chain::new(s.metas, heads, s.text));
+            }
+            damage.insert(sheet, broken);
         }
         let Some(toc_chain) = chains.get(Toc::SHEET_ID) else {
             return Ok(None);
         };
         let toc = Toc::from_text(&toc_chain.text)
             .map_err(|e| StoreError::Corrupt(format!("table of contents of {id}: {e}")))?;
+        // A sheet the table of contents names has at least one block (blocks are written first):
+        // none at all means its files are gone or unreadable.
+        for sheet in toc.sheets.keys() {
+            if !chains.contains_key(sheet) {
+                damage.entry(sheet.clone()).or_default();
+            }
+        }
+        // Damage guessed for a chain the project doesn't know is not a sheet's.
+        damage.retain(|c, files| {
+            let known = c == Toc::SHEET_ID || toc.sheets.contains_key(c) || chains.contains_key(c);
+            if !known {
+                unattributed.append(files);
+            }
+            known
+        });
         // Only a project that loaded is written to (caches, cleanup); one that failed stays as it is.
         if writable {
             for sheet in &rebuilt_ids {
                 write_cache(dir, sheet, &chains[sheet]);
             }
+            for sheet in damage.keys() {
+                remove_cache(dir, sheet);
+            }
         }
+        unattributed.sort();
         let mut project = Project {
             id: id.to_string(),
             dir: dir.to_path_buf(),
             toc,
             chains,
+            damage,
+            unattributed,
         };
         if writable {
             // Writes that never finished: never part of the library. `writable` means this open
@@ -317,6 +396,31 @@ impl Project {
                 let _ = fs::remove_file(changes_dir(&self.dir).join(h));
             }
         }
+        for h in self.damage.remove(sheet).unwrap_or_default() {
+            let _ = fs::remove_file(changes_dir(&self.dir).join(h));
+        }
         remove_cache(&self.dir, sheet);
+    }
+
+    /// Moves block files out of `changes/` into `damaged/` (kept, never read again).
+    pub fn set_aside(&self, files: &[String]) -> Result<()> {
+        let dst = self.dir.join(DAMAGED_DIR);
+        fs::create_dir_all(&dst)?;
+        for f in files {
+            let src = changes_dir(&self.dir).join(f);
+            if !src.exists() {
+                continue;
+            }
+            let mut to = dst.join(f);
+            let mut n = 2;
+            while to.exists() {
+                to = dst.join(format!("{f}-{n}"));
+                n += 1;
+            }
+            fs::rename(&src, &to)?;
+        }
+        crate::fsutil::sync_dir(&changes_dir(&self.dir))?;
+        crate::fsutil::sync_dir(&dst)?;
+        Ok(())
     }
 }

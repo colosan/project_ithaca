@@ -1,7 +1,7 @@
 //! Local backups (design/PRODUCT.md `백업`, research §5 P0 "매일 로컬 백업"; core/FORMAT.md §Backups).
 //!
 //! A backup is a library-shaped folder — `library.json`, `projects/<id>/changes/<hash>` and a
-//! `backup.json` manifest — next to the library: `<library parent>/Backups/auto-<UTC yyyy-mm-dd-HHMM>/`.
+//! `backup.json` manifest — next to the library: `<library parent>/Backups/auto-<local yyyy-mm-dd-HHMM>/`.
 //! Blocks are immutable and the store is behind one lock, so copying the block files is a consistent
 //! snapshot. Caches are derived and left out. A backup is written under a `.tmp-` name, every file
 //! flushed to disk, a manifest with `complete: true` written last, then renamed into place, so a
@@ -25,7 +25,7 @@ use crate::{BackupInfo, BackupKind, NewSheet, ProjectSummary, Store, invalid};
 pub const MANIFEST_FILE: &str = "backup.json";
 pub const DAY_MS: i64 = 86_400_000;
 /// Retention of automatic backups: the newest of each of the last 7 days that have one, and the
-/// newest of each of the last 4 weeks (Monday-based, UTC) that have one. Manual and pre-migration
+/// newest of each of the last 4 weeks (Monday-based) that have one, in local time (UTC before qa1). Manual and pre-migration
 /// backups are never removed.
 pub const KEEP_DAILY: usize = 7;
 pub const KEEP_WEEKLY: usize = 4;
@@ -49,6 +49,14 @@ pub(crate) struct Manifest {
     /// field were also only ever written after the copy finished, so a missing field means true.
     #[serde(default = "yes")]
     pub complete: bool,
+    /// (added: qa1) Sheets with any text in the backup. Absent in older manifests (= unknown,
+    /// taken as "has text").
+    #[serde(
+        default,
+        rename = "textSheets",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub text_sheets: Option<u32>,
 }
 
 fn yes() -> bool {
@@ -71,7 +79,7 @@ impl Manifest {
     }
 }
 
-/// `yyyy-mm-dd-HHMM` in UTC.
+/// `yyyy-mm-dd-HHMM` of a wall-clock time (`ms` already shifted to local time).
 fn stamp(ms: i64) -> String {
     let minutes = ms.rem_euclid(DAY_MS) / 60_000;
     format!("{}-{:02}{:02}", utc_date(ms), minutes / 60, minutes % 60)
@@ -105,7 +113,7 @@ pub(crate) fn project_count(backup: &Path) -> u32 {
         .count() as u32
 }
 
-/// Which automatic backups retention keeps (`at` newest first in, flags out).
+/// Which automatic backups retention keeps (local wall-clock `at`, newest first in, flags out).
 fn keep_flags(ats_newest_first: &[i64]) -> Vec<bool> {
     let (mut days, mut weeks) = (Vec::new(), Vec::new());
     ats_newest_first
@@ -153,16 +161,41 @@ impl Store {
         self.write_backup(MANUAL, BackupKind::Manual)
     }
 
-    /// No automatic backup was made in the last 24 hours (and the library is writable).
+    /// Sheets with any text, over every project (deleted ones and trashed sheets included).
+    fn text_sheets(&self) -> u32 {
+        self.projects
+            .values()
+            .flat_map(|p| p.chains.iter())
+            .filter(|(id, c)| id.as_str() != Toc::SHEET_ID && !c.text.is_empty())
+            .count() as u32
+    }
+
+    /// Time of the newest block in the library.
+    fn newest_block(&self) -> Option<i64> {
+        self.projects
+            .values()
+            .flat_map(|p| p.chains.values())
+            .flat_map(|c| c.metas.values())
+            .map(|m| m.at)
+            .max()
+    }
+
+    /// (changed: qa1) An automatic backup is due when the library has text, changed since the
+    /// newest automatic backup (a block newer than it), and that backup is older than 24 hours or
+    /// held no text. False on a read-only library.
     pub fn backup_due(&self) -> bool {
-        if self.read_only() {
+        if self.read_only() || self.text_sheets() == 0 {
             return false;
         }
-        let since = self.now() - DAY_MS;
-        !self
+        let newest_auto = self
             .backups()
-            .iter()
-            .any(|b| b.kind == BackupKind::Auto && b.at > since)
+            .into_iter()
+            .find(|b| b.kind == BackupKind::Auto);
+        let Some(b) = newest_auto else {
+            return true;
+        };
+        let changed = self.newest_block().is_some_and(|t| t > b.at);
+        changed && (b.at <= self.now() - DAY_MS || !backup_has_text(Path::new(&b.path)))
     }
 
     /// Every backup of this library, newest first: automatic and manual ones from
@@ -215,6 +248,10 @@ impl Store {
 
     fn write_backup(&mut self, prefix: &str, kind: BackupKind) -> Result<BackupInfo> {
         self.writable()?;
+        let text_sheets = self.text_sheets();
+        if kind == BackupKind::Auto && text_sheets == 0 {
+            return Err(invalid("nothing to back up: no sheet has text yet"));
+        }
         let now = self.now();
         let dir = self.backups_dir();
         fs::create_dir_all(&dir)?;
@@ -228,7 +265,9 @@ impl Store {
                 let _ = fs::remove_dir_all(dir.join(&name));
             }
         }
-        let base = format!("{prefix}-{}", stamp(now));
+        // Local wall-clock time in the name (what the writer sees in Finder); `at` in the manifest
+        // stays UTC ms and is what every listing sorts by.
+        let base = format!("{prefix}-{}", stamp(now + (self.local_offset)(now)));
         let mut path = dir.join(&base);
         let mut n = 2;
         while path.exists() {
@@ -283,6 +322,7 @@ impl Store {
                 format: self.prepared.format,
                 projects,
                 complete: true,
+                text_sheets: Some(text_sheets),
             };
             // Written last (and durably): its presence is what makes the folder a backup.
             write_atomic(&tmp.join(MANIFEST_FILE), &m.to_bytes(), true)?;
@@ -315,7 +355,11 @@ impl Store {
             .into_iter()
             .filter(|b| b.kind == BackupKind::Auto)
             .collect();
-        let keep = keep_flags(&autos.iter().map(|b| b.at).collect::<Vec<_>>());
+        let local: Vec<i64> = autos
+            .iter()
+            .map(|b| b.at + (self.local_offset)(b.at))
+            .collect();
+        let keep = keep_flags(&local);
         let dir = self.backups_dir();
         let mut removed = 0;
         for (b, keep) in autos.iter().zip(keep) {
@@ -339,6 +383,16 @@ impl Store {
     /// goals, folder names and order, sheet text, created/modified times and episode metadata are
     /// kept. History is not copied (it stays in the backup). Returns the new projects.
     pub fn restore_backup_as_copies(&mut self, path: &str) -> Result<Vec<ProjectSummary>> {
+        self.restore_backup_as_copies_with_suffix(path, "")
+    }
+
+    /// [`Store::restore_backup_as_copies`], with `suffix` appended to every restored title (e.g.
+    /// " (백업 10월 24일)", worded by the app); empty = titles as they are. (added: qa1)
+    pub fn restore_backup_as_copies_with_suffix(
+        &mut self,
+        path: &str,
+        suffix: &str,
+    ) -> Result<Vec<ProjectSummary>> {
         self.writable()?;
         let src = Path::new(path);
         let file = LibraryFile::read(src)?
@@ -372,9 +426,31 @@ impl Store {
                 .cmp(&b.toc.created)
                 .then_with(|| a.id.cmp(&b.id))
         });
-        let copies: Vec<(Toc, Vec<NewSheet>)> = loaded.iter().map(copy_of).collect();
+        let mut copies: Vec<(Toc, Vec<NewSheet>)> = loaded.iter().map(copy_of).collect();
+        for (toc, _) in &mut copies {
+            toc.title.push_str(suffix);
+        }
         self.create_projects_all_or_nothing(copies)
     }
+}
+
+/// Whether a backup holds any sheet with text. Manifests say so since qa1; for older ones the
+/// backup's projects are read (only asked about the newest automatic backup).
+fn backup_has_text(path: &Path) -> bool {
+    if let Some(n) = Manifest::read(path).and_then(|m| m.text_sheets) {
+        return n > 0;
+    }
+    let projects = path.join(PROJECTS_DIR);
+    list(&projects).unwrap_or_default().iter().any(|id| {
+        Project::load(id, &projects.join(id), false)
+            .ok()
+            .flatten()
+            .is_some_and(|p| {
+                p.chains
+                    .iter()
+                    .any(|(c, ch)| c != Toc::SHEET_ID && !ch.text.is_empty())
+            })
+    })
 }
 
 fn tmp_file(tmp: &Path, name: &str) -> Result<PathBuf> {

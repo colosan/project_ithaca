@@ -122,7 +122,7 @@ struct ManuscriptView: NSViewRepresentable {
             loadedToken = model.loadToken
             tv.string = model.text
             tv.undoManager?.removeAllActions()
-            tv.isEditable = !model.readOnly && model.sheetId != nil
+            tv.isEditable = !model.editorLocked && model.sheetId != nil
             restyle(NSRange(location: 0, length: (tv.string as NSString).length))
             loading = false
             let len = (tv.string as NSString).length
@@ -139,8 +139,8 @@ struct ManuscriptView: NSViewRepresentable {
         /// Fonts and paragraph styles follow the text-size, markup and spelling preferences.
         func configure(sizeClass: T.Layout.SizeClass, force: Bool) {
             guard let tv = textView else { return }
-            let key = StyleKey(size: model.textSize, markup: model.markup, sizeClass: sizeClass, spell: model.spellCheckActive, readOnly: model.readOnly)
-            tv.isEditable = !model.readOnly && model.sheetId != nil
+            let key = StyleKey(size: model.textSize, markup: model.markup, sizeClass: sizeClass, spell: model.spellCheckActive, readOnly: model.editorLocked)
+            tv.isEditable = !model.editorLocked && model.sheetId != nil
             tv.padX = T.Layout.Editor.paddingX(sizeClass)
             tv.typewriter = model.typewriter
             guard force || key != style else { return }

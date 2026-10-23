@@ -113,7 +113,7 @@ pub fn parse(json: &str) -> Result<Vec<WebProject>> {
                             .cmp(&int(b, "created").unwrap_or(0))
                     })
             });
-            for s in fs {
+            for (n, s) in fs.into_iter().enumerate() {
                 let c = int(s, "created").unwrap_or(created);
                 let m = int(s, "modified").unwrap_or(c).max(c);
                 wsheets.push(crate::NewSheet {
@@ -121,7 +121,11 @@ pub fn parse(json: &str) -> Result<Vec<WebProject>> {
                     text: string(s, "body").unwrap_or_default(),
                     created: c,
                     modified: m,
-                    episode: None,
+                    // The first folder is the serial: its sheets become episodes 1..n (added: qa1).
+                    episode: (fi == 0).then(|| ithaca_model::EpisodeInfo {
+                        number: Some(n as u32 + 1),
+                        ..Default::default()
+                    }),
                 });
             }
         }

@@ -320,6 +320,7 @@ fn failed_migration_restores_the_library_and_opens_read_only() {
             run: failing_step,
         }],
         clock,
+        ..Default::default()
     };
     let mut s = Store::open_with(dir.path(), "mac-test", o).unwrap();
     let info = s.info();
@@ -378,6 +379,7 @@ fn migration_is_not_run_while_another_open_holds_the_lock() {
             run: failing_step,
         }],
         clock,
+        ..Default::default()
     };
     let s = Store::open_with(dir.path(), "mac-test", o).unwrap();
     assert!(s.info().read_only && s.info().locked_by_other);
@@ -393,7 +395,12 @@ fn failed_pruning_still_returns_the_backup() {
     let dir = tempfile::tempdir().unwrap();
     let lib = dir.path().join("Library");
     let (_c, mut s) = open(&lib);
-    s.create_project("P", Language::Ko, &["F".into()]).unwrap();
+    let p = s
+        .create_project("P", Language::Ko, &["F".into()])
+        .unwrap()
+        .id;
+    let sheet = s.outline(&p).unwrap().folders[0].sheets[0].id.clone();
+    s.save_sheet(&p, &sheet, "글").unwrap();
     // Two older automatic backups on the same day: retention drops the older one, which we make
     // impossible to remove.
     let backups = dir.path().join("Backups");

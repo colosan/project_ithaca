@@ -57,9 +57,16 @@ struct ShellView: View {
                     Scrim { model.overlay = nil }
                     PaletteView(searchMode: search, compact: panes.compact, initialQuery: model.paletteSeed).frame(maxWidth: .infinity)
                 }
+                // Top-right under the toolbar, inset: over the editor's margin, not over the line being written.
                 if let toast = model.toast {
-                    VStack { Spacer(); ToastBar(toast: toast) }.frame(maxWidth: .infinity).padding(.bottom, T.Space.s600)
+                    VStack {
+                        HStack { Spacer(minLength: T.Space.s200); ToastBar(toast: toast) }
+                        Spacer()
+                    }
+                    .padding(.top, T.Size.barTop + T.Space.s100)
+                    .padding(.trailing, T.Space.s200)
                 }
+                if let busy = model.busy { BusyHUD(message: busy) }
             }
             .onAppear { sync(panes) }
             .onChange(of: panes) { _, p in sync(p) }
@@ -74,6 +81,7 @@ struct ShellView: View {
                 case .history: HistoryView()
                 case .newProject(let firstRun): NewProjectView(firstRun: firstRun)
                 case .projectSettings: ProjectSettingsView()
+                case .importSkipped: ImportSkippedView()
                 case .palette: EmptyView()
                 }
             }
@@ -100,6 +108,56 @@ struct Scrim: View {
     let close: () -> Void
     var body: some View {
         Color.surfaceScrim.ignoresSafeArea().contentShape(Rectangle()).onTapGesture(perform: close)
+    }
+}
+
+/// Files a text-folder import left out, one per line ("path (reason)").
+struct ImportSkippedView: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: T.Space.s150) {
+            Text(model.t(.importSkippedTitle)).textStyle(.title)
+            Text(model.t(.importSkippedHint)).textStyle(.body).foregroundStyle(Color.inkSecondary).fixedSize(horizontal: false, vertical: true)
+            ScrollView {
+                VStack(alignment: .leading, spacing: T.Space.s50) {
+                    ForEach(Array(model.importSkipped.enumerated()), id: \.offset) { _, line in
+                        Text(line).textStyle(.label).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(T.Space.s150)
+                .textSelection(.enabled)
+            }
+            .frame(maxHeight: 320)
+            .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.surfaceRaised))
+            .overlay(RoundedRectangle(cornerRadius: T.Radius.panel).strokeBorder(Color.lineSubtle))
+            HStack {
+                Spacer()
+                KitButton(model.t(.actionClose), variant: .primary) { dismiss() }.keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(T.Space.s300)
+        .frame(width: T.Layout.Pane.dialogDefault)
+        .background(Color.surfaceCanvas)
+    }
+}
+
+/// Import / restore in progress: blocks the window (the work changes the project list) and says what's happening.
+struct BusyHUD: View {
+    let message: String
+    var body: some View {
+        ZStack {
+            Color.surfaceScrim.ignoresSafeArea().contentShape(Rectangle()).onTapGesture {}
+            VStack(spacing: T.Space.s150) {
+                ProgressView().controlSize(.regular)
+                Text(message).textStyle(.label).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(T.Space.s300)
+            .frame(maxWidth: T.Layout.Pane.sheetListDefault)
+            .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.surfaceRaised))
+            .tokenShadow(T.Shadow.dialog)
+        }
     }
 }
 

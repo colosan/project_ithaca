@@ -11,6 +11,8 @@ enum Overlay: Identifiable, Equatable {
     case history
     case newProject(firstRun: Bool)
     case projectSettings
+    /// Files a text-folder import left out (`AppModel.importSkipped`).
+    case importSkipped
     var id: String {
         switch self {
         case .palette: "palette"
@@ -18,6 +20,7 @@ enum Overlay: Identifiable, Equatable {
         case .history: "history"
         case .newProject: "newProject"
         case .projectSettings: "projectSettings"
+        case .importSkipped: "importSkipped"
         }
     }
 }
@@ -180,6 +183,8 @@ final class AppModel {
     var language: ManuscriptLanguage { project?.language ?? (locale == .ko ? .ko : .en) }
     /// Newer-format library, or another Ithaca holds the library's lock: nothing may be written.
     var readOnly: Bool { info.readOnly || info.lockedByOther }
+    /// The open sheet can't be typed into: read-only library, or a damaged sheet (shown as its last intact text).
+    var editorLocked: Bool { readOnly || sheet?.damaged == true }
     var readOnlyMessage: String { info.lockedByOther ? t(.libraryLockedByOther) : t(.libraryReadOnly) }
     var spellCheckActive: Bool { spellCheck ?? (language == .en) }
 
@@ -284,7 +289,7 @@ final class AppModel {
     /// `token` is the `loadToken` the editor last loaded: a change from a view still showing an older sheet
     /// (the switch already happened in the model) is ignored, so the old sheet's text never lands in the new one.
     func textDidChange(_ newText: String, token: Int) {
-        guard token == loadToken, sheetId != nil, !readOnly else { return }
+        guard token == loadToken, sheetId != nil, !editorLocked else { return }
         guard newText != text else { return }
         text = newText
         dirty = true
@@ -592,23 +597,104 @@ final class AppModel {
         }, sticky: true))
     }
 
+    /// Long work in flight (import, restore): the window shows a progress HUD with this message and blocks a second run.
+    var busy: String?
+
     func importWebBackup() {
+        guard busy == nil else { return }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.json]
         panel.allowsMultipleSelection = false
         panel.message = t(.importWebHint)
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        do {
-            let json = try String(contentsOf: url, encoding: .utf8)
-            let before = Set(projects.map(\.id))
-            let r = try library.importWebBackup(json: json)
-            refreshProjects()
-            if let first = projects.first(where: { !before.contains($0.id) }) { selectProject(first.id) }
-            if case .newProject = overlay { overlay = nil }
-            showToast(Toast(message: t(.importWebDone, ["projects": r.projects, "sheets": r.sheets])))
-        } catch {
-            showToast(Toast(message: t(.importWebFailed, ["message": error.localizedDescription]), sticky: true))
+        let before = Set(projects.map(\.id))
+        busy = t(.busyImportWeb)
+        Task { @MainActor in
+            defer { busy = nil }
+            do {
+                // Reading and parsing a large backup also stays off the main thread.
+                let json = try await Task.detached(priority: .userInitiated) { try String(contentsOf: url, encoding: .utf8) }.value
+                let r = try await library.importWebBackup(json: json, suffix: "")
+                let added = adopt(newProjectsSince: before)
+                if case .newProject = overlay { overlay = nil }
+                showToast(Toast(message: t(.importWebDone, ["projects": r.projects, "sheets": r.sheets, "names": names(added)]), sticky: true))
+            } catch {
+                showToast(Toast(message: t(.importWebFailed, ["message": error.localizedDescription]), sticky: true))
+            }
         }
+    }
+
+    /// What the last text-folder import skipped ("path (reason)"), listed in a sheet.
+    var importSkipped: [String] = []
+
+    /// File → Import Text Folder…: a folder of .txt/.md manuscripts becomes one new project.
+    func importTextFolder() {
+        guard busy == nil, !readOnly else { return }
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.message = t(.importTextFolderHint)
+        panel.prompt = t(.importTextFolder)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        let before = Set(projects.map(\.id))
+        busy = t(.busyImportTextFolder)
+        Task { @MainActor in
+            defer { busy = nil }
+            do {
+                let r = try await library.importTextFolder(path: url.path(percentEncoded: false), title: nil, language: nil)
+                let added = adopt(newProjectsSince: before)
+                if case .newProject = overlay { overlay = nil }
+                var message = t(.importTextFolderDone, ["sheets": r.sheets, "names": names(added)])
+                if !r.skipped.isEmpty { message += " " + t(.importSkippedCount, ["count": r.skipped.count], count: r.skipped.count) }
+                showToast(Toast(message: message, sticky: true))
+                if !r.skipped.isEmpty {
+                    importSkipped = r.skipped
+                    // After the welcome sheet (if any) has gone: two sheets swapping in one tick can drop the second.
+                    try? await Task.sleep(for: .milliseconds(400))
+                    if overlay == nil { overlay = .importSkipped }
+                }
+            } catch {
+                showToast(Toast(message: t(.importWebFailed, ["message": error.localizedDescription]), sticky: true))
+            }
+        }
+    }
+
+    /// Settings → Backup → "Restore as copies": never overwrites; the backup's projects come back as new ones.
+    /// The finished message goes to `done` (the settings pane) and to a toast in the main window.
+    func restoreBackupAsCopies(_ b: BackupInfo, done: @escaping (String) -> Void = { _ in }) {
+        guard busy == nil, !readOnly else { return }
+        guard ensureSaved() else { return }
+        let before = Set(projects.map(\.id))
+        busy = t(.busyRestoreBackup)
+        Task { @MainActor in
+            defer { busy = nil }
+            do {
+                // Titles say where the copy came from: "등대지기의 딸 (백업 10월 24일)".
+                let date = b.at.date.formatted(.dateTime.month(.abbreviated).day().locale(Locale(identifier: locale.rawValue)))
+                let added = try await library.restoreBackupAsCopies(path: b.path, suffix: " " + t(.backupCopySuffix, ["date": date]))
+                _ = adopt(newProjectsSince: before)
+                let message = t(.backupRestoredCopies, ["count": added.count, "names": names(added)], count: added.count)
+                showToast(Toast(message: message, sticky: true))
+                done(message)
+            } catch {
+                showToast(Toast(message: error.localizedDescription, sticky: true))
+                done(error.localizedDescription)
+            }
+        }
+    }
+
+    /// After an import/restore: reload the project list and open the first new project. Returns the new projects.
+    private func adopt(newProjectsSince before: Set<String>) -> [ProjectSummary] {
+        refreshProjects()
+        let added = projects.filter { !before.contains($0.id) }
+        if let first = added.first { selectProject(first.id) }
+        return added
+    }
+
+    private func names(_ ps: [ProjectSummary]) -> String {
+        let titles = ps.map { "‘\($0.title)’" }
+        return titles.count > 3 ? titles.prefix(3).joined(separator: ", ") + " …" : titles.joined(separator: ", ")
     }
 
     // MARK: Episodes
@@ -643,11 +729,61 @@ final class AppModel {
     }
 
     func renumberEpisodes() {
-        guard let projectId, let folder else { return }
+        guard let projectId, let folder, !readOnly else { return }
+        guard ensureSaved() else { return }
         do {
             let n = try library.renumberEpisodes(project: projectId, folder: folder.id)
             reloadOutline()
-            showToast(Toast(message: t(.episodeRenumbered, ["count": n], count: n)))
+            showToast(Toast(message: n == 0 ? t(.episodeRenumberedNone) : t(.episodeRenumbered, ["count": n], count: n)))
+        } catch { fail(error) }
+    }
+
+    /// Sheet menu / context menu: this sheet and every episode before it in its folder become Published.
+    func markPublishedThrough(_ id: String? = nil) {
+        guard let projectId, let id = id ?? sheetId, !readOnly,
+              let folder = folders.first(where: { $0.sheets.contains { $0.id == id } }) else { return }
+        let title = folder.sheets.first { $0.id == id }?.title ?? ""
+        do {
+            _ = try library.setStatusThrough(project: projectId, folder: folder.id, sheet: id, status: .published)
+            reloadOutline()
+            showToast(Toast(message: t(.episodePublishedThroughDone, ["title": title.isEmpty ? t(.sheetUntitled) : title])))
+        } catch { fail(error) }
+    }
+
+    // MARK: Damaged sheets
+
+    /// Sheet for which no backup had an intact copy: the banner then offers "keep the last intact text".
+    var noBackupForSheet: String?
+    /// A project whose table of contents is damaged (changes → Corrupt): the editor shows a restore hint.
+    var tocDamagedProject: String?
+
+    /// The damaged sheet's text comes back from the newest backup that has it; the editor reloads it.
+    func recoverDamagedSheet() {
+        guard let projectId, let sheetId, !readOnly else { return }
+        do {
+            let s = try library.recoverSheetFromBackup(project: projectId, sheet: sheetId)
+            replaceSummary(s)
+            reloadOutline()
+            openSheet(sheetId)
+            showToast(Toast(message: t(.sheetRecovered, ["title": s.title.isEmpty ? t(.sheetUntitled) : s.title])))
+        } catch LibraryError.notFound {
+            noBackupForSheet = sheetId
+        } catch {
+            noBackupForSheet = sheetId
+            showToast(Toast(message: t(.sheetRecoverFailed, ["message": error.localizedDescription]), sticky: true))
+        }
+    }
+
+    /// No usable backup: go on from the text that's shown (the core keeps the broken files aside).
+    func keepLastGoodText() {
+        guard let projectId, let sheetId, !readOnly else { return }
+        do {
+            let s = try library.keepLastGoodText(project: projectId, sheet: sheetId)
+            noBackupForSheet = nil
+            replaceSummary(s)
+            reloadOutline()
+            openSheet(sheetId)
+            showToast(Toast(message: t(.sheetKeptLastGood, ["title": s.title.isEmpty ? t(.sheetUntitled) : s.title])))
         } catch { fail(error) }
     }
 
@@ -659,7 +795,9 @@ final class AppModel {
         backingUp = true
         Task { @MainActor in
             defer { backingUp = false }
-            do { _ = try await library.backupNow() } catch {
+            do { _ = try await library.backupNow() } catch LibraryError.invalidInput {
+                // Nothing with text to back up yet (qa1): not worth a word.
+            } catch {
                 showToast(Toast(message: t(.backupFailed, ["message": error.localizedDescription])))
             }
         }
@@ -726,6 +864,8 @@ final class AppModel {
     }
 
     private func fail(_ error: Error) {
+        // Corrupt from a change that isn't a damaged sheet's text → the project's table of contents is broken.
+        if case .corrupt = error as? LibraryError, sheet?.damaged != true { tocDamagedProject = projectId }
         showToast(Toast(message: (error as? LibraryError) == .readOnly ? t(.libraryReadOnly) : error.localizedDescription, sticky: true))
     }
 }

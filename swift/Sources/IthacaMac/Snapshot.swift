@@ -52,6 +52,21 @@ enum Snapshot {
                 m.showingTrash = true
             }),
             Scene(name: "shell-toast", size: wide, setup: { m, _ in if let s = m.folder?.sheets.first { m.trashSheet(s.id) } }),
+            Scene(name: "shell-damaged", size: wide, setup: { m, _ in
+                if let mock = m.library as? MockLibrary, let id = m.sheetId { mock.damagedSheets.insert(id); m.reloadOutline(); m.openSheet(id) }
+            }),
+            Scene(name: "shell-damaged-en-nobackup-900", size: CGSize(width: 900, height: 700), locale: .en, setup: { m, _ in
+                if let mock = m.library as? MockLibrary, let id = m.sheetId { mock.damagedSheets.insert(id); m.reloadOutline(); m.openSheet(id); m.noBackupForSheet = id }
+                m.tocDamagedProject = m.projectId
+            }),
+            Scene(name: "shell-en-trash", size: wide, locale: .en, setup: { m, _ in
+                if let s = m.folder?.sheets.last { m.trashSheet(s.id) }
+                m.toast = nil
+                m.showingTrash = true
+            }),
+            Scene(name: "shell-en-toast", size: wide, locale: .en, setup: { m, _ in if let s = m.folder?.sheets.first { m.trashSheet(s.id) } }),
+            Scene(name: "shell-busy", size: wide, setup: { m, _ in m.busy = m.t(.busyRestoreBackup) }),
+            Scene(name: "export-en", size: CGSize(width: 940, height: 560), locale: .en, view: { _ in AnyView(ExportView()) }),
             Scene(name: "palette-empty", size: wide, setup: { m, _ in m.overlay = .palette(search: false) }),
             Scene(name: "palette-query", size: wide, setup: { m, _ in m.paletteSeed = "등대"; m.overlay = .palette(search: false) }),
             Scene(name: "export", size: CGSize(width: 940, height: 560), view: { _ in AnyView(ExportView()) }),

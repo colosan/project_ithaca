@@ -13,6 +13,10 @@ serde_json.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
 blake3.workspace = true
+encoding_rs.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

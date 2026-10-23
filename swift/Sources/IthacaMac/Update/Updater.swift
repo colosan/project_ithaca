@@ -20,15 +20,18 @@ public final class UpdaterViewModel: ObservableObject {
     /// False when running outside a signed .app (e.g. `swift run`): there is no feed, so the menu item is disabled.
     public let isAvailable: Bool
 
-    private let controller: SPUStandardUpdaterController
+    /// nil in test runs (ITHACA_DEFAULTS_SUITE) and outside a signed .app: Sparkle then never starts or writes SU* keys.
+    private let controller: SPUStandardUpdaterController?
     private var bag = Set<AnyCancellable>()
 
     public init() {
         let info = Bundle.main.infoDictionary ?? [:]
-        isAvailable = Bundle.main.bundleURL.pathExtension == "app"
+        let testRun = !(ProcessInfo.processInfo.environment["ITHACA_DEFAULTS_SUITE"] ?? "").isEmpty
+        isAvailable = !testRun && Bundle.main.bundleURL.pathExtension == "app"
             && info["SUFeedURL"] != nil && info["SUPublicEDKey"] != nil
-        controller = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil)
-        guard isAvailable else { return }
+        guard isAvailable else { controller = nil; return }
+        let controller = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil)
+        self.controller = controller
         controller.startUpdater()
         let updater = controller.updater
         updater.publisher(for: \.canCheckForUpdates)
@@ -43,9 +46,9 @@ public final class UpdaterViewModel: ObservableObject {
 
     /// Settings → About toggle. Persisted by Sparkle in UserDefaults (SUEnableAutomaticChecks).
     public var automaticallyChecksForUpdates: Bool {
-        get { isAvailable && controller.updater.automaticallyChecksForUpdates }
+        get { controller?.updater.automaticallyChecksForUpdates ?? false }
         set {
-            guard isAvailable else { return }
+            guard let controller else { return }
             objectWillChange.send()
             controller.updater.automaticallyChecksForUpdates = newValue
         }
@@ -53,8 +56,7 @@ public final class UpdaterViewModel: ObservableObject {
 
     /// User-initiated check: Sparkle shows its own progress / "up to date" / update windows.
     public func checkForUpdates() {
-        guard isAvailable else { return }
-        controller.checkForUpdates(nil)
+        controller?.checkForUpdates(nil)
     }
 
     /// "Last checked …" / "Not checked yet" line for Settings → About (update.lastChecked / update.neverChecked).

@@ -119,7 +119,8 @@ fn renumber_and_stock() {
     s.set_episode(&p, &b, Some(ep(Some(99), EpisodeStatus::Published)))
         .unwrap();
     let blocks_before = s.history(&p, &a).unwrap().len();
-    assert_eq!(s.renumber_episodes(&p, &serial).unwrap(), 3);
+    // (qa1) Every live sheet is numbered in serial order; the prologue gets Draft metadata.
+    assert_eq!(s.renumber_episodes(&p, &serial).unwrap(), 4);
     assert_eq!(s.history(&p, &a).unwrap().len(), blocks_before);
     let o = s.outline(&p).unwrap();
     let nums: Vec<Option<u32>> = o.folders[0]
@@ -127,14 +128,18 @@ fn renumber_and_stock() {
         .iter()
         .map(|x| x.episode.as_ref().and_then(|e| e.number))
         .collect();
-    assert_eq!(nums, [None, Some(1), Some(2), Some(3)]);
+    assert_eq!(nums, [Some(1), Some(2), Some(3), Some(4)]);
+    assert_eq!(
+        o.folders[0].sheets[0].episode.as_ref().unwrap().status,
+        EpisodeStatus::Draft
+    );
     // Status is untouched by renumbering; the trashed sheet keeps its old number.
     assert_eq!(
         o.folders[0].sheets[3].episode.as_ref().unwrap().status,
         EpisodeStatus::Published
     );
     assert_eq!(o.trash[0].episode.as_ref().unwrap().number, Some(99));
-    // prologue (no metadata), c, a are stock; b is published; the trashed sheet doesn't count.
+    // prologue (now Draft), c, a are stock; b is published; the trashed sheet doesn't count.
     assert_eq!(s.stock(&p, &serial).unwrap(), 3);
     s.set_episode(&p, &prologue, None).unwrap();
     assert_eq!(s.stock(&p, &o.folders[1].id).unwrap(), 0);
@@ -147,4 +152,56 @@ fn renumber_and_stock() {
         s.set_episode(&p, "toc", None),
         Err(StoreError::NotFound)
     ));
+}
+
+#[test]
+fn set_status_through_marks_everything_up_to_a_sheet() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_c, mut s) = open(dir.path());
+    let p = s
+        .create_project("등대", Language::Ko, &["연재".into(), "설정".into()])
+        .unwrap()
+        .id;
+    let o = s.outline(&p).unwrap();
+    let serial = o.folders[0].id.clone();
+    let first = o.folders[0].sheets[0].id.clone();
+    let a = s.create_sheet(&p, &serial, "a").unwrap().id;
+    let gone = s.create_sheet(&p, &serial, "x").unwrap().id;
+    let b = s.create_sheet(&p, &serial, "b").unwrap().id;
+    s.set_episode(&p, &a, Some(ep(Some(2), EpisodeStatus::Scheduled)))
+        .unwrap();
+    s.trash_sheet(&p, &gone).unwrap();
+    assert_eq!(
+        s.set_status_through(&p, &serial, &a, EpisodeStatus::Published)
+            .unwrap(),
+        2
+    );
+    let o = s.outline(&p).unwrap();
+    let st: Vec<Option<(Option<u32>, EpisodeStatus)>> = o.folders[0]
+        .sheets
+        .iter()
+        .map(|x| x.episode.as_ref().map(|e| (e.number, e.status)))
+        .collect();
+    assert_eq!(
+        st,
+        [
+            Some((None, EpisodeStatus::Published)),
+            Some((Some(2), EpisodeStatus::Published)),
+            None
+        ]
+    );
+    assert_eq!(o.trash[0].episode, None, "trashed sheets are left alone");
+    assert_eq!(s.stock(&p, &serial).unwrap(), 1);
+    let _ = first;
+    // The sheet must be a live sheet of that folder.
+    for (folder, sheet) in [
+        (&serial, &gone),
+        (&o.folders[1].id, &b),
+        (&serial, &"nope".to_string()),
+    ] {
+        assert!(matches!(
+            s.set_status_through(&p, folder, sheet, EpisodeStatus::Published),
+            Err(StoreError::NotFound)
+        ));
+    }
 }

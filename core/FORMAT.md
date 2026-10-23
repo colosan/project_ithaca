@@ -12,10 +12,11 @@ written in format 1 must open in every later core, through a migration if need b
   projects/<project-id>/
     changes/<hash>                 immutable block files — the only source of truth
     cache/<chain-id>.json          derived; deleting it loses nothing
+    damaged/<hash>[-n]             broken block files set aside by a recovery (added: qa1); never read
   Backups/pre-migration-<from>-<to>-<YYYY-MM-DD>[-n]/   full copies made before a migration
   Backups/failed-migration-<from>-<to>-<YYYY-MM-DD>[-n]/  what a failed migration left (kept, never read)
 <library parent>/Backups/          automatic and manual backups (§Backups)
-  auto-<YYYY-MM-DD-HHMM>[-n]/      UTC
+  auto-<YYYY-MM-DD-HHMM>[-n]/      local time (UTC before core qa1); order by the manifest's `at`
   manual-<YYYY-MM-DD-HHMM>[-n]/
 ```
 
@@ -85,6 +86,15 @@ Each sheet is its own chain; so is the table of contents. A block is **valid** w
 valid and its body applies to its first parent's text. Invalid blocks (and everything after them) are
 left out of the text and reported by `verify`.
 
+**Damage** (added: qa1): a chain with a block file that doesn't read or verify, with invalid blocks, or a
+sheet the `toc` names that has no block at all is *damaged*. Its text is the last good one — the newer
+(by `at`) of the valid head and the newest head reachable from a snapshot that comes after the damage
+(such a snapshot is self-contained, so it and its deltas still verify). No block is written on a
+damaged chain and its cache is not written (so every open finds the damage again). A file whose
+JSON doesn't parse is attributed by its `"sheet"` field read leniently. Recovery moves the broken
+files (and the blocks cut off by them) to `<project>/damaged/` and either puts the exact block back
+from a backup or writes the recovered text as a new block on the valid head.
+
 **Heads** are valid blocks no other valid block names as a parent. With one head the chain is linear.
 With several (offline fork), the winner is decided deterministically (ADR-0002 §4): follow each head's
 first-parent line back to where they part and compare the first blocks after the fork point — higher
@@ -143,7 +153,8 @@ A backup is a library-shaped folder, so it can be opened or restored like a libr
 ```
 auto-2026-10-24-0915/
   backup.json        { "v": 1, "kind": "auto" | "manual" | "pre-migration", "at": <ms>, "bytes": <n>,
-                       "format": 1, "projects": <n>, "complete": true }
+                       "format": 1, "projects": <n>, "complete": true,
+                       "textSheets": <n> }   // sheets with text (added: qa1; absent = unknown)
   library.json       copied as is
   projects/<id>/changes/<hash>   every block file; no cache/, no .tmp- files
 ```
@@ -157,8 +168,9 @@ auto-2026-10-24-0915/
 - A project whose folder cannot be read is left out of the backup (and reported), not fatal.
 - `bytes` = sum of copied files (manifest excluded).
 - Retention runs after each automatic backup and deletes only `auto-*` folders with a manifest:
-  keep the newest auto of each of the last 7 UTC days that have one, and of each of the last 4
-  Monday-based UTC weeks that have one. `manual-*` and `pre-migration-*` are never deleted.
+  keep the newest auto of each of the last 7 local days that have one, and of each of the last 4
+  Monday-based local weeks that have one.
+- (added: qa1) No automatic backup is made of a library without any sheet that has text. `manual-*` and `pre-migration-*` are never deleted.
 - Restoring never writes into a backup and never overwrites: projects come back as copies with new ids.
 
 ## Versions and migrations (ADR-0008 §5)

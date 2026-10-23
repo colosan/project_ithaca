@@ -9,7 +9,9 @@ pub mod fsutil;
 mod import;
 pub mod lock;
 pub mod project;
+mod recover;
 mod search;
+mod textimport;
 pub mod types;
 
 use std::collections::BTreeMap;
@@ -41,6 +43,14 @@ pub const SNAPSHOT_EVERY: u32 = 32;
 
 pub type Clock = Arc<dyn Fn() -> i64 + Send + Sync>;
 
+/// Offset of local time from UTC at a moment, in ms (added: qa1). Names backup folders.
+pub type LocalOffset = Arc<dyn Fn(i64) -> i64 + Send + Sync>;
+
+/// The system time zone's offset (`localtime_r`); UTC where that isn't available.
+pub fn system_local_offset() -> LocalOffset {
+    Arc::new(fsutil::local_offset_ms)
+}
+
 pub fn system_clock() -> Clock {
     Arc::new(|| {
         std::time::SystemTime::now()
@@ -57,6 +67,8 @@ pub struct OpenOptions {
     pub supported_format: u32,
     pub migrations: Vec<Migration>,
     pub clock: Clock,
+    /// Local time for backup folder names and backup retention days (added: qa1).
+    pub local_offset: LocalOffset,
 }
 
 impl Default for OpenOptions {
@@ -65,6 +77,7 @@ impl Default for OpenOptions {
             supported_format: FORMAT,
             migrations: format::migrations(),
             clock: system_clock(),
+            local_offset: system_local_offset(),
         }
     }
 }
@@ -74,6 +87,7 @@ pub struct Store {
     device: String,
     prepared: Prepared,
     clock: Clock,
+    local_offset: LocalOffset,
     /// In creation order is computed on demand; keyed by id.
     projects: BTreeMap<String, Project>,
     /// The library lock (`<library>/.lock`), held for the store's lifetime; `None` when read-only.
@@ -166,6 +180,7 @@ impl Store {
             // One unreadable project must not take the library down: skip it, leave it untouched.
             match Project::load(&name, &dir, writable) {
                 Ok(Some(p)) => {
+                    problems.extend(damage_problems(&p));
                     projects.insert(name, p);
                 }
                 Ok(None) => {
@@ -189,6 +204,7 @@ impl Store {
             device: device.to_string(),
             prepared,
             clock: opts.clock,
+            local_offset: opts.local_offset,
             projects,
             _lock: lock,
             locked_by_other,
@@ -262,6 +278,9 @@ impl Store {
         self.writable()?;
         let device = self.device.clone();
         let p = self.project_mut(project)?;
+        if p.damage.contains_key(sheet) {
+            return Err(damaged_error(sheet));
+        }
         let chain = p.chains.entry(sheet.to_string()).or_default();
         let parent = chain.head().cloned();
         if parent.is_some() && chain.text == text {
@@ -351,6 +370,7 @@ impl Store {
             trashed: entry.trashed,
             branched: chain.is_some_and(|c| c.branched()),
             episode: entry.episode.clone(),
+            damaged: p.damage.contains_key(sheet),
         })
     }
 
@@ -391,12 +411,22 @@ impl Store {
         }
     }
 
+    /// When a project came into this library: the time of its first table-of-contents block
+    /// (written when it was created, imported or restored here), not its original `created`.
+    fn added_at(p: &Project) -> i64 {
+        p.chains
+            .get(Toc::SHEET_ID)
+            .and_then(|c| c.metas.values().map(|m| m.at).min())
+            .unwrap_or(p.toc.created)
+    }
+
+    /// In the order the projects were added to this library (added: qa1).
     fn sorted_projects(&self) -> Vec<&Project> {
         let mut v: Vec<&Project> = self.projects.values().collect();
         v.sort_by(|a, b| {
-            a.toc
-                .created
-                .cmp(&b.toc.created)
+            Self::added_at(a)
+                .cmp(&Self::added_at(b))
+                .then_with(|| a.toc.created.cmp(&b.toc.created))
                 .then_with(|| a.id.cmp(&b.id))
         });
         v
@@ -404,7 +434,7 @@ impl Store {
 
     // ── Projects ──────────────────────────────────────────────────────
 
-    /// Live projects in creation order.
+    /// Live projects in the order they were added to this library.
     pub fn projects(&self) -> Vec<ProjectSummary> {
         self.sorted_projects()
             .into_iter()
@@ -476,6 +506,8 @@ impl Store {
                 dir,
                 toc: Toc::default(),
                 chains: Default::default(),
+                damage: Default::default(),
+                unattributed: Default::default(),
             },
         );
         let result = (|| {
@@ -749,7 +781,7 @@ impl Store {
             .unwrap_or_default())
     }
 
-    /// Records a new block only when the text changed.
+    /// Records a new block only when the text changed. A damaged sheet is refused (`Corrupt`).
     pub fn save_sheet(&mut self, project: &str, sheet: &str, text: &str) -> Result<SheetSummary> {
         self.writable()?;
         self.check_sheet(project, sheet)?;
@@ -895,9 +927,9 @@ impl Store {
             .count() as u32)
     }
 
-    /// Numbers the folder's live sheets that have episode metadata 1..n in serial order (one toc
-    /// block). Sheets without metadata (prologue, notes, `공지`) are skipped and don't use a number.
-    /// Returns n.
+    /// Numbers every live sheet of the folder 1..n in serial order (one toc block); a sheet without
+    /// episode metadata gets `Draft` metadata. Status, date and platform are untouched. Returns n.
+    /// (changed: qa1 — sheets without metadata used to be skipped.)
     pub fn renumber_episodes(&mut self, project: &str, folder: &str) -> Result<u32> {
         Self::live_folder(self.project(project)?, folder)?;
         self.edit_toc(project, |t, _| {
@@ -905,12 +937,46 @@ impl Store {
             let ids: Vec<String> = t.live_sheets(f).cloned().collect();
             let mut n = 0;
             for id in ids {
-                if let Some(e) = t.sheets.get_mut(&id).and_then(|e| e.episode.as_mut()) {
+                if let Some(entry) = t.sheets.get_mut(&id) {
                     n += 1;
-                    e.number = Some(n);
+                    entry
+                        .episode
+                        .get_or_insert_with(EpisodeInfo::default)
+                        .number = Some(n);
                 }
             }
             Ok(n)
+        })
+    }
+
+    /// Sets `status` on every live sheet of the folder up to and including `sheet`, in serial
+    /// order ("mark everything up to here as published"); sheets without metadata get it with no
+    /// number. One toc block. `sheet` must be a live sheet of that folder (else NotFound). Returns
+    /// how many sheets it covers. (added: qa1)
+    pub fn set_status_through(
+        &mut self,
+        project: &str,
+        folder: &str,
+        sheet: &str,
+        status: EpisodeStatus,
+    ) -> Result<u32> {
+        let p = self.project(project)?;
+        let f = Self::live_folder(p, folder)?;
+        let ids: Vec<String> = p.toc.live_sheets(f).cloned().collect();
+        let upto = ids
+            .iter()
+            .position(|s| s == sheet)
+            .ok_or(StoreError::NotFound)?;
+        self.edit_toc(project, |t, _| {
+            for id in &ids[..=upto] {
+                if let Some(entry) = t.sheets.get_mut(id) {
+                    entry
+                        .episode
+                        .get_or_insert_with(EpisodeInfo::default)
+                        .status = status;
+                }
+            }
+            Ok(upto as u32 + 1)
         })
     }
 
@@ -1027,35 +1093,79 @@ impl Store {
 
     // ── Search, import, export ────────────────────────────────────────
 
+    /// `Some(project)`: that project only (deleted ones too), at most 500 hits. `None`: same as
+    /// [`Store::search_all`] with no current project.
     pub fn search(&self, query: &str, project: Option<&str>) -> Vec<SearchHit> {
+        match project {
+            Some(id) => self
+                .projects
+                .get(id)
+                .map(|p| Self::search_project(p, query, search::MAX_HITS))
+                .unwrap_or_default(),
+            None => self.search_all(query, None),
+        }
+    }
+
+    /// Every live project, `current` first, then the library order; at most 200 hits per project
+    /// and 500 in all, so one long project can't hide the others. (added: qa1)
+    pub fn search_all(&self, query: &str, current: Option<&str>) -> Vec<SearchHit> {
+        let mut ps: Vec<&Project> = self
+            .sorted_projects()
+            .into_iter()
+            .filter(|p| p.toc.deleted.is_none())
+            .collect();
+        ps.sort_by_key(|p| Some(p.id.as_str()) != current); // stable: the rest keep their order
         let mut hits = Vec::new();
-        for p in self.sorted_projects() {
-            if project.is_some_and(|id| id != p.id)
-                || (project.is_none() && p.toc.deleted.is_some())
-            {
-                continue;
+        for p in ps {
+            let room = search::MAX_HITS - hits.len();
+            if room == 0 {
+                break;
             }
-            for s in Self::reading_order(p) {
-                let text = p.chains.get(&s).map_or("", |c| c.text.as_str());
-                for m in search::find(text, query, search::MAX_HITS - hits.len()) {
-                    hits.push(SearchHit {
-                        project: p.id.clone(),
-                        sheet: s.clone(),
-                        title: title_of(text),
-                        ..m
-                    });
-                }
-                if hits.len() >= search::MAX_HITS {
-                    return hits;
-                }
+            hits.extend(Self::search_project(
+                p,
+                query,
+                room.min(search::MAX_PER_PROJECT),
+            ));
+        }
+        hits
+    }
+
+    /// Hits in one project's live sheets in reading order, at most `limit`.
+    fn search_project(p: &Project, query: &str, limit: usize) -> Vec<SearchHit> {
+        let mut hits = Vec::new();
+        for s in Self::reading_order(p) {
+            if hits.len() >= limit {
+                break;
+            }
+            let text = p.chains.get(&s).map_or("", |c| c.text.as_str());
+            for m in search::find(text, query, limit - hits.len()) {
+                hits.push(SearchHit {
+                    project: p.id.clone(),
+                    sheet: s.clone(),
+                    title: title_of(text),
+                    ..m
+                });
             }
         }
         hits
     }
 
     pub fn import_web_backup(&mut self, json: &str) -> Result<ImportReport> {
+        self.import_web_backup_with_suffix(json, "")
+    }
+
+    /// [`Store::import_web_backup`], with `suffix` appended to every imported title (e.g.
+    /// " (웹)"); empty = titles as they are. (added: qa1)
+    pub fn import_web_backup_with_suffix(
+        &mut self,
+        json: &str,
+        suffix: &str,
+    ) -> Result<ImportReport> {
         self.writable()?;
-        let projects = import::parse(json)?;
+        let mut projects = import::parse(json)?;
+        for wp in &mut projects {
+            wp.toc.title.push_str(suffix);
+        }
         let mut report = ImportReport::default();
         let mut news = Vec::with_capacity(projects.len());
         for wp in projects {
@@ -1065,6 +1175,28 @@ impl Store {
             news.push((wp.toc, wp.sheets));
         }
         self.create_projects_all_or_nothing(news)?;
+        Ok(report)
+    }
+
+    /// A folder of `.txt` / `.md` manuscripts → one new project (rules in `textimport.rs` and
+    /// core/API.md). `title` empty or `None` = the folder's name; `language` `None` = detected.
+    /// All or nothing. (added: txt-import)
+    pub fn import_text_folder(
+        &mut self,
+        path: impl AsRef<Path>,
+        title: Option<&str>,
+        language: Option<Language>,
+    ) -> Result<ImportReport> {
+        self.writable()?;
+        let now = self.now();
+        let tp = textimport::read(path.as_ref(), title, language, now)?;
+        let report = ImportReport {
+            projects: 1,
+            folders: tp.toc.folders.len() as u32,
+            sheets: tp.sheets.len() as u32,
+            skipped: tp.skipped,
+        };
+        self.create_projects_all_or_nothing(vec![(tp.toc, tp.sheets)])?;
         Ok(report)
     }
 
@@ -1111,6 +1243,53 @@ impl Store {
         }
         Ok(export_sheets(bodies, options))
     }
+}
+
+/// The error a write to a damaged chain gets.
+fn damaged_error(chain: &str) -> StoreError {
+    if chain == Toc::SHEET_ID {
+        StoreError::Corrupt(
+            "this project's table of contents is damaged; restore the project from a backup".into(),
+        )
+    } else {
+        StoreError::Corrupt(
+            "this sheet is damaged; recover it from a backup or keep its last good text first"
+                .into(),
+        )
+    }
+}
+
+/// What opening tells the writer about a damaged project.
+fn damage_problems(p: &Project) -> Vec<String> {
+    let title = &p.toc.title;
+    let mut out = Vec::new();
+    for (chain, files) in &p.damage {
+        if chain == Toc::SHEET_ID {
+            out.push(format!(
+                "The table of contents of \"{title}\" is damaged ({} change files broken). It shows \
+                 its last good state and can't be changed; restore the project from a backup.",
+                files.len()
+            ));
+        } else {
+            let name = p
+                .chains
+                .get(chain)
+                .map(|c| title_of(&c.text))
+                .unwrap_or_default();
+            out.push(format!(
+                "Sheet \"{name}\" in \"{title}\" is damaged ({} change files broken or missing). It \
+                 shows its last good text and can't be edited until it is recovered from a backup.",
+                files.len()
+            ));
+        }
+    }
+    if !p.unattributed.is_empty() {
+        out.push(format!(
+            "\"{title}\" has {} change files that can't be read and belong to no known sheet.",
+            p.unattributed.len()
+        ));
+    }
+    out
 }
 
 #[cfg(test)]

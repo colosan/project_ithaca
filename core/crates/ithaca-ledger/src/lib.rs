@@ -9,7 +9,9 @@ pub mod chain;
 pub mod delta;
 
 pub use block::{Actor, BLOCK_VERSION, Block, Body, Kind};
-pub use chain::{Heads, Meta, Rebuilt, fork_order, rebuild, reconstruct, select_heads};
+pub use chain::{
+    Heads, Meta, Rebuilt, Salvaged, fork_order, rebuild, reconstruct, salvage, select_heads,
+};
 pub use delta::Op;
 pub use delta::Stats;
 

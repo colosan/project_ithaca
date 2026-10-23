@@ -64,6 +64,9 @@ struct SheetSummary: Identifiable, Equatable, Sendable {
     var trashed: Int64?
     var branched: Bool
     var episode: EpisodeInfo? = nil
+    /// (qa1) Part of the sheet's history couldn't be read: the summary/text are the last intact version.
+    /// The app shows it read-only and offers `recoverSheetFromBackup`.
+    var damaged = false
 }
 
 struct FolderInfo: Identifiable, Equatable, Sendable {
@@ -118,7 +121,11 @@ struct ExportOptions: Equatable, Sendable, Codable {
     var markdown = false
 }
 
-struct ImportReport: Equatable, Sendable { var projects: Int; var folders: Int; var sheets: Int }
+struct ImportReport: Equatable, Sendable {
+    var projects: Int; var folders: Int; var sheets: Int
+    /// "relative/path (reason)" for files a text-folder import left out.
+    var skipped: [String] = []
+}
 
 struct LibraryInfo: Equatable, Sendable {
     var format: Int
@@ -186,6 +193,12 @@ protocol LibraryAPI: AnyObject {
     @discardableResult func setEpisode(project: String, sheet: String, info: EpisodeInfo?) throws -> SheetSummary
     func stock(project: String, folder: String) throws -> Int
     func renumberEpisodes(project: String, folder: String) throws -> Int
+    /// (qa1) Every live sheet of `folder` up to and including `sheet` gets `status`; returns how many sheets.
+    func setStatusThrough(project: String, folder: String, sheet: String, status: EpisodeStatus) throws -> Int
+    /// (qa1) A damaged sheet's text comes back from the newest backup that has it intact. No backup has it → notFound.
+    @discardableResult func recoverSheetFromBackup(project: String, sheet: String) throws -> SheetSummary
+    /// (qa1) No usable backup: go on from the last good text; the sheet is editable again.
+    @discardableResult func keepLastGoodText(project: String, sheet: String) throws -> SheetSummary
 
     // Backups (round 2). The copies take seconds: these run off the main thread.
     func backupDue() -> Bool
@@ -193,14 +206,20 @@ protocol LibraryAPI: AnyObject {
     func backupManual() async throws -> BackupInfo
     func backups() -> [BackupInfo]
     func backupsDir() -> String
-    func restoreBackupAsCopies(path: String) throws -> [ProjectSummary]
+    /// `suffix` is appended to every restored title (qa1), e.g. " (백업 10월 24일)".
+    func restoreBackupAsCopies(path: String, suffix: String) async throws -> [ProjectSummary]
 
     // Platform counts (round 2, free functions in the core)
     func countFor(text: String, rule: CountRule) -> Int
     func munpiaPages(text: String) -> Int
 
     func search(query: String, project: String?) -> [SearchHit]
-    func importWebBackup(json: String) throws -> ImportReport
+    /// (qa1) Every live project, `current` first, so one long project can't crowd out the rest.
+    func searchAll(query: String, current: String?) -> [SearchHit]
+    /// Seconds for a large backup: off the main thread.
+    func importWebBackup(json: String, suffix: String) async throws -> ImportReport
+    /// A folder of .txt/.md files → one new project (`title`/`language` nil = folder name / detected).
+    func importTextFolder(path: String, title: String?, language: ManuscriptLanguage?) async throws -> ImportReport
     func exportText(project: String, sheets: [String], options: ExportOptions) throws -> String
 }
 

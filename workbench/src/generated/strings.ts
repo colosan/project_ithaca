@@ -417,6 +417,30 @@ export type StringKey =
   | "library.lockedByOther"
   | "library.problems"
   | "library.problemsTitle"
+  | "sheet.damaged"
+  | "sheet.damagedHint"
+  | "sheet.recoverFromBackup"
+  | "sheet.recovered"
+  | "sheet.recoverFailed"
+  | "episode.publishedThrough"
+  | "episode.publishedThroughDone"
+  | "episode.renumberedNone"
+  | "busy.importWeb"
+  | "busy.restoreBackup"
+  | "count.charsShort"
+  | "sheet.keepLastGood"
+  | "sheet.noBackupHasIt"
+  | "sheet.keptLastGood"
+  | "project.tocDamaged"
+  | "project.tocDamagedAction"
+  | "import.textFolder"
+  | "import.textFolderHint"
+  | "import.textFolderDone"
+  | "import.skippedCount"
+  | "import.skippedTitle"
+  | "import.skippedHint"
+  | "busy.importTextFolder"
+  | "menu.quit"
   ;
 
 type Value = string | { one: string; other: string };
@@ -783,7 +807,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "history.integrityFailed": "해시 검증에서 문제를 찾았어요 — {message}",
     "import.web": "웹 버전에서 가져오기",
     "import.webHint": "웹 버전의 백업 파일(JSON)을 새 작품으로 추가해요. 지금 있는 작품은 그대로예요.",
-    "import.webDone": "웹 버전에서 작품 {projects}개, 시트 {sheets}개를 가져왔어요.",
+    "import.webDone": "웹 버전에서 작품 {projects}개, 시트 {sheets}개를 가져왔어요 — {names}",
     "import.webFailed": "가져오지 못했어요 — {message}",
     "library.inMemory": "미리보기 저장소예요. 앱을 끄면 쓴 내용이 사라져요.",
     "library.migrated": "라이브러리를 새 형식으로 옮겼어요 (형식 {from}에서). 옮기기 전 내용은 여기에 백업해 두었어요: {path}",
@@ -792,7 +816,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "menu.findInSheet": "시트에서 찾기…",
     "prefs.editor.spellAutoHint": "시스템 사전을 써요. 한국어 원고는 기본으로 꺼져 있어요.",
     "sync.saveFailedApp": "저장하지 못했어요 — {message}",
-    "welcome.importWeb": "웹 버전을 쓰고 있었나요?",
+    "welcome.importWeb": "쓰던 원고가 있나요?",
     "welcome.startFresh": "새로 시작하기",
     "episode.number": "{number}화",
     "episode.status": "회차 상태",
@@ -804,7 +828,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "episode.stock": "비축 {count}화",
     "episode.stockHint": "아직 발행하지 않은 회차 수예요.",
     "episode.renumber": "회차 번호 다시 매기기",
-    "episode.renumbered": "{count}화까지 번호를 다시 매겼어요.",
+    "episode.renumbered": "1화부터 {count}화까지 번호를 다시 매겼어요.",
     "info.platform": "연재처 기준",
     "info.munpia": "문피아",
     "info.novelpia": "노벨피아",
@@ -818,7 +842,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "backup.metaProjects": "{size} · 작품 {count}개",
     "backup.none": "아직 백업이 없어요.",
     "backup.restoreCopies": "사본으로 복원",
-    "backup.restoredCopies": "백업의 작품 {count}개를 사본으로 추가했어요.",
+    "backup.restoredCopies": "백업의 작품 {count}개를 사본으로 추가했어요 — {names}",
     "backup.failed": "백업하지 못했어요 — {message}",
     "action.retry": "다시 시도",
     "save.failedTitle": "저장하지 못한 글이 있어요",
@@ -835,7 +859,31 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "library.openFailedBody": "다른 곳에 써 버리지 않도록 편집은 막아 두었어요. 폴더를 확인한 뒤 다시 시도해 주세요.",
     "library.lockedByOther": "다른 Ithaca가 이 라이브러리를 쓰고 있어요 — 읽기 전용이에요.",
     "library.problems": "라이브러리를 열면서 문제를 {count}개 찾았어요. 자세한 내용은 환경설정 → 백업에 있어요.",
-    "library.problemsTitle": "열면서 찾은 문제"
+    "library.problemsTitle": "열면서 찾은 문제",
+    "sheet.damaged": "이 시트의 기록 일부가 손상됐어요 — 마지막으로 온전한 내용을 보여주고 있어요.",
+    "sheet.damagedHint": "기록 일부가 손상된 시트예요. 열어서 백업에서 되살릴 수 있어요.",
+    "sheet.recoverFromBackup": "백업에서 되살리기",
+    "sheet.recovered": "백업에서 되살렸어요 — {title}",
+    "sheet.recoverFailed": "백업에서 되살리지 못했어요 — {message}",
+    "episode.publishedThrough": "여기까지 발행으로 표시",
+    "episode.publishedThroughDone": "‘{title}’까지 발행으로 표시했어요.",
+    "episode.renumberedNone": "번호를 매길 시트가 없어요.",
+    "busy.importWeb": "웹 버전 백업을 가져오는 중이에요…",
+    "busy.restoreBackup": "백업을 사본으로 복원하는 중이에요…",
+    "count.charsShort": "{count}자",
+    "sheet.keepLastGood": "마지막 온전한 내용으로 계속 쓰기",
+    "sheet.noBackupHasIt": "이 시트가 온전하게 든 백업이 없어요. 마지막 온전한 내용으로 계속 쓸 수 있어요.",
+    "sheet.keptLastGood": "마지막 온전한 내용으로 이어서 쓸 수 있어요 — {title}",
+    "project.tocDamaged": "이 작품의 목차 기록이 손상돼서 시트 추가·이동 같은 변경을 저장할 수 없어요. 환경설정 → 백업에서 사본으로 복원해 보세요.",
+    "project.tocDamagedAction": "백업 열기",
+    "import.textFolder": "텍스트 폴더 가져오기",
+    "import.textFolderHint": "한글·메모장·Scrivener에서 내보낸 .txt·.md 파일 폴더를 새 작품 하나로 가져와요. 하위 폴더는 폴더가 돼요.",
+    "import.textFolderDone": "텍스트 폴더에서 시트 {sheets}개를 가져왔어요 — {names}",
+    "import.skippedCount": "파일 {count}개는 건너뛰었어요.",
+    "import.skippedTitle": "건너뛴 파일",
+    "import.skippedHint": "아래 파일은 가져오지 않았어요. 나머지는 모두 새 작품에 들어 있어요.",
+    "busy.importTextFolder": "텍스트 폴더를 가져오는 중이에요…",
+    "menu.quit": "Ithaca 종료"
   },
   "en": {
     "app.name": "Ithaca",
@@ -1252,7 +1300,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "history.integrityFailed": "Hash check found a problem — {message}",
     "import.web": "Import from the web version",
     "import.webHint": "Adds the web version's backup file (JSON) as new projects. Nothing here is replaced.",
-    "import.webDone": "Imported {projects} projects and {sheets} sheets from the web version.",
+    "import.webDone": "Imported {projects} projects and {sheets} sheets from the web version — {names}",
     "import.webFailed": "Couldn't import — {message}",
     "library.inMemory": "Preview storage — what you write is lost when you quit.",
     "library.migrated": "Moved the library to the new format (from format {from}). The previous copy is backed up at {path}",
@@ -1261,7 +1309,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "menu.findInSheet": "Find in Sheet…",
     "prefs.editor.spellAutoHint": "Uses the system dictionary. Off by default for Korean manuscripts.",
     "sync.saveFailedApp": "Not saved — {message}",
-    "welcome.importWeb": "Coming from the web version?",
+    "welcome.importWeb": "Bringing work from elsewhere?",
     "welcome.startFresh": "Start fresh",
     "episode.number": "Ep. {number}",
     "episode.status": "Episode status",
@@ -1274,8 +1322,8 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "episode.stockHint": "Episodes not published yet.",
     "episode.renumber": "Renumber Episodes",
     "episode.renumbered": {
-      "one": "Renumbered {count} episode.",
-      "other": "Renumbered {count} episodes."
+      "one": "Numbered episode 1.",
+      "other": "Numbered episodes 1–{count}."
     },
     "info.platform": "Platform counts",
     "info.munpia": "Munpia",
@@ -1300,8 +1348,8 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "backup.none": "No backups yet.",
     "backup.restoreCopies": "Restore as copies",
     "backup.restoredCopies": {
-      "one": "Added {count} project from the backup as a copy.",
-      "other": "Added {count} projects from the backup as copies."
+      "one": "Added {count} project from the backup as a copy — {names}",
+      "other": "Added {count} projects from the backup as copies — {names}"
     },
     "backup.failed": "Backup failed — {message}",
     "action.retry": "Try again",
@@ -1322,7 +1370,37 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
       "one": "Found {count} problem while opening the library. Details are in Settings → Backup.",
       "other": "Found {count} problems while opening the library. Details are in Settings → Backup."
     },
-    "library.problemsTitle": "Problems found when opening"
+    "library.problemsTitle": "Problems found when opening",
+    "sheet.damaged": "Part of this sheet's history is damaged — showing the last intact text.",
+    "sheet.damagedHint": "Part of this sheet's history is damaged. Open it to recover from a backup.",
+    "sheet.recoverFromBackup": "Recover from backup",
+    "sheet.recovered": "Recovered from the backup — {title}",
+    "sheet.recoverFailed": "Couldn't recover from the backup — {message}",
+    "episode.publishedThrough": "Mark published up to here",
+    "episode.publishedThroughDone": "Marked everything up to “{title}” as published.",
+    "episode.renumberedNone": "There are no sheets to number.",
+    "busy.importWeb": "Importing the web backup…",
+    "busy.restoreBackup": "Restoring the backup as copies…",
+    "count.charsShort": {
+      "one": "{count} char",
+      "other": "{count} chars"
+    },
+    "sheet.keepLastGood": "Keep writing from the last intact text",
+    "sheet.noBackupHasIt": "No backup has this sheet intact. You can keep writing from the last intact text.",
+    "sheet.keptLastGood": "You can keep writing from the last intact text — {title}",
+    "project.tocDamaged": "This project's table of contents is damaged, so changes like adding or moving sheets can't be saved. Try restoring it as a copy from Settings → Backup.",
+    "project.tocDamagedAction": "Open backups",
+    "import.textFolder": "Import Text Folder",
+    "import.textFolderHint": "Brings a folder of .txt and .md files (from Hangul, Notepad, Scrivener…) in as one new project. Subfolders become folders.",
+    "import.textFolderDone": "Imported {sheets} sheets from the text folder — {names}",
+    "import.skippedCount": {
+      "one": "Skipped {count} file.",
+      "other": "Skipped {count} files."
+    },
+    "import.skippedTitle": "Skipped files",
+    "import.skippedHint": "These files weren't imported. Everything else is in the new project.",
+    "busy.importTextFolder": "Importing the text folder…",
+    "menu.quit": "Quit Ithaca"
   }
 };
 

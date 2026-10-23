@@ -157,6 +157,7 @@ fn v2_options() -> OpenOptions {
             run: dummy_v2,
         }],
         clock,
+        ..Default::default()
     }
 }
 
@@ -220,6 +221,7 @@ fn missing_migration_path_changes_nothing() {
             run: dummy_v2,
         }],
         clock,
+        ..Default::default()
     };
     assert!(matches!(
         Store::open_with(dir.path(), "mac-test", o),

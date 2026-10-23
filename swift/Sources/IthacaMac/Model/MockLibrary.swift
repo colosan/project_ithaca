@@ -18,6 +18,8 @@ final class MockLibrary: LibraryAPI {
     private var folders: [Folder] = []
     private var sheets: [Sheet] = []
     private let device: String
+    /// Snapshots: sheets to report as damaged (a recover clears the mark).
+    var damagedSheets: Set<String> = []
 
     init(seeded: Bool, device: String = Host.current().localizedName ?? "Mac") {
         self.device = device
@@ -197,7 +199,7 @@ final class MockLibrary: LibraryAPI {
     }
 
     /// app-web backup (store.ts State v1): { version: 1, projects, folders, sheets } → new projects, nothing overwritten.
-    func importWebBackup(json: String) throws -> ImportReport {
+    func importWebBackup(json: String, suffix: String) async throws -> ImportReport {
         guard let data = json.data(using: .utf8),
               let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               (root["version"] as? Int) == 1,
@@ -251,8 +253,9 @@ final class MockLibrary: LibraryAPI {
     func renumberEpisodes(project: String, folder: String) throws -> Int {
         var n = 0
         for i in sheets.indices.sorted(by: { (sheets[$0].order, sheets[$0].created) < (sheets[$1].order, sheets[$1].created) })
-        where sheets[i].folder == folder && sheets[i].trashed == nil && sheets[i].episode != nil {
+        where sheets[i].folder == folder && sheets[i].trashed == nil {
             n += 1
+            if sheets[i].episode == nil { sheets[i].episode = EpisodeInfo(status: .draft) }
             sheets[i].episode?.number = n
         }
         return n
@@ -263,7 +266,37 @@ final class MockLibrary: LibraryAPI {
     func backupManual() async throws -> BackupInfo { throw LibraryError.io("in-memory library") }
     func backups() -> [BackupInfo] { [] }
     func backupsDir() -> String { NSTemporaryDirectory() }
-    func restoreBackupAsCopies(path: String) throws -> [ProjectSummary] { throw LibraryError.invalidInput("in-memory library") }
+    func restoreBackupAsCopies(path: String, suffix: String) async throws -> [ProjectSummary] { throw LibraryError.invalidInput("in-memory library") }
+
+    func setStatusThrough(project: String, folder: String, sheet: String, status: EpisodeStatus) throws -> Int {
+        var n = 0
+        for i in sheets.indices.sorted(by: { (sheets[$0].order, sheets[$0].created) < (sheets[$1].order, sheets[$1].created) })
+        where sheets[i].folder == folder && sheets[i].trashed == nil {
+            if sheets[i].episode == nil { sheets[i].episode = EpisodeInfo(status: status) } else { sheets[i].episode?.status = status }
+            n += 1
+            if sheets[i].id == sheet { return n }
+        }
+        throw LibraryError.notFound
+    }
+
+    func importTextFolder(path: String, title: String?, language: ManuscriptLanguage?) async throws -> ImportReport {
+        throw LibraryError.invalidInput("in-memory library")
+    }
+
+    func keepLastGoodText(project: String, sheet: String) throws -> SheetSummary {
+        guard damagedSheets.remove(sheet) != nil else { throw LibraryError.invalidInput("not damaged") }
+        return summary(try find(sheet))
+    }
+
+    func searchAll(query: String, current: String?) -> [SearchHit] {
+        let order = [current].compactMap { $0 } + projects().map(\.id).filter { $0 != current }
+        return order.flatMap { search(query: query, project: $0) }
+    }
+
+    func recoverSheetFromBackup(project: String, sheet: String) throws -> SheetSummary {
+        guard damagedSheets.remove(sheet) != nil else { throw LibraryError.notFound }
+        return summary(try find(sheet))
+    }
 
     func countFor(text: String, rule: CountRule) -> Int {
         let c = TextMetrics.counts(text)
@@ -288,7 +321,8 @@ final class MockLibrary: LibraryAPI {
 
     private func summary(_ s: Sheet) -> SheetSummary {
         SheetSummary(id: s.id, folder: s.folder, order: s.order, title: TextMetrics.title(s.text), excerpt: TextMetrics.excerpt(s.text),
-                     counts: TextMetrics.counts(s.text), created: s.created, modified: s.modified, trashed: s.trashed, branched: s.branched, episode: s.episode)
+                     counts: TextMetrics.counts(s.text), created: s.created, modified: s.modified, trashed: s.trashed, branched: s.branched, episode: s.episode,
+                     damaged: damagedSheets.contains(s.id))
     }
 
     private func version(_ text: String, previous: String, at: Int64 = .nowMillis, device: String? = nil, actor: Actor = .me) -> Version {

@@ -16,6 +16,9 @@ struct ExportView: View {
 
     @State private var saved = Self.load()
     @State private var done = false
+    /// The export text and its count, recomputed only when an input changes (not on every render).
+    @State private var text = ""
+    @State private var textCount = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,6 +38,7 @@ struct ExportView: View {
                         Text(model.t(.exportScopeProject)).tag(Scope.project)
                     }
                     .pickerStyle(.segmented)
+                    .labelsHidden()
                     Picker("", selection: $saved.target) {
                         Text(model.t(.exportTargetPaste)).tag(Target.paste)
                         Text(model.t(.exportTargetFile)).tag(Target.file)
@@ -61,10 +65,11 @@ struct ExportView: View {
                     KitButton(primaryLabel, icon: done ? .check : saved.target == .paste ? .copy : .save, variant: .primary, action: go)
                         .disabled(text.isEmpty)
                 }
-                .frame(width: T.Layout.Pane.sheetListDefault - T.Space.s300 * 2)
+                // Wide enough for the English scope segments ("This sheet · Whole folder · Whole project").
+                .frame(width: T.Layout.Pane.sheetListDefault, alignment: .leading)
                 .textStyle(.body)
                 VStack(alignment: .leading, spacing: T.Space.s100) {
-                    Caption("\(model.t(.exportPreview)) · \(model.t(.exportCount, ["count": TextMetrics.counts(text).chars], count: TextMetrics.counts(text).chars))")
+                    Caption("\(model.t(.exportPreview)) · \(model.t(.exportCount, ["count": textCount], count: textCount))")
                     ScrollView {
                         Text(text)
                             .textStyle(.body)
@@ -80,10 +85,12 @@ struct ExportView: View {
         }
         .frame(width: T.Layout.Pane.dialogMax + T.Layout.Pane.sheetListDefault, height: 560)
         .background(Color.surfaceCanvas)
-        .onChange(of: saved.scope) { done = false; persist() }
-        .onChange(of: saved.target) { done = false; persist() }
-        .onChange(of: saved.ext) { done = false; persist() }
-        .onChange(of: saved.opts) { done = false; persist() }
+        .onAppear(perform: refresh)
+        .onChange(of: saved.scope) { done = false; persist(); refresh() }
+        .onChange(of: saved.target) { done = false; persist(); refresh() }
+        .onChange(of: saved.ext) { done = false; persist(); refresh() }
+        .onChange(of: saved.opts) { done = false; persist(); refresh() }
+        .onChange(of: inputs) { refresh() }
     }
 
     private var markdownFile: Bool { saved.target == .file && saved.ext == .md }
@@ -101,7 +108,17 @@ struct ExportView: View {
         }
     }
 
-    private var text: String {
+    /// What else the text depends on: the project, the selection and the sheets' content (modified stamps).
+    private var inputs: [String] {
+        [model.projectId ?? "", model.sheetId ?? "", model.folderId ?? ""] + model.folders.flatMap(\.sheets).map { "\($0.id):\($0.modified)" }
+    }
+
+    private func refresh() {
+        text = exportText()
+        textCount = TextMetrics.counts(text).chars
+    }
+
+    private func exportText() -> String {
         guard let p = model.projectId, let ids = sheetIds else { return "" }
         if saved.scope == .folder && ids.isEmpty { return "" }
         var o = saved.opts
@@ -120,7 +137,6 @@ struct ExportView: View {
     }
 
     private func go() {
-        let text = self.text
         if saved.target == .paste {
             // Plain string only: RTF/HTML on the clipboard turns into doubled blank lines on serial platforms.
             let pb = NSPasteboard.general

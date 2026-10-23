@@ -13,6 +13,8 @@ getrandom, is used under its MIT/Apache option).
 | similar | 2.7 | Apache-2.0 | ledger | character diff for block deltas |
 | unicode-segmentation | 1.13 | MIT OR Apache-2.0 | model, ledger | grapheme and word counts (ADR-0005) |
 | uuid (v4) | 1.29 | MIT OR Apache-2.0 | store | project, folder and sheet ids |
+| encoding_rs | 0.8 | (Apache-2.0 OR MIT) AND BSD-3-Clause (the BSD part covers WHATWG-derived index data) | store | CP949 / EUC-KR and UTF-16 decoding for `import_text_folder` (txt-import); new transitive: simdutf8, scopeguard, multiversion_no_op (proc-macro), core_detect (lockfile only), all MIT OR Apache-2.0 |
+| libc *(unix only)* | 0.2 | MIT OR Apache-2.0 | store | `localtime_r` for local-time backup names (qa1); was already transitive |
 | tempfile *(dev only)* | 3.27 | MIT OR Apache-2.0 | tests | temporary library folders |
 
 No crate is used for the library lock: `std::fs::File::try_lock` (stable since Rust 1.89; `flock` on

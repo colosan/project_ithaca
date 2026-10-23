@@ -21,10 +21,11 @@ struct HistoryView: View {
             HStack(spacing: T.Space.s150) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(model.t(.historyTitle)).textStyle(.title)
+                    // The count is this sheet's records; the hash check itself covers the whole project.
                     if let r = report {
                         HStack(spacing: T.Space.s50) {
                             Icon(r.ok ? .verified : .warning, size: T.Size.iconSm, color: r.ok ? .stateSuccess : .stateDanger)
-                            Text(r.ok ? model.t(.historyIntegrity, ["count": r.blocks], count: r.blocks)
+                            Text(r.ok ? model.t(.historyIntegrity, ["count": entries.count], count: entries.count)
                                       : model.t(.historyIntegrityFailed, ["message": r.message ?? ""]))
                         }
                         .textStyle(.caption)
@@ -127,7 +128,7 @@ struct HistoryView: View {
                             restored = true
                             reload(keepSelection: true)
                         }
-                        .disabled(model.readOnly || e.hash == entries.first?.hash)
+                        .disabled(model.editorLocked || e.hash == entries.first?.hash)
                     }
                 }
                 .textStyle(.label)

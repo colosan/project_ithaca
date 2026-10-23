@@ -141,7 +141,7 @@ private struct BackupSettings: View {
                 if list.isEmpty { Caption(model.t(.backupNone)) }
                 ForEach(list.prefix(12)) { b in
                     LabeledContent {
-                        KitButton(model.t(.backupRestoreCopies), icon: .restore, variant: .ghost) { restore(b) }.disabled(model.readOnly)
+                        KitButton(model.t(.backupRestoreCopies), icon: .restore, variant: .ghost) { restore(b) }.disabled(model.readOnly || model.busy != nil)
                     } label: {
                         VStack(alignment: .leading, spacing: T.Space.s25) {
                             Text(b.at.date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(Locale(identifier: model.locale.rawValue))))
@@ -153,7 +153,7 @@ private struct BackupSettings: View {
             }
             Section {
                 LabeledContent {
-                    KitButton(model.t(.importWeb) + "…", icon: .restore) { model.importWebBackup() }
+                    KitButton(model.t(.importWeb) + "…", icon: .restore) { model.importWebBackup() }.disabled(model.busy != nil)
                 } label: {
                     VStack(alignment: .leading, spacing: T.Space.s25) {
                         Text(model.t(.importWeb))
@@ -161,7 +161,9 @@ private struct BackupSettings: View {
                     }
                 }
             }
-            if let message { Text(message).foregroundStyle(Color.stateSuccess) }
+            if let busy = model.busy {
+                HStack(spacing: T.Space.s100) { ProgressView().controlSize(.small); Text(busy) }
+            } else if let message { Text(message).foregroundStyle(Color.stateSuccess).fixedSize(horizontal: false, vertical: true) }
         }
         .formStyle(.grouped)
         .onAppear { list = model.library.backups() }
@@ -190,12 +192,8 @@ private struct BackupSettings: View {
 
     /// Never overwrites: the backup's projects come back as new projects (PRODUCT.md).
     private func restore(_ b: BackupInfo) {
-        do {
-            let added = try model.library.restoreBackupAsCopies(path: b.path)
-            model.refreshProjects()
-            if let first = added.first { model.selectProject(first.id) }
-            message = model.t(.backupRestoredCopies, ["count": added.count], count: added.count)
-        } catch { message = error.localizedDescription }
+        message = nil
+        model.restoreBackupAsCopies(b) { message = $0 }
     }
 }
 

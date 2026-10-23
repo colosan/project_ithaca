@@ -30,7 +30,13 @@ struct NewProjectView: View {
                         Text(model.t(.importWebHint)).textStyle(.caption).foregroundStyle(Color.inkSecondary).fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 0)
-                    KitButton(model.t(.importWeb) + "…", icon: .restore) { model.importWebBackup() }
+                    VStack(alignment: .trailing, spacing: T.Space.s100) {
+                        KitButton(model.t(.importWeb) + "…", icon: .restore) { model.importWebBackup() }.disabled(model.busy != nil)
+                        KitButton(model.t(.importTextFolder) + "…", icon: .folderOpen) { model.importTextFolder() }
+                            .disabled(model.busy != nil)
+                            .help(model.t(.importTextFolderHint))
+                    }
+                    .fixedSize()
                 }
                 .padding(T.Space.s200)
                 .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.surfaceRaised))
@@ -74,6 +80,7 @@ struct NewProjectView: View {
         .frame(width: T.Layout.Pane.dialogDefault)
         .background(firstRun ? Color.surfaceSidebar : .surfaceCanvas)
         .interactiveDismissDisabled(firstRun)
+        .overlay { if let busy = model.busy { BusyHUD(message: busy) } }
         .onAppear {
             language = model.locale == .ko ? .ko : .en
             resetFolders(language)

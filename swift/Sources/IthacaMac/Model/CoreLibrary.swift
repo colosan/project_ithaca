@@ -76,18 +76,35 @@ final class CoreLibrary: LibraryAPI {
         }
     }
 
-    func search(query: String, project: String?) -> [SearchHit] {
-        lib.search(query: query, project: project).map {
+    func search(query: String, project: String?) -> [SearchHit] { lib.search(query: query, project: project).map(Self.hit) }
+    func searchAll(query: String, current: String?) -> [SearchHit] { lib.searchAll(query: query, current: current).map(Self.hit) }
+
+    private static func hit(_ h: IthacaCore.SearchHit) -> SearchHit {
+        [h].map {
             SearchHit(project: $0.project, sheet: $0.sheet, title: $0.title, offset: Int($0.offset), length: Int($0.length),
                       before: $0.snippetBefore, match: $0.snippetMatch, after: $0.snippetAfter)
-        }
+        }[0]
     }
 
-    func importWebBackup(json: String) throws -> ImportReport {
-        try call {
-            let r = try lib.importWebBackup(json: json)
-            return ImportReport(projects: Int(r.projects), folders: Int(r.folders), sheets: Int(r.sheets))
-        }
+    func importWebBackup(json: String, suffix: String) async throws -> ImportReport {
+        let l = lib
+        do {
+            let r = try await Task.detached(priority: .userInitiated) { try l.importWebBackupWithSuffix(json: json, suffix: suffix) }.value
+            return Self.report(r)
+        } catch { throw Self.map(error) }
+    }
+
+    func importTextFolder(path: String, title: String?, language: ManuscriptLanguage?) async throws -> ImportReport {
+        let l = lib
+        let lang = language.map(Self.lang)
+        do {
+            let r = try await Task.detached(priority: .userInitiated) { try l.importTextFolder(path: path, title: title, language: lang) }.value
+            return Self.report(r)
+        } catch { throw Self.map(error) }
+    }
+
+    private static func report(_ r: IthacaCore.ImportReport) -> ImportReport {
+        ImportReport(projects: Int(r.projects), folders: Int(r.folders), sheets: Int(r.sheets), skipped: r.skipped)
     }
 
     func exportText(project: String, sheets: [String], options o: ExportOptions) throws -> String {
@@ -119,7 +136,24 @@ final class CoreLibrary: LibraryAPI {
 
     func backups() -> [BackupInfo] { lib.backups().map(Self.backup) }
     func backupsDir() -> String { lib.backupsDir() }
-    func restoreBackupAsCopies(path: String) throws -> [ProjectSummary] { try call { try lib.restoreBackupAsCopies(path: path).map(Self.project) } }
+    func restoreBackupAsCopies(path: String, suffix: String) async throws -> [ProjectSummary] {
+        let l = lib
+        do { return try await Task.detached(priority: .userInitiated) { try l.restoreBackupAsCopiesWithSuffix(path: path, suffix: suffix) }.value.map(Self.project) } catch { throw Self.map(error) }
+    }
+
+    // MARK: qa1 (core/API.md "(added: qa1)")
+
+    func setStatusThrough(project: String, folder: String, sheet: String, status: EpisodeStatus) throws -> Int {
+        try call { Int(try lib.setStatusThrough(project: project, folder: folder, sheet: sheet, status: Self.episode(EpisodeInfo(status: status)).status)) }
+    }
+
+    func recoverSheetFromBackup(project: String, sheet: String) throws -> SheetSummary {
+        try call { Self.sheet(try lib.recoverSheetFromBackup(project: project, sheet: sheet)) }
+    }
+
+    func keepLastGoodText(project: String, sheet: String) throws -> SheetSummary {
+        try call { Self.sheet(try lib.keepLastGoodText(project: project, sheet: sheet)) }
+    }
 
     func countFor(text: String, rule: CountRule) -> Int {
         let r: IthacaCore.CountRule = switch rule {
@@ -185,6 +219,6 @@ final class CoreLibrary: LibraryAPI {
     private static func sheet(_ s: IthacaCore.SheetSummary) -> SheetSummary {
         SheetSummary(id: s.id, folder: s.folder, order: Int(s.order), title: s.title, excerpt: s.excerpt,
                      counts: Counts(chars: Int(s.counts.chars), charsNoSpace: Int(s.counts.charsNoSpace), words: Int(s.counts.words), paragraphs: Int(s.counts.paragraphs)),
-                     created: s.created, modified: s.modified, trashed: s.trashed, branched: s.branched, episode: s.episode.map(episode))
+                     created: s.created, modified: s.modified, trashed: s.trashed, branched: s.branched, episode: s.episode.map(episode), damaged: s.damaged)
     }
 }

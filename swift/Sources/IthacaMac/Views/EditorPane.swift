@@ -18,9 +18,15 @@ struct EditorPane: View {
                     model.problemsDismissed = true
                 }
             }
+            if model.projectId != nil && model.tocDamagedProject == model.projectId {
+                TocDamagedBanner()
+            }
+            if model.sheet?.damaged == true {
+                DamagedSheetBanner()
+            }
             if model.sheetId != nil {
                 ManuscriptView(model: model, sizeClass: sizeClass)
-                    .opacity(model.readOnly ? T.Opacity.readOnly : 1)
+                    .opacity(model.editorLocked ? T.Opacity.readOnly : 1)
                 EditorFooter()
             } else {
                 empty
@@ -87,6 +93,68 @@ struct EditorBanner: View {
         .padding(T.Space.s150)
         .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.accentSoft))
         .padding(.horizontal, T.Space.s200)
+    }
+}
+
+/// A damaged sheet (part of its history unreadable): the last intact text, read-only, with a way back.
+struct DamagedSheetBanner: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: T.Space.s100) {
+            HStack(alignment: .top, spacing: T.Space.s150) {
+                Icon(.warning, size: T.Size.iconSm)
+                Text(model.t(.sheetDamaged)).textStyle(.label).fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(Color.stateDanger)
+            let noBackup = model.noBackupForSheet == model.sheetId
+            if noBackup {
+                Text(model.t(.sheetNoBackupHasIt)).textStyle(.caption).foregroundStyle(Color.inkSecondary).fixedSize(horizontal: false, vertical: true)
+            }
+            // Wraps when the editor is narrow (three buttons side by side clip below ~700 pt).
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: T.Space.s100) { buttons(noBackup); Spacer(minLength: 0) }
+                VStack(alignment: .leading, spacing: T.Space.s100) { buttons(noBackup) }
+            }
+        }
+        .padding(T.Space.s150)
+        .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.accentSoft))
+        .padding(.horizontal, T.Space.s200)
+        .padding(.bottom, T.Space.s100)
+    }
+
+    @ViewBuilder private func buttons(_ noBackup: Bool) -> some View {
+        if noBackup {
+            KitButton(model.t(.sheetKeepLastGood), icon: .check, variant: .primary) { model.keepLastGoodText() }.disabled(model.readOnly)
+            KitButton(model.t(.sheetRecoverFromBackup), icon: .restore) { model.recoverDamagedSheet() }.disabled(model.readOnly)
+        } else {
+            KitButton(model.t(.sheetRecoverFromBackup), icon: .restore, variant: .primary) { model.recoverDamagedSheet() }.disabled(model.readOnly)
+        }
+        KitButton(model.t(.saveCopyText), icon: .copy) { model.copyUnsavedText() }
+    }
+}
+
+/// Damaged table of contents: changes to this project can't be saved; restoring a backup copy is the way out.
+struct TocDamagedBanner: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        HStack(alignment: .top, spacing: T.Space.s150) {
+            Icon(.warning, size: T.Size.iconSm)
+            Text(model.t(.projectTocDamaged)).textStyle(.label).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            KitButton(model.t(.projectTocDamagedAction), icon: .backup) {
+                AppEnvironment.defaults.set(SettingsSection.backup.rawValue, forKey: "ithaca.settingsTab")
+                openSettingsWindow()
+            }
+            .fixedSize()
+        }
+        .foregroundStyle(Color.stateDanger)
+        .padding(T.Space.s150)
+        .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.accentSoft))
+        .padding(.horizontal, T.Space.s200)
+        .padding(.bottom, T.Space.s100)
     }
 }
 

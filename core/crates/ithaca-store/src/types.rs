@@ -54,6 +54,9 @@ pub struct SheetSummary {
     pub branched: bool,
     /// Serial-episode metadata; `None` = not an episode (notes, prologue kept out of numbering).
     pub episode: Option<EpisodeInfo>,
+    /// (added: qa1) Blocks of this sheet are broken or missing: the text is the last good one and
+    /// writes are refused until it is recovered.
+    pub damaged: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -127,11 +130,13 @@ pub struct SearchHit {
     pub snippet_after: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct ImportReport {
     pub projects: u32,
     pub folders: u32,
     pub sheets: u32,
+    /// (added: txt-import) Files left out, as "relative/path (reason)"; empty for web backups.
+    pub skipped: Vec<String>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
