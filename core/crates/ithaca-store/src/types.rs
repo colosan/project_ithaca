@@ -9,6 +9,11 @@ pub struct LibraryInfo {
     pub read_only: bool,
     pub migrated_from: Option<u32>,
     pub backup_path: Option<String>,
+    /// Another open (usually another app instance) holds the library lock; this one is read-only.
+    pub locked_by_other: bool,
+    /// Human-readable notes from opening and later operations: skipped projects, why the library
+    /// is read-only, failed cleanups. Empty when all is well.
+    pub problems: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]

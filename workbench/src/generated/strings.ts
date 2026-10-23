@@ -401,6 +401,22 @@ export type StringKey =
   | "backup.restoreCopies"
   | "backup.restoredCopies"
   | "backup.failed"
+  | "action.retry"
+  | "save.failedTitle"
+  | "save.failedBody"
+  | "save.copyText"
+  | "save.exportFile"
+  | "save.quitAnyway"
+  | "save.quitConfirmTitle"
+  | "save.quitConfirmBody"
+  | "save.copied"
+  | "save.exported"
+  | "save.autoRetryHint"
+  | "library.openFailedTitle"
+  | "library.openFailedBody"
+  | "library.lockedByOther"
+  | "library.problems"
+  | "library.problemsTitle"
   ;
 
 type Value = string | { one: string; other: string };
@@ -803,7 +819,23 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "backup.none": "아직 백업이 없어요.",
     "backup.restoreCopies": "사본으로 복원",
     "backup.restoredCopies": "백업의 작품 {count}개를 사본으로 추가했어요.",
-    "backup.failed": "백업하지 못했어요 — {message}"
+    "backup.failed": "백업하지 못했어요 — {message}",
+    "action.retry": "다시 시도",
+    "save.failedTitle": "저장하지 못한 글이 있어요",
+    "save.failedBody": "쓴 글은 아직 이 창에 그대로 있어요. 다시 시도하거나, 복사하거나, 파일로 내보내 두세요.",
+    "save.copyText": "글 복사하기",
+    "save.exportFile": "파일로 내보내기",
+    "save.quitAnyway": "그래도 종료",
+    "save.quitConfirmTitle": "저장하지 않고 종료할까요?",
+    "save.quitConfirmBody": "저장하지 못한 글은 사라져요. 되돌릴 수 없어요.",
+    "save.copied": "글을 클립보드에 복사했어요.",
+    "save.exported": "{path}에 저장했어요.",
+    "save.autoRetryHint": "잠시 뒤 자동으로 다시 시도해요.",
+    "library.openFailedTitle": "라이브러리를 열지 못했어요",
+    "library.openFailedBody": "다른 곳에 써 버리지 않도록 편집은 막아 두었어요. 폴더를 확인한 뒤 다시 시도해 주세요.",
+    "library.lockedByOther": "다른 Ithaca가 이 라이브러리를 쓰고 있어요 — 읽기 전용이에요.",
+    "library.problems": "라이브러리를 열면서 문제를 {count}개 찾았어요. 자세한 내용은 환경설정 → 백업에 있어요.",
+    "library.problemsTitle": "열면서 찾은 문제"
   },
   "en": {
     "app.name": "Ithaca",
@@ -1271,7 +1303,26 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
       "one": "Added {count} project from the backup as a copy.",
       "other": "Added {count} projects from the backup as copies."
     },
-    "backup.failed": "Backup failed — {message}"
+    "backup.failed": "Backup failed — {message}",
+    "action.retry": "Try again",
+    "save.failedTitle": "Some of your writing isn't saved",
+    "save.failedBody": "Your writing is still here in this window. Try again, copy it, or export it to a file.",
+    "save.copyText": "Copy text",
+    "save.exportFile": "Export to file",
+    "save.quitAnyway": "Quit anyway",
+    "save.quitConfirmTitle": "Quit without saving?",
+    "save.quitConfirmBody": "The unsaved writing will be lost. This can't be undone.",
+    "save.copied": "Copied the text to the clipboard.",
+    "save.exported": "Saved to {path}.",
+    "save.autoRetryHint": "Ithaca will try again automatically in a moment.",
+    "library.openFailedTitle": "Couldn't open the library",
+    "library.openFailedBody": "Editing is off so nothing gets written where it can't be kept. Check the folder, then try again.",
+    "library.lockedByOther": "Another Ithaca is using this library — read-only here.",
+    "library.problems": {
+      "one": "Found {count} problem while opening the library. Details are in Settings → Backup.",
+      "other": "Found {count} problems while opening the library. Details are in Settings → Backup."
+    },
+    "library.problemsTitle": "Problems found when opening"
   }
 };
 

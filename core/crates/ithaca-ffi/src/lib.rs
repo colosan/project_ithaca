@@ -132,6 +132,10 @@ pub struct LibraryInfo {
     pub read_only: bool,
     pub migrated_from: Option<u32>,
     pub backup_path: Option<String>,
+    /// (added: safety) Another app instance holds the library lock; this open is read-only.
+    pub locked_by_other: bool,
+    /// (added: safety) Notes to show the writer: skipped projects, why read-only, failed cleanups.
+    pub problems: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
@@ -572,6 +576,8 @@ impl Library {
             read_only: i.read_only,
             migrated_from: i.migrated_from,
             backup_path: i.backup_path,
+            locked_by_other: i.locked_by_other,
+            problems: i.problems,
         }
     }
 

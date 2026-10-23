@@ -46,8 +46,12 @@ case "$BUMP" in
 esac
 TAG="v$NEW"
 git rev-parse -q --verify "refs/tags/$TAG" >/dev/null && die "tag $TAG already exists"
-# Build number = commit count of the release commit (made below), so it only ever grows. Sparkle compares it.
-export BUILD="$(( $(git rev-list --count HEAD) + 1 ))"
+# Build number = commit count of the release commit (made below). Sparkle compares it, so it must never go
+# below a build already in the feed (e.g. after a squash merge shortened history): take the larger of the two.
+BUILD="$(( $(git rev-list --count HEAD) + 1 ))"
+LAST="$(grep -o '<sparkle:version>[0-9]*' tools/mac/appcast.xml 2>/dev/null | grep -o '[0-9]*$' | sort -n | tail -1 || true)"
+[ -n "$LAST" ] && [ "$BUILD" -le "$LAST" ] && BUILD="$((LAST + 1))"
+export BUILD
 PREV_TAG="$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)"
 echo "▸ release $OLD → $NEW (build $BUILD)$([ "$DRY" = 1 ] && echo ' [dry-run]')"
 
@@ -107,6 +111,8 @@ if os.path.exists(src):
         # Re-running a dry-run for the same version: replace that item.
         feed = re.sub(r"    <item>\s*<title>" + re.escape(ver) + r"</title>.*?</item>\n", "", feed, flags=re.S)
     feed = re.sub(r"(<channel>.*?</language>\n)", lambda mm: mm.group(1) + item, feed, count=1, flags=re.S)
+    if f"<sparkle:shortVersionString>{ver}</sparkle:shortVersionString>" not in feed:
+        raise SystemExit(f"appcast: could not insert the {ver} item into {src} (no </language> line?)")
 else:
     feed = f"""<?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">

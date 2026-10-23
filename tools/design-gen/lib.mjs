@@ -106,8 +106,10 @@ const num = (n) => (Number.isInteger(n) ? `${n}` : `${n}`);
 const swiftDouble = (n) => (Number.isInteger(n) ? `${n}` : `${n}`);
 const ktFloat = (n) => `${n}f`;
 
-const swiftStr = (s) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-const ktStr = (s) => `"${s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\$/g, "\\$")}"`;
+// Line breaks and tabs must be escaped too: a raw newline inside a Swift/Kotlin "…" literal doesn't compile.
+const escCtl = (s) => s.replace(/\n/g, "\\n").replace(/\r/g, "\\r").replace(/\t/g, "\\t");
+const swiftStr = (s) => `"${escCtl(s.replace(/\\/g, "\\\\").replace(/"/g, '\\"'))}"`;
+const ktStr = (s) => `"${escCtl(s.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\$/g, "\\$"))}"`;
 const tsStr = (s) => JSON.stringify(s);
 
 // ── CSS · TS (workbench) ───────────────────────────────────────────────

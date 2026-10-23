@@ -24,6 +24,9 @@ enum Overlay: Identifiable, Equatable {
 
 enum SaveStatus: Equatable { case saved, pending, failed(String) }
 
+/// What to do when the open sheet can't be saved and something wants to replace it (switch, close, quit).
+enum SaveFailureChoice { case retry, copy, export, quitAnyway, cancel }
+
 struct Toast: Identifiable {
     let id = UUID()
     var message: String
@@ -56,7 +59,8 @@ final class AppModel {
 
     let library: LibraryAPI
     private(set) var info: LibraryInfo
-    var openError: String?
+    /// The open-time problems banner (skipped projects…) was closed; Settings → Backup still lists them.
+    var problemsDismissed = false
 
     // MARK: Data
     private(set) var projects: [ProjectSummary] = []
@@ -75,8 +79,15 @@ final class AppModel {
     private(set) var liveCounts = Counts()
     private(set) var liveText = ""
     private(set) var saveStatus: SaveStatus = .saved
-    @ObservationIgnored private var dirty = false
+    @ObservationIgnored private(set) var dirty = false
     @ObservationIgnored private var saveTask: Task<Void, Never>?
+    /// Failed saves retry on a backoff (2 s, 5 s, 15 s, 30 s, then every 60 s) until one succeeds.
+    @ObservationIgnored private var retryAttempt = 0
+    nonisolated static let retryDelays: [Double] = [2, 5, 15, 30, 60]
+    /// Selftests: when set, every save throws this message (simulates a disk that refuses writes).
+    @ObservationIgnored var debugSaveError: String?
+    /// Selftests: answers the save-failure alert instead of a modal NSAlert. Argument: quitting.
+    @ObservationIgnored var saveFailurePrompt: ((Bool) -> SaveFailureChoice)?
     @ObservationIgnored private var countTask: Task<Void, Never>?
     @ObservationIgnored weak var editor: EditorBridge?
 
@@ -106,13 +117,13 @@ final class AppModel {
     var spellCheck: Bool? { didSet { defaults.set(spellCheck.map { $0 ? "on" : "off" } ?? "auto", forKey: "ithaca.spell") } }
 
     @ObservationIgnored let defaults: UserDefaults
-    @ObservationIgnored let menu = MenuState()
+    @ObservationIgnored let menu: MenuState
     @ObservationIgnored private var carets: [String: Int]
 
-    init(library: LibraryAPI, openError: String? = nil, defaults: UserDefaults = .standard) {
+    init(library: LibraryAPI, defaults: UserDefaults = .standard, menu: MenuState = MenuState()) {
         self.library = library
-        self.openError = openError
         self.defaults = defaults
+        self.menu = menu
         info = library.info()
         localePref = LocalePref(rawValue: defaults.string(forKey: "ithaca.locale") ?? "") ?? .system
         theme = ThemePref(rawValue: defaults.string(forKey: "ithaca.theme") ?? "") ?? .system
@@ -130,12 +141,19 @@ final class AppModel {
 
     // MARK: Locale
 
-    var locale: L10nLocale {
-        switch localePref {
+    var locale: L10nLocale { Self.locale(localePref) }
+
+    nonisolated static func locale(_ pref: LocalePref) -> L10nLocale {
+        switch pref {
         case .ko: .ko
         case .en: .en
         case .system: (Locale.preferredLanguages.first ?? "en").hasPrefix("ko") ? .ko : .en
         }
+    }
+
+    /// Before a model exists (the library failed to open): the locale from the saved preference.
+    nonisolated static func locale(defaults: UserDefaults) -> L10nLocale {
+        locale(LocalePref(rawValue: defaults.string(forKey: "ithaca.locale") ?? "") ?? .system)
     }
 
     func t(_ key: L10nKey, _ args: [String: Any] = [:], count: Int? = nil) -> String {
@@ -160,7 +178,9 @@ final class AppModel {
     var sheet: SheetSummary? { folders.lazy.flatMap(\.sheets).first { $0.id == sheetId } }
     var trash: [SheetSummary] { outline?.trash ?? [] }
     var language: ManuscriptLanguage { project?.language ?? (locale == .ko ? .ko : .en) }
-    var readOnly: Bool { info.readOnly }
+    /// Newer-format library, or another Ithaca holds the library's lock: nothing may be written.
+    var readOnly: Bool { info.readOnly || info.lockedByOther }
+    var readOnlyMessage: String { info.lockedByOther ? t(.libraryLockedByOther) : t(.libraryReadOnly) }
     var spellCheckActive: Bool { spellCheck ?? (language == .en) }
 
     func folderName(_ id: String) -> String? { folders.first { $0.id == id }?.name }
@@ -198,7 +218,7 @@ final class AppModel {
     // MARK: Selection
 
     func selectProject(_ id: String, remember: Bool = true) {
-        flushSave()
+        guard ensureSaved() else { return }
         projectId = id
         showingTrash = false
         reloadOutline()
@@ -216,7 +236,8 @@ final class AppModel {
     }
 
     func openSheet(_ id: String, at range: NSRange? = nil) {
-        if id != sheetId { flushSave() }
+        // Also for the same sheet (search hit, restore): reloading it from disk would drop unsaved typing.
+        guard ensureSaved() else { return }
         guard let projectId else { return }
         if let f = folders.first(where: { $0.sheets.contains { $0.id == id } }) { folderId = f.id }
         do {
@@ -247,7 +268,9 @@ final class AppModel {
         defaults.set(carets, forKey: "ithaca.carets")
     }
 
+    /// Only after `ensureSaved()` succeeded — this drops the buffer.
     private func closeSheet() {
+        assert(!dirty, "closeSheet with unsaved text")
         sheetId = nil
         text = ""
         loadToken += 1
@@ -258,11 +281,15 @@ final class AppModel {
     // MARK: Editing · saving
 
     /// Called by the text view after every change. Never writes back into the text view.
-    func textDidChange(_ newText: String) {
+    /// `token` is the `loadToken` the editor last loaded: a change from a view still showing an older sheet
+    /// (the switch already happened in the model) is ignored, so the old sheet's text never lands in the new one.
+    func textDidChange(_ newText: String, token: Int) {
+        guard token == loadToken, sheetId != nil, !readOnly else { return }
         guard newText != text else { return }
         text = newText
         dirty = true
-        saveStatus = .pending
+        // A failure stays on screen until a save actually succeeds.
+        if case .failed = saveStatus {} else { saveStatus = .pending }
         updateCounts(now: false)
         scheduleSave()
     }
@@ -293,24 +320,110 @@ final class AppModel {
         }
     }
 
-    /// Sheet switch · quit · app deactivation: end composition, then save now.
-    func flushSave() {
+    /// Sheet switch · quit · app deactivation: end composition, then save now. False = the text is still unsaved.
+    @discardableResult
+    func flushSave() -> Bool {
         saveTask?.cancel()
-        guard dirty else { return }
+        // Composition belongs to the sheet that's loaded now: commit it into this buffer before anything moves on.
         editor?.commitComposition()
+        guard dirty else { return true }
         save()
+        return !dirty
     }
 
     private func save() {
         guard dirty, let projectId, let sheetId else { return }
-        guard !readOnly else { saveStatus = .failed(t(.libraryReadOnly)); return }
+        guard !readOnly else { saveStatus = .failed(readOnlyMessage); return }
         do {
+            if let debugSaveError { throw LibraryError.io(debugSaveError) }
             let summary = try library.saveSheet(project: projectId, sheet: sheetId, text: text)
             dirty = false
+            retryAttempt = 0
             saveStatus = .saved
             replaceSummary(summary)
         } catch {
-            saveStatus = .failed(error.localizedDescription)
+            saveStatus = .failed((error as? LibraryError) == .readOnly ? readOnlyMessage : error.localizedDescription)
+            scheduleRetry()
+        }
+    }
+
+    private func scheduleRetry() {
+        saveTask?.cancel()
+        let delay = Self.retryDelays[min(retryAttempt, Self.retryDelays.count - 1)]
+        retryAttempt += 1
+        saveTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(delay))
+            guard let self, !Task.isCancelled else { return }
+            if editor?.isComposing == true { scheduleSave(); return }
+            save()
+        }
+    }
+
+    /// Footer "try again": save now.
+    func retrySave() { _ = flushSave() }
+
+    /// Before anything replaces or drops the open sheet's buffer (switch, close, trash, quit): save now, and if that
+    /// fails ask what to do. False = the caller must stop; the text stays in the editor, still marked unsaved.
+    func ensureSaved(quitting: Bool = false) -> Bool {
+        if flushSave() { return true }
+        while true {
+            switch saveFailurePrompt?(quitting) ?? promptSaveFailure(quitting: quitting) {
+            case .retry: if flushSave() { return true }
+            case .copy: copyUnsavedText()
+            case .export: exportUnsavedText()
+            case .quitAnyway: if confirmQuitWithoutSaving() { return true }
+            case .cancel: return false
+            }
+        }
+    }
+
+    private func promptSaveFailure(quitting: Bool) -> SaveFailureChoice {
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = t(.saveFailedTitle)
+        let message: String = if case .failed(let m) = saveStatus { m } else { "" }
+        alert.informativeText = (message.isEmpty ? "" : message + "\n\n") + t(.saveFailedBody)
+        var choices: [SaveFailureChoice] = [.retry, .copy, .export]
+        alert.addButton(withTitle: t(.actionRetry))
+        alert.addButton(withTitle: t(.saveCopyText))
+        alert.addButton(withTitle: t(.saveExportFile) + "…")
+        if quitting {
+            alert.addButton(withTitle: t(.saveQuitAnyway)).hasDestructiveAction = true
+            choices.append(.quitAnyway)
+        }
+        alert.addButton(withTitle: t(.actionCancel)).keyEquivalent = "\u{1b}"
+        choices.append(.cancel)
+        let i = alert.runModal().rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
+        return choices.indices.contains(i) ? choices[i] : .cancel
+    }
+
+    private func confirmQuitWithoutSaving() -> Bool {
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = t(.saveQuitConfirmTitle)
+        alert.informativeText = t(.saveQuitConfirmBody)
+        alert.addButton(withTitle: t(.actionCancel))
+        alert.addButton(withTitle: t(.saveQuitAnyway)).hasDestructiveAction = true
+        return alert.runModal() == .alertSecondButtonReturn
+    }
+
+    func copyUnsavedText() {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        showToast(Toast(message: t(.saveCopied)))
+    }
+
+    func exportUnsavedText() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.plainText]
+        let title = sheet?.title ?? ""
+        panel.nameFieldStringValue = (title.isEmpty ? t(.sheetUntitled) : title) + ".txt"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            try text.write(to: url, atomically: true, encoding: .utf8)
+            showToast(Toast(message: t(.saveExported, ["path": url.path(percentEncoded: false)]), sticky: true))
+        } catch {
+            showToast(Toast(message: error.localizedDescription, sticky: true))
         }
     }
 
@@ -329,7 +442,7 @@ final class AppModel {
         guard let projectId, !readOnly else { return }
         let fid = folderId ?? folders.first?.id
         guard let fid else { return }
-        flushSave()
+        guard ensureSaved() else { return }
         showingTrash = false
         libraryOverlay = false
         // Reuse an untouched empty sheet at the end instead of piling up blanks.
@@ -368,7 +481,7 @@ final class AppModel {
     func trashSheet(_ id: String? = nil) {
         guard let projectId, let id = id ?? sheetId else { return }
         let title = folders.flatMap(\.sheets).first { $0.id == id }?.title ?? ""
-        if id == sheetId { flushSave() }
+        if id == sheetId { guard ensureSaved() else { return } }
         // Keep the position so the next sheet opens, like closing a tab.
         let list = folder?.sheets ?? []
         let idx = list.firstIndex { $0.id == id }
@@ -423,7 +536,10 @@ final class AppModel {
         let ok = f.sheets.isEmpty ? confirm(t(.folderDeleteConfirmEmpty, ["name": f.name]))
                                   : confirm(t(.folderDeleteConfirm, ["name": f.name], count: f.sheets.count))
         guard ok else { return }
-        if f.sheets.contains(where: { $0.id == sheetId }) { flushSave(); closeSheet() }
+        if f.sheets.contains(where: { $0.id == sheetId }) {
+            guard ensureSaved() else { return }
+            closeSheet()
+        }
         perform { try library.deleteFolder(project: projectId, folder: id) }
         if folderId == id { folderId = folders.first?.id }
         showToast(Toast(message: t(.folderDeleted, ["name": f.name])) { [weak self] in
@@ -432,7 +548,7 @@ final class AppModel {
     }
 
     func createProject(title: String, language: ManuscriptLanguage, folders names: [String], goal: Goal?) {
-        flushSave()
+        guard ensureSaved() else { return }
         do {
             let p = try library.createProject(title: title, language: language, folders: names.isEmpty ? [defaultFolderName(.folderDefaultSerial, language)] : names)
             if let goal { _ = try library.updateProject(id: p.id, patch: ProjectPatch(goal: .some(goal))) }
@@ -462,7 +578,7 @@ final class AppModel {
     /// Soft delete (kept 30 days) with an undo that stays until dismissed.
     func deleteProject() {
         guard let p = project, confirm(t(.projectSettingsDeleteConfirm, ["name": p.title])) else { return }
-        flushSave()
+        guard ensureSaved() else { return }
         perform { try library.deleteProject(id: p.id) }
         overlay = nil
         refreshProjects()
@@ -565,7 +681,8 @@ final class AppModel {
     /// History → "restore this version": a new block with the old text; the editor reloads it.
     func restoreVersion(_ hash: String) {
         guard let projectId, let sheetId else { return }
-        flushSave()
+        // Restoring replaces the editor's text: never over unsaved typing.
+        guard ensureSaved() else { return }
         let caret = editor?.caretLocation
         do {
             let s = try library.restoreVersion(project: projectId, sheet: sheetId, hash: hash)

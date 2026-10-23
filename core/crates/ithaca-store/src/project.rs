@@ -15,7 +15,9 @@ use crate::fsutil::{is_temp, list, write_atomic};
 
 pub const CHANGES_DIR: &str = "changes";
 pub const CACHE_DIR: &str = "cache";
-const CACHE_VERSION: u32 = 1;
+/// 2 (added: safety): `head` and `textHash` bind the cached text to the chain head. Version-1
+/// caches are ignored and rebuilt from blocks.
+const CACHE_VERSION: u32 = 2;
 
 /// One chain in memory: every block's metadata, the heads, and the head text.
 #[derive(Debug, Clone, Default)]
@@ -59,7 +61,8 @@ impl Chain {
     }
 }
 
-/// The derived per-chain cache file. Deleting it loses nothing.
+/// The derived per-chain cache file. Deleting it loses nothing. It is not flushed to disk: a cache
+/// that fails to parse or to verify is simply rebuilt from blocks.
 #[derive(Serialize, Deserialize)]
 struct ChainCache {
     v: u32,
@@ -68,6 +71,28 @@ struct ChainCache {
     winner: Option<String>,
     branches: Vec<String>,
     text: String,
+    /// The winning head the text belongs to (same as `winner`; checked on load).
+    head: Option<String>,
+    /// blake3 (hex) of `text`.
+    #[serde(rename = "textHash")]
+    text_hash: String,
+}
+
+fn text_hash(text: &str) -> String {
+    blake3::hash(text.as_bytes()).to_hex().to_string()
+}
+
+impl ChainCache {
+    /// The cache is internally consistent: its text is the text it was written with, for the head
+    /// it names, and that head is one of its blocks. A cache that fails this is rebuilt.
+    fn consistent(&self) -> bool {
+        self.head == self.winner
+            && self
+                .head
+                .as_ref()
+                .is_none_or(|h| self.metas.iter().any(|m| &m.hash == h))
+            && self.text_hash == text_hash(&self.text)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -131,6 +156,8 @@ pub fn write_cache(dir: &Path, sheet: &str, chain: &Chain) {
         winner: chain.heads.winner.clone(),
         branches: chain.heads.branches.clone(),
         text: chain.text.clone(),
+        head: chain.heads.winner.clone(),
+        text_hash: text_hash(&chain.text),
     };
     let cache_dir = dir.join(CACHE_DIR);
     // The cache is an optimisation: a failed write only makes the next open slower.
@@ -161,16 +188,15 @@ fn read_caches(dir: &Path) -> Vec<ChainCache> {
 
 impl Project {
     /// Loads a project folder. Returns `None` for a folder without a readable table of contents
-    /// (e.g. a create that crashed before its first block). `writable` allows cache writes and cleanup.
+    /// (e.g. a create that crashed before its first block). `writable` (the caller holds the
+    /// library lock) allows cache writes and cleanup, done only once the project loaded.
     pub fn load(id: &str, dir: &Path, writable: bool) -> Result<Option<Project>> {
         let changes = changes_dir(dir);
         let mut names: HashSet<String> = HashSet::new();
+        let mut temps = Vec::new();
         for name in list(&changes)? {
             if is_temp(&name) {
-                // A write that never finished: never part of the library.
-                if writable {
-                    let _ = fs::remove_file(changes.join(&name));
-                }
+                temps.push(name);
             } else if is_hash_name(&name) {
                 names.insert(name);
             }
@@ -183,7 +209,10 @@ impl Project {
         for c in read_caches(dir) {
             let hashes: Vec<String> = c.metas.iter().map(|m| m.hash.clone()).collect();
             covered.extend(hashes.iter().cloned());
-            if hashes.iter().all(|h| names.contains(h)) && !chains.contains_key(&c.sheet) {
+            if c.consistent()
+                && hashes.iter().all(|h| names.contains(h))
+                && !chains.contains_key(&c.sheet)
+            {
                 let metas = c.metas.into_iter().map(|m| (m.hash.clone(), m)).collect();
                 chains.insert(
                     c.sheet,
@@ -238,17 +267,17 @@ impl Project {
             chains.insert(sheet.clone(), Chain::new(r.metas, r.heads, r.head_text));
             rebuilt_ids.insert(sheet);
         }
-        if writable {
-            for sheet in &rebuilt_ids {
-                write_cache(dir, sheet, &chains[sheet]);
-            }
-        }
-
         let Some(toc_chain) = chains.get(Toc::SHEET_ID) else {
             return Ok(None);
         };
         let toc = Toc::from_text(&toc_chain.text)
             .map_err(|e| StoreError::Corrupt(format!("table of contents of {id}: {e}")))?;
+        // Only a project that loaded is written to (caches, cleanup); one that failed stays as it is.
+        if writable {
+            for sheet in &rebuilt_ids {
+                write_cache(dir, sheet, &chains[sheet]);
+            }
+        }
         let mut project = Project {
             id: id.to_string(),
             dir: dir.to_path_buf(),
@@ -256,6 +285,11 @@ impl Project {
             chains,
         };
         if writable {
+            // Writes that never finished: never part of the library. `writable` means this open
+            // holds the library lock, so no other process can be writing them right now.
+            for name in temps {
+                let _ = fs::remove_file(changes.join(&name));
+            }
             // A permanent delete that stopped between its tombstone and removing the files.
             let leftovers: Vec<String> = project
                 .toc

@@ -14,8 +14,34 @@ pub fn is_temp(name: &str) -> bool {
     name.starts_with(TEMP_PREFIX)
 }
 
+/// Flushes a folder's entries (names created, renamed or removed in it) to disk. Without this a
+/// rename can be lost on power failure even though the file's data was flushed.
+pub fn sync_dir(dir: &Path) -> io::Result<()> {
+    match File::open(dir).and_then(|d| d.sync_all()) {
+        Ok(()) => Ok(()),
+        // Some filesystems (network, FUSE) refuse to sync a folder; nothing more can be done there.
+        Err(e)
+            if matches!(
+                e.kind(),
+                io::ErrorKind::InvalidInput | io::ErrorKind::Unsupported
+            ) =>
+        {
+            Ok(())
+        }
+        Err(e) => Err(e),
+    }
+}
+
+/// Copies one file and flushes the copy to disk. Returns the bytes copied.
+pub fn copy_durable(from: &Path, to: &Path) -> io::Result<u64> {
+    let n = fs::copy(from, to)?;
+    File::open(to)?.sync_all()?;
+    Ok(n)
+}
+
 /// Writes to a temp file in the same folder, then renames it into place, so readers see either
-/// nothing or the whole file. `durable` also flushes the data to disk before the rename.
+/// nothing or the whole file. `durable` also flushes the data to disk before the rename and the
+/// folder entry after it.
 pub fn write_atomic(path: &Path, bytes: &[u8], durable: bool) -> io::Result<()> {
     let dir = path
         .parent()
@@ -33,7 +59,11 @@ pub fn write_atomic(path: &Path, bytes: &[u8], durable: bool) -> io::Result<()> 
             f.sync_all()?;
         }
         drop(f);
-        fs::rename(&tmp, path)
+        fs::rename(&tmp, path)?;
+        if durable {
+            sync_dir(dir)?;
+        }
+        Ok(())
     })();
     if result.is_err() {
         let _ = fs::remove_file(&tmp);
@@ -41,7 +71,8 @@ pub fn write_atomic(path: &Path, bytes: &[u8], durable: bool) -> io::Result<()> 
     result
 }
 
-/// Copies a folder tree, skipping top-level entries for which `skip` is true.
+/// Copies a folder tree, skipping top-level entries for which `skip` is true. Every copied file and
+/// folder is flushed to disk, so the copy survives a power failure once this returns.
 pub fn copy_dir(from: &Path, to: &Path, skip: &dyn Fn(&str) -> bool) -> io::Result<()> {
     fs::create_dir_all(to)?;
     for entry in fs::read_dir(from)? {
@@ -54,10 +85,10 @@ pub fn copy_dir(from: &Path, to: &Path, skip: &dyn Fn(&str) -> bool) -> io::Resu
         if entry.file_type()?.is_dir() {
             copy_dir(&src, &dst, &|_| false)?;
         } else {
-            fs::copy(&src, &dst)?;
+            copy_durable(&src, &dst)?;
         }
     }
-    Ok(())
+    sync_dir(to)
 }
 
 /// File names in a folder; an absent folder is empty.

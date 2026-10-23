@@ -15,5 +15,8 @@ getrandom, is used under its MIT/Apache option).
 | uuid (v4) | 1.29 | MIT OR Apache-2.0 | store | project, folder and sheet ids |
 | tempfile *(dev only)* | 3.27 | MIT OR Apache-2.0 | tests | temporary library folders |
 
+No crate is used for the library lock: `std::fs::File::try_lock` (stable since Rust 1.89; `flock` on
+macOS and Linux) does it, so the safety work added no dependency.
+
 Notable transitive: arrayvec, cfg-if, getrandom, libc (MIT OR Apache-2.0); constant_time_eq
 (CC0-1.0 OR MIT-0 OR Apache-2.0); zmij (MIT, via serde_json); cc (build-time, MIT OR Apache-2.0).

@@ -83,10 +83,12 @@ struct ManuscriptView: NSViewRepresentable {
 
         var isComposing: Bool { textView?.hasMarkedText() ?? false }
 
+        /// Commits into the sheet this view loaded (`loadedToken`). If the model already moved to another sheet,
+        /// `textDidChange` ignores it — the model flushes the old sheet before switching, so nothing is lost there.
         func commitComposition() {
             guard let tv = textView, tv.hasMarkedText() else { return }
             tv.unmarkText()
-            model.textDidChange(tv.string)
+            model.textDidChange(tv.string, token: loadedToken)
         }
 
         func select(_ range: NSRange, center: Bool) {
@@ -114,9 +116,10 @@ struct ManuscriptView: NSViewRepresentable {
 
         func load() {
             guard let tv = textView else { return }
-            loadedToken = model.loadToken
-            if tv.hasMarkedText() { tv.unmarkText() }
+            // Silence change callbacks first: ending a stale composition here must not write into the new sheet.
             loading = true
+            if tv.hasMarkedText() { tv.unmarkText() }
+            loadedToken = model.loadToken
             tv.string = model.text
             tv.undoManager?.removeAllActions()
             tv.isEditable = !model.readOnly && model.sheetId != nil
@@ -137,6 +140,7 @@ struct ManuscriptView: NSViewRepresentable {
         func configure(sizeClass: T.Layout.SizeClass, force: Bool) {
             guard let tv = textView else { return }
             let key = StyleKey(size: model.textSize, markup: model.markup, sizeClass: sizeClass, spell: model.spellCheckActive, readOnly: model.readOnly)
+            tv.isEditable = !model.readOnly && model.sheetId != nil
             tv.padX = T.Layout.Editor.paddingX(sizeClass)
             tv.typewriter = model.typewriter
             guard force || key != style else { return }
@@ -159,7 +163,7 @@ struct ManuscriptView: NSViewRepresentable {
 
         func textDidChange(_ notification: Notification) {
             guard let tv = textView, !loading else { return }
-            model.textDidChange(tv.string)
+            model.textDidChange(tv.string, token: loadedToken)
             if breakAfterChange { breakAfterChange = false; tv.breakUndoCoalescing() }
             scheduleStyle()
             schedulePauseBreak()

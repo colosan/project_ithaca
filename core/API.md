@@ -18,9 +18,30 @@ impl Library {
     /// On a writable open, projects deleted and sheets trashed more than 30 days ago are purged.
     #[uniffi::constructor] fn open(path: String, device_id: String) -> Result<Arc<Library>, CoreError>;
     fn info(&self) -> LibraryInfo;
-    // LibraryInfo { format: u32, core_version: String, read_only: bool, migrated_from: Option<u32>, backup_path: Option<String> }
+    // LibraryInfo { format: u32, core_version: String, read_only: bool, migrated_from: Option<u32>, backup_path: Option<String>,
+    //               locked_by_other: bool /* (added: safety) */, problems: Vec<String> /* (added: safety) */ }
 }
 ```
+
+### Open safety (added: safety)
+
+- **One writer per library.** A writable open holds an exclusive advisory lock on `<library>/.lock`
+  until the `Library` is dropped (or the process dies). A second open — another app instance, a
+  second build — gets `info().locked_by_other == true` and `read_only == true`; every write returns
+  `ReadOnly`. It is a snapshot of the moment it opened and does not see the other instance's later
+  writes: drop it and open again once the other instance has quit.
+- **`read_only` has more causes now**: newer format (as before), `locked_by_other`, `library.json`
+  missing or unreadable next to a `projects/` folder (nothing is initialised over it), a migration
+  that failed (the library is put back from its pre-migration backup) or could not back up first.
+  Each cause except "newer format" adds a line to `problems`.
+- **`problems`**: human-readable English lines for the app to show (e.g. a banner/sheet on launch,
+  Settings → 백업). Empty when all is well. Opening reports: projects skipped because their folder
+  is unreadable or their table of contents is corrupt (they are left untouched on disk and load again
+  once fixed), purges that failed, why the library is read-only. Later calls may append (a failed
+  backup pruning, a project skipped by a backup) — call `info()` again after `backup_now`.
+- **Retention clock guard**: purging uses `min(now, newest block in the library + 2 days)` as "now".
+  After a clock jump forward — or simply a long break — nothing is purged until something has been
+  written; the next open after that purges as usual.
 
 ## Projects, folders, sheets
 
@@ -97,11 +118,15 @@ fn renumber_episodes(&self, project: String, folder: String) -> Result<u32, Core
 /// autos kept = newest of each of the last 7 days that have one + newest of each of the last 4 weeks
 /// (Monday-based, UTC). Manual and pre-migration backups are never removed. Read-only library → ReadOnly.
 /// Copies every block and library.json (seconds for a typical library; call off the main thread).
+/// (added: safety) Every copied file is flushed to disk; the folder is listed only once its manifest
+/// says complete. A failed pruning after a good backup still returns the backup and adds a line to
+/// `info().problems`; an unreadable project is skipped (also noted there) rather than failing the backup.
 fn backup_now(&self) -> Result<BackupInfo, CoreError>;
 /// Same copy as `manual-<stamp>`; never pruned (Settings → 백업 → "지금 백업").
 fn backup_manual(&self) -> Result<BackupInfo, CoreError>;
-/// Newest first: auto + manual (from backups_dir), pre-migration (from `<library>/Backups`;
-/// `at` = folder mtime, `bytes` = folder size).
+/// Newest first: auto + manual (from backups_dir), pre-migration (from `<library>/Backups`).
+/// (added: safety) Pre-migration copies are listed only with a complete manifest; `at`/`bytes`/
+/// `projects` come from it. Half-written copies of any kind are never listed.
 fn backups(&self) -> Vec<BackupInfo>;
 /// No Auto backup in the last 24 h (false on a read-only library). Call on launch / idle, then backup_now.
 fn backup_due(&self) -> bool;
@@ -112,6 +137,7 @@ fn backups_dir(&self) -> String;   // `<library parent>/Backups`, for "Show in F
 /// rename), language, goal, folder names/order, sheet text, created/modified, episode metadata.
 /// History is not copied (it stays in the backup). Not a backup, another format, or the library
 /// itself → InvalidInput. Returns the new projects in creation order.
+/// (added: safety) All or nothing: if one project fails, the copies already made are removed again.
 fn restore_backup_as_copies(&self, path: String) -> Result<Vec<ProjectSummary>, CoreError>;
 ```
 
@@ -159,6 +185,7 @@ fn search(&self, query: String, project: Option<String>) -> Vec<SearchHit>;
 /// Deleted projects/folders and trashed sheets are skipped; titles are kept as is; sheet created/modified
 /// times are kept (`modified` is the time of the sheet's block). Not a web backup → InvalidInput.
 fn import_web_backup(&self, json: String) -> Result<ImportReport, CoreError>;    // ImportReport { projects, folders, sheets }
+// (added: safety) All or nothing: on an error no imported project remains, so a retry never duplicates.
 /// `sheets` in the order given; an empty list means every live sheet of the project in reading order.
 fn export_text(&self, project: String, sheets: Vec<String>, options: ExportOptions) -> Result<String, CoreError>;
 // ExportOptions { blank_line = true, indent = false, strip_markdown = true, include_title = true, markdown = false }

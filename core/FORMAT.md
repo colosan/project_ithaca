@@ -7,11 +7,13 @@ written in format 1 must open in every later core, through a migration if need b
 
 ```
 <library>/                         default: ~/Library/Application Support/Ithaca/Library/
+  .lock                            empty; exclusive flock of the open writer (§Lock)
   library.json                     { "format": 1, "created": <ms> }
   projects/<project-id>/
     changes/<hash>                 immutable block files — the only source of truth
     cache/<chain-id>.json          derived; deleting it loses nothing
   Backups/pre-migration-<from>-<to>-<YYYY-MM-DD>[-n]/   full copies made before a migration
+  Backups/failed-migration-<from>-<to>-<YYYY-MM-DD>[-n]/  what a failed migration left (kept, never read)
 <library parent>/Backups/          automatic and manual backups (§Backups)
   auto-<YYYY-MM-DD-HHMM>[-n]/      UTC
   manual-<YYYY-MM-DD-HHMM>[-n]/
@@ -19,8 +21,23 @@ written in format 1 must open in every later core, through a migration if need b
 
 - Ids (project, folder, sheet) are UUID v4 in 32-char lowercase hex. `toc` is reserved (below).
 - `library.json` may carry extra fields; a core keeps fields it does not know.
-- A missing `library.json` in an empty or missing folder creates a new library. A missing `library.json`
-  next to a `projects/` folder is an error (`Corrupt`), never silently re-initialised.
+- A missing `library.json` in an empty or missing folder creates a new library. A missing or unreadable
+  `library.json` next to a `projects/` folder is never re-initialised: the library opens **read-only**
+  (projects readable, nothing written, not even `.lock`) with a problem message.
+
+## Lock
+
+A writable open takes an exclusive advisory `flock` on `<library>/.lock` (created empty if missing,
+never deleted) and holds it while open; the OS releases it on close or crash. An open that finds it
+held is read-only and writes nothing. Only the lock holder removes `.tmp-` files, writes caches,
+purges or migrates. A read-only open for a newer format (or a missing `library.json`, above) does not
+touch the lock. On a filesystem without `flock` the open proceeds unlocked and says so.
+
+## Opening projects
+
+A project folder that cannot be read, or whose `toc` chain does not parse, is skipped: the rest of the
+library opens, the skipped folder is not written to (no cache, no cleanup), and the open reports it.
+A folder with block files but no `toc` chain at all is reported too (its blocks are kept).
 
 ## Blocks
 
@@ -57,9 +74,9 @@ is written when the delta chain since the last snapshot would reach 32 blocks (`
 the encoded delta is not smaller than the encoded text. Reading any version therefore touches at most 32
 files. Merge blocks should be snapshots.
 
-**Writing**: write to `changes/.tmp-<name>-<pid>-<n>`, fsync, rename to `changes/<hash>`. Files are never
-modified. Files whose name starts with `.tmp-` are incomplete writes: ignored on open and removed by a
-writable open. Block files are only ever removed by a permanent delete (after its tombstone, below) or
+**Writing**: write to `changes/.tmp-<name>-<pid>-<n>`, fsync, rename to `changes/<hash>`, fsync the
+folder. Files are never modified. Files whose name starts with `.tmp-` are incomplete writes: ignored
+on open and removed by a writable open (the lock holder only). Block files are only ever removed by a permanent delete (after its tombstone, below) or
 by purging a deleted project.
 
 ## Chains, heads and branches
@@ -104,14 +121,20 @@ line keeps deltas small), stored with the same snapshot/delta rules as sheets, `
 - A project directory without a valid `toc` chain is not a project (e.g. a create that crashed). Sheet
   blocks are written before the `toc` block that names them, so a crash leaves only invisible orphans.
 - Retention: projects with `deleted` and sheets with `trashed` older than 30 days are purged on open.
+  "Now" for this is `min(clock, newest block time in the library + 2 days)`, so a clock that jumped
+  forward purges nothing early; purging resumes once something has been written. A purge that fails
+  is reported and retried on the next open.
 - A sheet's `created` lives in the toc; its `modified` is the `at` of its head block.
 
 ## Cache (derived)
 
-`cache/<chain-id>.json` = `{ "v": 1, "sheet", "metas": [every block without its body, plus depth and
-added/removed], "winner", "branches", "text" }` (chain ids that are not plain `[A-Za-z0-9_-]` use the
-first 32 hex of their blake3). On open a cache is trusted only if every block it lists is still in
-`changes/`; blocks no cache lists are read and their chains rebuilt from blocks. Delete `cache/` any time.
+`cache/<chain-id>.json` = `{ "v": 2, "sheet", "metas": [every block without its body, plus depth and
+added/removed], "winner", "branches", "text", "head", "textHash" }` (chain ids that are not plain
+`[A-Za-z0-9_-]` use the first 32 hex of their blake3). `head` repeats the winning head; `textHash` is
+the blake3 hex of `text`. On open a cache is trusted only if it parses, is version 2, `head == winner`,
+`head` is one of its `metas`, `textHash` matches `text`, and every block it lists is still in
+`changes/`; anything else (including version-1 caches) is rebuilt from blocks, as are blocks no cache
+lists. Caches are written atomically but not fsynced: they are disposable. Delete `cache/` any time.
 
 ## Backups
 
@@ -119,14 +142,19 @@ A backup is a library-shaped folder, so it can be opened or restored like a libr
 
 ```
 auto-2026-10-24-0915/
-  backup.json        { "v": 1, "kind": "auto" | "manual", "at": <ms>, "bytes": <n>, "format": 1, "projects": <n> }
+  backup.json        { "v": 1, "kind": "auto" | "manual" | "pre-migration", "at": <ms>, "bytes": <n>,
+                       "format": 1, "projects": <n>, "complete": true }
   library.json       copied as is
   projects/<id>/changes/<hash>   every block file; no cache/, no .tmp- files
 ```
 
-- Written as `<parent>/Backups/.tmp-<name>-<pid>/` and renamed into place; a folder without a
-  readable `backup.json` is not listed, and leftover `.tmp-auto-*`/`.tmp-manual-*` folders are removed
-  by the next backup. Blocks are immutable and writes are serialized, so the copy is consistent.
+- Written as `<parent>/Backups/.tmp-<name>-<pid>/`, every file and folder fsynced, `backup.json`
+  written last (fsynced), then renamed into place and the parent folder fsynced. A folder is listed only
+  if its `backup.json` reads and says `complete` (a manifest without the field — written before it
+  existed, also only at the end — counts as complete). Leftover `.tmp-auto-*`/`.tmp-manual-*` folders
+  untouched for an hour are removed by the next backup (younger ones may be a sibling library's
+  backup in progress). Blocks are immutable and writes are serialized, so the copy is consistent.
+- A project whose folder cannot be read is left out of the backup (and reported), not fatal.
 - `bytes` = sum of copied files (manifest excluded).
 - Retention runs after each automatic backup and deletes only `auto-*` folders with a manifest:
   keep the newest auto of each of the last 7 UTC days that have one, and of each of the last 4
@@ -136,9 +164,16 @@ auto-2026-10-24-0915/
 ## Versions and migrations (ADR-0008 §5)
 
 - `library.json.format` is the format of the whole library. This core writes and reads format **1**.
-- Lower: before anything else, the whole library (except `Backups/`) is copied to
-  `Backups/pre-migration-<from>-<to>-<UTC date>/`, then each step `n → n+1` runs in order and
-  `format` is updated after each step. A missing step fails the open before anything is touched.
+- Lower (only while holding the lock; otherwise read-only): before anything else, the whole library
+  (except `Backups/` and `.lock`) is copied to `Backups/.tmp-pre-migration-…`, fsynced, given a
+  complete `backup.json` (`kind: "pre-migration"`, `format` = the old format), and renamed to
+  `Backups/pre-migration-<from>-<to>-<UTC date>/`. Only then does each step `n → n+1` run in order,
+  `format` updated after each step. A missing step fails the open before anything is touched (only
+  `.lock` may have been created). If the backup fails, nothing is changed and the library opens
+  read-only. If a step fails, the library's files are moved aside to
+  `Backups/failed-migration-<from>-<to>-<date>/`, the backup is copied back, and the library opens
+  read-only at the old format with a problem message. Pre-migration folders without a complete
+  manifest are not listed.
 - Higher: the library opens **read-only**. Nothing is written, not even caches or cleanup; every write
   returns `ReadOnly`. Blocks with an unknown `v` are skipped.
 - Every migration is tested against the frozen fixture of the previous format (`core/fixtures/library-v1`).

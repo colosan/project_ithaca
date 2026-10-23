@@ -67,6 +67,42 @@ enum EditorSelfTest {
         check((headingFont?.pointSize ?? 0) > 20, "heading line styled (\(headingFont?.pointSize ?? 0) pt)")
         check(tv.string.hasPrefix("# 제목\n"), "text unchanged by styling")
 
+        // 6. Sheet switch while composing: the composition is committed into the OLD sheet and saved there;
+        //    the new sheet gets none of it.
+        pump(2.0)
+        let first = model.sheetId!
+        let pid = model.projectId!
+        let second = (try? lib.createSheet(project: pid, folder: model.folders[0].id, text: "둘째"))!.id
+        model.reloadOutline()
+        tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
+        tv.setMarkedText("ㅁ", selectedRange: NSRange(location: 1, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
+        let withComposition = tv.string
+        model.openSheet(second)
+        pump(0.3)
+        check(((try? lib.sheetText(project: pid, sheet: first)) ?? "") == withComposition, "composition committed into the old sheet on switch")
+        check(tv.string == "둘째" && model.text == "둘째" && !model.dirty, "new sheet untouched by the old composition ('\(tv.string)')")
+
+        // 7. A change tagged with the previous load token is ignored.
+        model.textDidChange("옛 시트 글", token: model.loadToken - 1)
+        check(model.text == "둘째" && !model.dirty, "stale-token edit ignored")
+
+        // 8. Save failure: the switch back is refused, the typed text stays in the view and the model.
+        var prompts = 0
+        model.saveFailurePrompt = { _ in prompts += 1; return .cancel }
+        model.debugSaveError = "simulated disk error"
+        tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
+        tv.insertText(" 저장 안 됨", replacementRange: tv.selectedRange())
+        model.openSheet(first)
+        pump(0.3)
+        check(model.sheetId == second && tv.string == "둘째 저장 안 됨" && model.text == tv.string && model.dirty && prompts == 1,
+              "switch refused on save failure, text kept ('\(tv.string)', prompts \(prompts))")
+        if case .failed = model.saveStatus { check(true, "footer shows the failure") } else { check(false, "status \(model.saveStatus)") }
+        // Backoff retry lands once the disk works again (first retry after 2 s).
+        model.debugSaveError = nil
+        pump(2.5)
+        check(model.saveStatus == .saved && ((try? lib.sheetText(project: pid, sheet: second)) ?? "") == "둘째 저장 안 됨", "automatic retry saved it")
+        model.saveFailurePrompt = nil
+
         print(failures.isEmpty ? "✓ editor self-test passed" : "✗ \(failures.count) failed")
         exit(failures.isEmpty ? 0 : 1)
     }

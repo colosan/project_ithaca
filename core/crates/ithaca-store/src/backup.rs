@@ -3,8 +3,10 @@
 //! A backup is a library-shaped folder — `library.json`, `projects/<id>/changes/<hash>` and a
 //! `backup.json` manifest — next to the library: `<library parent>/Backups/auto-<UTC yyyy-mm-dd-HHMM>/`.
 //! Blocks are immutable and the store is behind one lock, so copying the block files is a consistent
-//! snapshot. Caches are derived and left out. A backup is written under a `.tmp-` name and renamed
-//! into place, so a crash never leaves a half backup that looks whole.
+//! snapshot. Caches are derived and left out. A backup is written under a `.tmp-` name, every file
+//! flushed to disk, a manifest with `complete: true` written last, then renamed into place, so a
+//! crash never leaves a half backup that looks whole: only folders whose manifest says complete
+//! are listed.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -14,8 +16,9 @@ use ithaca_model::Toc;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Result;
+use crate::format::PRE_MIGRATION;
 use crate::format::{BACKUPS_DIR, LIBRARY_FILE, LibraryFile, PROJECTS_DIR};
-use crate::fsutil::{is_temp, list, utc_date, write_atomic};
+use crate::fsutil::{copy_durable, is_temp, list, sync_dir, utc_date, write_atomic};
 use crate::project::{CHANGES_DIR, Project};
 use crate::{BackupInfo, BackupKind, NewSheet, ProjectSummary, Store, invalid};
 
@@ -26,20 +29,46 @@ pub const DAY_MS: i64 = 86_400_000;
 /// backups are never removed.
 pub const KEEP_DAILY: usize = 7;
 pub const KEEP_WEEKLY: usize = 4;
+/// A `.tmp-` backup folder untouched this long is a leftover of a crash, not a backup in progress.
+const STALE_TEMP_MS: i64 = 3_600_000;
 
 const AUTO: &str = "auto";
 const MANUAL: &str = "manual";
-const PRE_MIGRATION: &str = "pre-migration-";
+pub(crate) const PRE_MIGRATION_KIND: &str = "pre-migration";
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Manifest {
-    v: u32,
-    /// `auto` | `manual`
-    kind: String,
-    at: i64,
-    bytes: u64,
-    format: u32,
-    projects: u32,
+pub(crate) struct Manifest {
+    pub v: u32,
+    /// `auto` | `manual` | `pre-migration`
+    pub kind: String,
+    pub at: i64,
+    pub bytes: u64,
+    pub format: u32,
+    pub projects: u32,
+    /// Written last, after every file was flushed (added: safety). Manifests from before this
+    /// field were also only ever written after the copy finished, so a missing field means true.
+    #[serde(default = "yes")]
+    pub complete: bool,
+}
+
+fn yes() -> bool {
+    true
+}
+
+impl Manifest {
+    pub(crate) fn to_bytes(&self) -> Vec<u8> {
+        let mut json = serde_json::to_vec_pretty(self).expect("manifest serializes");
+        json.push(b'\n');
+        json
+    }
+
+    /// The manifest of a finished backup folder, if it has one.
+    fn read(path: &Path) -> Option<Manifest> {
+        fs::read(path.join(MANIFEST_FILE))
+            .ok()
+            .and_then(|b| serde_json::from_slice::<Manifest>(&b).ok())
+            .filter(|m| m.complete)
+    }
 }
 
 /// `yyyy-mm-dd-HHMM` in UTC.
@@ -56,7 +85,7 @@ fn modified_ms(path: &Path) -> i64 {
         .map_or(0, |d| d.as_millis() as i64)
 }
 
-fn dir_size(path: &Path) -> u64 {
+pub(crate) fn dir_size(path: &Path) -> u64 {
     let Ok(rd) = fs::read_dir(path) else {
         return 0;
     };
@@ -68,7 +97,7 @@ fn dir_size(path: &Path) -> u64 {
         .sum()
 }
 
-fn project_count(backup: &Path) -> u32 {
+pub(crate) fn project_count(backup: &Path) -> u32 {
     list(&backup.join(PROJECTS_DIR))
         .unwrap_or_default()
         .iter()
@@ -108,10 +137,14 @@ impl Store {
         }
     }
 
-    /// Writes an automatic backup, then applies retention to automatic backups.
+    /// Writes an automatic backup, then applies retention to automatic backups. The backup is what
+    /// matters: a failed pruning is noted in [`Store::info`]`.problems` and the backup still returned.
     pub fn backup_now(&mut self) -> Result<BackupInfo> {
         let info = self.write_backup(AUTO, BackupKind::Auto)?;
-        self.prune_backups()?;
+        if let Err(e) = self.prune_backups() {
+            self.problems
+                .push(format!("Removing old automatic backups failed: {e}"));
+        }
         Ok(info)
     }
 
@@ -122,7 +155,7 @@ impl Store {
 
     /// No automatic backup was made in the last 24 hours (and the library is writable).
     pub fn backup_due(&self) -> bool {
-        if self.prepared.read_only {
+        if self.read_only() {
             return false;
         }
         let since = self.now() - DAY_MS;
@@ -142,10 +175,7 @@ impl Store {
                 continue;
             }
             let path = dir.join(&name);
-            let Some(m) = fs::read(path.join(MANIFEST_FILE))
-                .ok()
-                .and_then(|b| serde_json::from_slice::<Manifest>(&b).ok())
-            else {
+            let Some(m) = Manifest::read(&path) else {
                 continue;
             };
             let kind = match m.kind.as_str() {
@@ -167,12 +197,16 @@ impl Store {
             if !name.starts_with(PRE_MIGRATION) || !path.is_dir() {
                 continue;
             }
+            // A pre-migration copy is listed only once its manifest says it is complete.
+            let Some(m) = Manifest::read(&path).filter(|m| m.kind == PRE_MIGRATION_KIND) else {
+                continue;
+            };
             out.push(BackupInfo {
                 path: path.to_string_lossy().into_owned(),
-                at: modified_ms(&path),
-                bytes: dir_size(&path),
+                at: m.at,
+                bytes: m.bytes,
                 kind: BackupKind::PreMigration,
-                projects: project_count(&path),
+                projects: m.projects,
             });
         }
         out.sort_by(|a, b| b.at.cmp(&a.at).then_with(|| b.path.cmp(&a.path)));
@@ -184,9 +218,13 @@ impl Store {
         let now = self.now();
         let dir = self.backups_dir();
         fs::create_dir_all(&dir)?;
-        // Backups that stopped half way (crash, full disk).
+        // Backups that stopped half way (crash, full disk). We hold this library's lock, but the
+        // folder is shared with any sibling library, so only folders untouched for an hour go.
         for name in list(&dir)? {
-            if is_temp(&name) && (name.contains(AUTO) || name.contains(MANUAL)) {
+            if is_temp(&name)
+                && (name.contains(AUTO) || name.contains(MANUAL))
+                && modified_ms(&dir.join(&name)) < (crate::system_clock())() - STALE_TEMP_MS
+            {
                 let _ = fs::remove_dir_all(dir.join(&name));
             }
         }
@@ -202,24 +240,41 @@ impl Store {
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default();
         let tmp = dir.join(format!(".tmp-{name}-{}", std::process::id()));
+        let mut skipped = Vec::new();
         let result = (|| -> Result<Manifest> {
             let _ = fs::remove_dir_all(&tmp);
-            let mut bytes = fs::copy(self.root.join(LIBRARY_FILE), tmp_file(&tmp, LIBRARY_FILE)?)?;
+            let mut bytes = copy_durable(
+                &self.root.join(LIBRARY_FILE),
+                &tmp_file(&tmp, LIBRARY_FILE)?,
+            )?;
             let mut projects = 0;
+            let projects_dst = tmp.join(PROJECTS_DIR);
+            fs::create_dir_all(&projects_dst)?;
             for id in list(&self.root.join(PROJECTS_DIR))? {
                 let src = self.root.join(PROJECTS_DIR).join(&id).join(CHANGES_DIR);
                 if id.starts_with('.') || !src.is_dir() {
                     continue;
                 }
-                let dst = tmp.join(PROJECTS_DIR).join(&id).join(CHANGES_DIR);
+                // One unreadable project must not stop every other project being backed up.
+                let files = match list(&src) {
+                    Ok(f) => f,
+                    Err(e) => {
+                        skipped.push(format!("Backup skipped project {id}: {e}"));
+                        continue;
+                    }
+                };
+                let dst = projects_dst.join(&id).join(CHANGES_DIR);
                 fs::create_dir_all(&dst)?;
                 projects += 1;
-                for f in list(&src)? {
+                for f in files {
                     if is_hash_name(&f) {
-                        bytes += fs::copy(src.join(&f), dst.join(&f))?;
+                        bytes += copy_durable(&src.join(&f), &dst.join(&f))?;
                     }
                 }
+                sync_dir(&dst)?;
+                sync_dir(&projects_dst.join(&id))?;
             }
+            sync_dir(&projects_dst)?;
             let m = Manifest {
                 v: 1,
                 kind: prefix.to_string(),
@@ -227,13 +282,15 @@ impl Store {
                 bytes,
                 format: self.prepared.format,
                 projects,
+                complete: true,
             };
-            let mut json = serde_json::to_vec_pretty(&m).expect("manifest serializes");
-            json.push(b'\n');
-            write_atomic(&tmp.join(MANIFEST_FILE), &json, true)?;
+            // Written last (and durably): its presence is what makes the folder a backup.
+            write_atomic(&tmp.join(MANIFEST_FILE), &m.to_bytes(), true)?;
             fs::rename(&tmp, &path)?;
+            sync_dir(&dir)?;
             Ok(m)
         })();
+        self.problems.append(&mut skipped);
         let m = match result {
             Ok(m) => m,
             Err(e) => {
@@ -315,12 +372,8 @@ impl Store {
                 .cmp(&b.toc.created)
                 .then_with(|| a.id.cmp(&b.id))
         });
-        let mut out = Vec::new();
-        for p in loaded {
-            let (toc, sheets) = copy_of(&p);
-            out.push(self.create_project_from(toc, &sheets)?);
-        }
-        Ok(out)
+        let copies: Vec<(Toc, Vec<NewSheet>)> = loaded.iter().map(copy_of).collect();
+        self.create_projects_all_or_nothing(copies)
     }
 }
 

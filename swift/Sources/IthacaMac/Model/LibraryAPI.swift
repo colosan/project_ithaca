@@ -128,6 +128,10 @@ struct LibraryInfo: Equatable, Sendable {
     var backupPath: String?
     /// True for the in-memory MockLibrary — the UI says so, so nobody writes into it by mistake.
     var inMemory: Bool
+    /// Another Ithaca process holds the library's lock: opened read-only.
+    var lockedByOther = false
+    /// Things the core skipped or couldn't read on open (unreadable projects…), one sentence each.
+    var problems: [String] = []
 }
 
 enum LibraryError: Error, LocalizedError, Equatable {

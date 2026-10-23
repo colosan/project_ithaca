@@ -14,7 +14,8 @@ final class CoreLibrary: LibraryAPI {
     func info() -> LibraryInfo {
         let i = lib.info()
         return LibraryInfo(format: Int(i.format), coreVersion: i.coreVersion, readOnly: i.readOnly,
-                           migratedFrom: i.migratedFrom.map { Int($0) }, backupPath: i.backupPath, inMemory: false)
+                           migratedFrom: i.migratedFrom.map { Int($0) }, backupPath: i.backupPath, inMemory: false,
+                           lockedByOther: i.lockedByOther, problems: i.problems)
     }
 
     func projects() -> [ProjectSummary] { lib.projects().map(Self.project) }

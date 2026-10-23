@@ -11,15 +11,12 @@ struct EditorPane: View {
         VStack(spacing: 0) {
             toolbar
             if model.readOnly {
-                HStack(spacing: T.Space.s150) {
-                    Icon(.lease, size: T.Size.iconSm)
-                    Text(model.t(.libraryReadOnly)).textStyle(.label).fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
+                EditorBanner(icon: .lease, message: model.readOnlyMessage)
+            }
+            if !model.info.problems.isEmpty && !model.problemsDismissed {
+                EditorBanner(icon: .warning, message: model.t(.libraryProblems, ["count": model.info.problems.count], count: model.info.problems.count)) {
+                    model.problemsDismissed = true
                 }
-                .foregroundStyle(Color.stateWarning)
-                .padding(T.Space.s150)
-                .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.accentSoft))
-                .padding(.horizontal, T.Space.s200)
             }
             if model.sheetId != nil {
                 ManuscriptView(model: model, sizeClass: sizeClass)
@@ -65,6 +62,31 @@ struct EditorPane: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+/// A warning strip above the manuscript (read-only library, problems found on open). `dismiss` adds a close button.
+struct EditorBanner: View {
+    @Environment(AppModel.self) private var model
+    let icon: IthacaIcon
+    let message: String
+    var dismiss: (() -> Void)?
+
+    var body: some View {
+        HStack(spacing: T.Space.s150) {
+            Icon(icon, size: T.Size.iconSm)
+            Text(message).textStyle(.label).fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            if let dismiss {
+                Button(action: dismiss) { Icon(.close, size: T.Size.iconSm) }
+                    .buttonStyle(.plain)
+                    .help(model.t(.actionClose))
+            }
+        }
+        .foregroundStyle(Color.stateWarning)
+        .padding(T.Space.s150)
+        .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.accentSoft))
+        .padding(.horizontal, T.Space.s200)
     }
 }
 
@@ -114,9 +136,18 @@ struct EditorFooter: View {
         case .pending:
             Label { Text(model.t(.syncSaving)) } icon: { Icon(.synced, size: T.Size.iconSm) }
         case .failed(let message):
-            Label { Text(model.t(.syncSaveFailedApp, ["message": message])) } icon: { Icon(.warning, size: T.Size.iconSm) }
-                .foregroundStyle(Color.stateDanger)
-                .fontWeight(.semibold)
+            // Stays until a save succeeds; retries run on their own (AppModel.retryDelays), the button saves now.
+            HStack(spacing: T.Space.s100) {
+                Label { Text(model.t(.syncSaveFailedApp, ["message": message])) } icon: { Icon(.warning, size: T.Size.iconSm) }
+                    .foregroundStyle(Color.stateDanger)
+                    .fontWeight(.semibold)
+                    .help(model.t(.saveAutoRetryHint))
+                if !model.readOnly {
+                    Button(model.t(.actionRetry)) { model.retrySave() }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.accentPrimary)
+                }
+            }
         }
     }
 }

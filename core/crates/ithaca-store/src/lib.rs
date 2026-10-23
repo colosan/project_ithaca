@@ -7,6 +7,7 @@ pub mod error;
 pub mod format;
 pub mod fsutil;
 mod import;
+pub mod lock;
 pub mod project;
 mod search;
 pub mod types;
@@ -16,6 +17,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use ithaca_ledger::block::is_hash_name;
 use ithaca_ledger::{Actor, Block, Body, Kind, Meta, Op, delta};
 use ithaca_model::{
     EpisodeInfo, EpisodeStatus, ExportOptions, FolderEntry, Language, RETENTION_MS, SheetEntry,
@@ -28,6 +30,10 @@ pub use types::*;
 
 use format::{PROJECTS_DIR, Prepared, prepare};
 use project::{Project, write_block, write_cache};
+
+/// How far the clock may run ahead of the newest block before purging stops trusting it
+/// (core/FORMAT.md §Retention). A clock that jumped forward must not purge anything early.
+pub const CLOCK_SLACK_MS: i64 = 2 * 86_400_000;
 
 /// A delta chain longer than this gets a full snapshot, so reading any version touches at most
 /// this many blocks.
@@ -70,6 +76,12 @@ pub struct Store {
     clock: Clock,
     /// In creation order is computed on demand; keyed by id.
     projects: BTreeMap<String, Project>,
+    /// The library lock (`<library>/.lock`), held for the store's lifetime; `None` when read-only.
+    _lock: Option<fs::File>,
+    /// Another open (usually another process) holds the lock, so this one is read-only.
+    locked_by_other: bool,
+    /// Things the writer should know about, in the order they happened (`LibraryInfo.problems`).
+    problems: Vec<String>,
 }
 
 /// A sheet to write into a new project (import, restore).
@@ -102,16 +114,74 @@ impl Store {
         }
         let root = path.as_ref().to_path_buf();
         let now = (opts.clock)();
-        let prepared = prepare(&root, opts.supported_format, &opts.migrations, now)?;
+        let mut problems = Vec::new();
+        // Lock first, then look: everything below may write only while holding the lock.
+        let (mut lock, mut locked_by_other) = (None, false);
+        let mut can_write = format::may_write(&root, opts.supported_format);
+        if can_write {
+            fs::create_dir_all(&root)?;
+            match lock::acquire(&root) {
+                Ok(Some(f)) => lock = Some(f),
+                Ok(None) => {
+                    locked_by_other = true;
+                    can_write = false;
+                    problems.push(
+                        "Another Ithaca has this library open. Opened read-only; close the other \
+                         one and open again to edit."
+                            .to_string(),
+                    );
+                }
+                // A folder that cannot be locked (some network volumes): still usable, unguarded.
+                Err(e) if e.kind() == std::io::ErrorKind::Unsupported => problems.push(format!(
+                    "This folder does not support locking ({e}); do not open it from two apps at once."
+                )),
+                Err(e) => return Err(e.into()),
+            }
+        }
+        let mut prepared = prepare(
+            &root,
+            opts.supported_format,
+            &opts.migrations,
+            now,
+            can_write,
+        )?;
+        problems.append(&mut prepared.problems);
         let writable = !prepared.read_only;
+        if !writable {
+            lock = None;
+        }
         let mut projects = BTreeMap::new();
-        for name in fsutil::list(&root.join(PROJECTS_DIR))? {
+        let names = match fsutil::list(&root.join(PROJECTS_DIR)) {
+            Ok(n) => n,
+            Err(e) => {
+                problems.push(format!("The projects folder could not be read: {e}"));
+                Vec::new()
+            }
+        };
+        for name in names {
             let dir = root.join(PROJECTS_DIR).join(&name);
             if name.starts_with('.') || !dir.is_dir() {
                 continue;
             }
-            if let Some(p) = Project::load(&name, &dir, writable)? {
-                projects.insert(name, p);
+            // One unreadable project must not take the library down: skip it, leave it untouched.
+            match Project::load(&name, &dir, writable) {
+                Ok(Some(p)) => {
+                    projects.insert(name, p);
+                }
+                Ok(None) => {
+                    let blocks = fsutil::list(&project::changes_dir(&dir))
+                        .map(|v| v.iter().filter(|n| is_hash_name(n)).count())
+                        .unwrap_or(0);
+                    if blocks > 0 {
+                        problems.push(format!(
+                            "Project {name} was skipped: its {blocks} change files have no \
+                             readable table of contents. Its folder was left as it is."
+                        ));
+                    }
+                }
+                Err(e) => problems.push(format!(
+                    "Project {name} was skipped and left as it is on disk: {e}"
+                )),
             }
         }
         let mut store = Store {
@@ -120,9 +190,14 @@ impl Store {
             prepared,
             clock: opts.clock,
             projects,
+            _lock: lock,
+            locked_by_other,
+            problems,
         };
-        if writable {
-            store.purge_expired()?;
+        if writable && let Err(e) = store.purge_expired() {
+            store
+                .problems
+                .push(format!("Emptying old trash failed: {e}"));
         }
         Ok(store)
     }
@@ -130,7 +205,9 @@ impl Store {
     pub fn info(&self) -> LibraryInfo {
         LibraryInfo {
             format: self.prepared.format,
-            read_only: self.prepared.read_only,
+            read_only: self.read_only(),
+            locked_by_other: self.locked_by_other,
+            problems: self.problems.clone(),
             migrated_from: self.prepared.migrated_from,
             backup_path: self
                 .prepared
@@ -148,8 +225,14 @@ impl Store {
         (self.clock)()
     }
 
+    /// Nothing is written: a newer format, another open holds the lock, or opening found a problem
+    /// that makes writing unsafe (see `info().problems`).
+    pub fn read_only(&self) -> bool {
+        self.prepared.read_only
+    }
+
     fn writable(&self) -> Result<()> {
-        if self.prepared.read_only {
+        if self.read_only() {
             Err(StoreError::ReadOnly)
         } else {
             Ok(())
@@ -450,9 +533,26 @@ impl Store {
     }
 
     /// Drops projects deleted, and trashed sheets trashed, more than 30 days ago. Runs on open.
+    /// Permanently removes projects deleted and sheets trashed more than 30 days ago.
+    ///
+    /// Clock guard: "now" for retention is `min(clock, newest block in the library + 2 days)`. A
+    /// clock that jumped forward (bad RTC, manual change) therefore purges nothing early: purging
+    /// waits until the writer has written something recently by that clock. A clock that went back
+    /// only delays purging. Failures are noted in `info().problems` and do not stop the rest.
     pub fn purge_expired(&mut self) -> Result<()> {
         self.writable()?;
-        let cutoff = self.now() - RETENTION_MS;
+        let newest = self
+            .projects
+            .values()
+            .flat_map(|p| p.chains.values())
+            .flat_map(|c| c.metas.values())
+            .map(|m| m.at)
+            .max();
+        let Some(newest) = newest else {
+            return Ok(());
+        };
+        let now = self.now().min(newest.saturating_add(CLOCK_SLACK_MS));
+        let cutoff = now - RETENTION_MS;
         let expired: Vec<String> = self
             .projects
             .values()
@@ -460,8 +560,14 @@ impl Store {
             .map(|p| p.id.clone())
             .collect();
         for id in expired {
-            if let Some(p) = self.projects.remove(&id) {
-                fs::remove_dir_all(&p.dir)?;
+            let dir = self.projects[&id].dir.clone();
+            match fs::remove_dir_all(&dir) {
+                Ok(()) => {
+                    self.projects.remove(&id);
+                }
+                Err(e) => self
+                    .problems
+                    .push(format!("Could not remove deleted project {id}: {e}")),
             }
         }
         let ids: Vec<String> = self.projects.keys().cloned().collect();
@@ -474,8 +580,11 @@ impl Store {
                 .filter(|(_, e)| e.trashed.is_some_and(|t| t <= cutoff))
                 .map(|(s, _)| s.clone())
                 .collect();
-            if !old.is_empty() {
-                self.delete_sheets_forever(&id, &old)?;
+            if !old.is_empty()
+                && let Err(e) = self.delete_sheets_forever(&id, &old)
+            {
+                self.problems
+                    .push(format!("Could not empty old trash of project {id}: {e}"));
             }
         }
         Ok(())
@@ -948,13 +1057,38 @@ impl Store {
         self.writable()?;
         let projects = import::parse(json)?;
         let mut report = ImportReport::default();
+        let mut news = Vec::with_capacity(projects.len());
         for wp in projects {
             report.projects += 1;
             report.folders += wp.toc.folders.len() as u32;
             report.sheets += wp.sheets.len() as u32;
-            self.create_project_from(wp.toc, &wp.sheets)?;
+            news.push((wp.toc, wp.sheets));
         }
+        self.create_projects_all_or_nothing(news)?;
         Ok(report)
+    }
+
+    /// Creates several projects; if any fails, the ones already created by this call are removed
+    /// again (they are new folders nobody else has seen), so the library is as before.
+    pub(crate) fn create_projects_all_or_nothing(
+        &mut self,
+        news: Vec<(Toc, Vec<NewSheet>)>,
+    ) -> Result<Vec<ProjectSummary>> {
+        let mut out: Vec<ProjectSummary> = Vec::with_capacity(news.len());
+        for (toc, sheets) in news {
+            match self.create_project_from(toc, &sheets) {
+                Ok(p) => out.push(p),
+                Err(e) => {
+                    for p in &out {
+                        if let Some(p) = self.projects.remove(&p.id) {
+                            let _ = fs::remove_dir_all(&p.dir);
+                        }
+                    }
+                    return Err(e);
+                }
+            }
+        }
+        Ok(out)
     }
 
     /// `sheets` in the order given; empty means every live sheet of the project in reading order.
@@ -976,5 +1110,53 @@ impl Store {
             bodies.push(p.chains.get(s).map_or("", |c| c.text.as_str()));
         }
         Ok(export_sheets(bodies, options))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn toc(title: &str, folders: usize) -> Toc {
+        Toc {
+            title: title.into(),
+            folders: (0..folders)
+                .map(|_| FolderEntry::new(new_id(), "F"))
+                .collect(),
+            ..Default::default()
+        }
+    }
+
+    /// Import and restore create several projects; a failure part way removes the ones already
+    /// created, so a retry never duplicates them.
+    #[test]
+    fn multi_project_create_is_all_or_nothing() {
+        let dir = std::env::temp_dir().join(format!("ithaca-aon-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        let mut s = Store::open(&dir, "dev").unwrap();
+        let sheet = || NewSheet {
+            folder: 0,
+            text: "글".into(),
+            created: 1,
+            modified: 1,
+            episode: None,
+        };
+        // The second has no folder, which fails after the first was written.
+        let r = s.create_projects_all_or_nothing(vec![
+            (toc("one", 1), vec![sheet()]),
+            (toc("two", 0), vec![]),
+        ]);
+        assert!(matches!(r, Err(StoreError::InvalidInput(_))));
+        assert!(s.projects().is_empty());
+        assert!(fsutil::list(&dir.join(PROJECTS_DIR)).unwrap().is_empty());
+        let ok = s
+            .create_projects_all_or_nothing(vec![
+                (toc("one", 1), vec![sheet()]),
+                (toc("two", 1), vec![]),
+            ])
+            .unwrap();
+        assert_eq!(ok.len(), 2);
+        drop(s);
+        let _ = fs::remove_dir_all(&dir);
     }
 }

@@ -464,5 +464,24 @@
     "one": "Added {count} project from the backup as a copy.",
     "other": "Added {count} projects from the backup as copies."
   },
-  "backup.failed": "Backup failed — {message}"
+  "backup.failed": "Backup failed — {message}",
+  "action.retry": "Try again",
+  "save.failedTitle": "Some of your writing isn't saved",
+  "save.failedBody": "Your writing is still here in this window. Try again, copy it, or export it to a file.",
+  "save.copyText": "Copy text",
+  "save.exportFile": "Export to file",
+  "save.quitAnyway": "Quit anyway",
+  "save.quitConfirmTitle": "Quit without saving?",
+  "save.quitConfirmBody": "The unsaved writing will be lost. This can't be undone.",
+  "save.copied": "Copied the text to the clipboard.",
+  "save.exported": "Saved to {path}.",
+  "save.autoRetryHint": "Ithaca will try again automatically in a moment.",
+  "library.openFailedTitle": "Couldn't open the library",
+  "library.openFailedBody": "Editing is off so nothing gets written where it can't be kept. Check the folder, then try again.",
+  "library.lockedByOther": "Another Ithaca is using this library — read-only here.",
+  "library.problems": {
+    "one": "Found {count} problem while opening the library. Details are in Settings → Backup.",
+    "other": "Found {count} problems while opening the library. Details are in Settings → Backup."
+  },
+  "library.problemsTitle": "Problems found when opening"
 }

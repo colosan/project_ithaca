@@ -3,7 +3,7 @@
 mod common;
 
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use common::*;
 use ithaca_model::{ExportOptions, Language};
@@ -178,8 +178,18 @@ fn migration_backs_up_then_migrates() {
             ithaca_store::fsutil::utc_date(FIXTURE_NOW)
         ))
     );
-    // The backup is the library exactly as it was.
-    assert_eq!(snapshot_tree(&backup), before);
+    // The backup is the library exactly as it was, plus its manifest.
+    let copied: Vec<_> = snapshot_tree(&backup)
+        .into_iter()
+        .filter(|(p, _)| p != Path::new("backup.json"))
+        .collect();
+    assert_eq!(copied, before);
+    assert!(
+        s.backups()
+            .iter()
+            .any(|b| b.kind == ithaca_store::BackupKind::PreMigration
+                && Path::new(&b.path) == backup)
+    );
     assert_eq!(LibraryFile::read(&backup).unwrap().unwrap().format, 1);
     // The migration ran and the format moved on, keeping the step's own changes.
     let lf = LibraryFile::read(dir.path()).unwrap().unwrap();
@@ -215,7 +225,14 @@ fn missing_migration_path_changes_nothing() {
         Store::open_with(dir.path(), "mac-test", o),
         Err(StoreError::Corrupt(_))
     ));
-    assert_eq!(snapshot_tree(dir.path()), before);
+    // Only the (empty) lock file was created.
+    assert_eq!(without_lock(snapshot_tree(dir.path())), before);
+}
+
+fn without_lock(tree: Vec<(PathBuf, u64)>) -> Vec<(PathBuf, u64)> {
+    tree.into_iter()
+        .filter(|(p, _)| p != Path::new(".lock"))
+        .collect()
 }
 
 #[test]
@@ -275,11 +292,24 @@ fn newer_library_is_read_only_at(root: &Path, format: u32) {
 }
 
 #[test]
-fn missing_library_file_with_projects_is_corrupt() {
+fn missing_library_file_with_projects_opens_read_only() {
     let dir = fixture_copy();
     fs::remove_file(dir.path().join("library.json")).unwrap();
+    let before = snapshot_tree(dir.path());
+    let mut s = Store::open(dir.path(), "mac-test").unwrap();
+    let info = s.info();
+    assert!(info.read_only && !info.locked_by_other);
+    assert!(
+        info.problems[0].contains("library.json is missing"),
+        "{info:?}"
+    );
+    // The projects are still readable, nothing is initialised over them, nothing is written.
+    check_v1_content(&s);
     assert!(matches!(
-        Store::open(dir.path(), "mac-test"),
-        Err(StoreError::Corrupt(_))
+        s.create_project("x", ithaca_model::Language::Ko, &["F".into()]),
+        Err(StoreError::ReadOnly)
     ));
+    drop(s);
+    assert_eq!(snapshot_tree(dir.path()), before);
+    assert!(!dir.path().join("library.json").exists());
 }

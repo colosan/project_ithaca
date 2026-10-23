@@ -133,11 +133,21 @@ fn retention_keeps_dailies_weeklies_manual_and_pre_migration() {
     s.create_project("등대", Language::Ko, &["연재".into()])
         .unwrap();
     // A pre-migration backup made by an earlier open, and a manual one.
-    let pre = s
-        .root()
-        .join("Backups/pre-migration-1-2-2026-10-01/projects/x");
+    let pre_dir = s.root().join("Backups/pre-migration-1-2-2026-10-01");
+    let pre = pre_dir.join("projects/x");
     fs::create_dir_all(&pre).unwrap();
     fs::write(pre.join("f"), b"12345").unwrap();
+    fs::write(
+        pre_dir.join("backup.json"),
+        r#"{"v":1,"kind":"pre-migration","at":1791000000000,"bytes":5,"format":1,"projects":1,"complete":true}"#,
+    )
+    .unwrap();
+    // A pre-migration copy that never finished (no manifest) is not a backup.
+    fs::create_dir_all(
+        s.root()
+            .join("Backups/pre-migration-1-2-2026-10-02/projects/y"),
+    )
+    .unwrap();
     let manual = s.backup_manual().unwrap();
     assert_eq!(manual.kind, BackupKind::Manual);
     // T0 is a Saturday. One automatic backup a day for 10 days: Sat … Mon.
@@ -184,9 +194,23 @@ fn half_written_backup_is_never_listed_and_is_cleaned() {
     let (_c, mut s) = open(&lib(dir.path()));
     let tmp = dir.path().join("Backups/.tmp-auto-2026-10-23-2359-1");
     fs::create_dir_all(tmp.join("projects")).unwrap();
+    // A fresh one may be another library's backup in progress (the folder is shared): kept.
+    let fresh = dir.path().join("Backups/.tmp-auto-2026-10-24-0000-2");
+    fs::create_dir_all(fresh.join("projects")).unwrap();
+    let old = std::time::SystemTime::now() - std::time::Duration::from_secs(2 * 3600);
+    fs::File::open(&tmp).unwrap().set_modified(old).unwrap();
+    // A finished-looking folder whose manifest says incomplete is not listed either.
+    let partial = dir.path().join("Backups/auto-2026-10-23-2358");
+    fs::create_dir_all(&partial).unwrap();
+    fs::write(
+        partial.join("backup.json"),
+        r#"{"v":1,"kind":"auto","at":1,"bytes":0,"format":1,"projects":0,"complete":false}"#,
+    )
+    .unwrap();
     assert!(s.backups().is_empty());
     s.backup_now().unwrap();
     assert!(!tmp.exists());
+    assert!(fresh.exists());
     assert_eq!(s.backups().len(), 1);
 }
 

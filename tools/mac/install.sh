@@ -14,11 +14,11 @@ BUNDLE_ID="io.github.colosan.ithaca"
 [ -d "$SRC" ] || { echo "✗ $SRC not found — run tools/mac/build.sh first" >&2; exit 1; }
 codesign --verify --deep --strict "$SRC"
 
-if pgrep -xq Ithaca; then
+if pgrep -qf "^$DST/Contents/MacOS/Ithaca"; then
   echo "▸ quitting Ithaca"
   osascript -e "tell application id \"$BUNDLE_ID\" to quit" >/dev/null 2>&1 || true
-  for _ in $(seq 1 50); do pgrep -xq Ithaca || break; sleep 0.2; done
-  pgrep -xq Ithaca && { echo "✗ Ithaca is still running (unsaved dialog?) — quit it and retry" >&2; exit 1; }
+  for _ in $(seq 1 50); do pgrep -qf "^$DST/Contents/MacOS/Ithaca" || break; sleep 0.2; done
+  pgrep -qf "^$DST/Contents/MacOS/Ithaca" && { echo "✗ Ithaca is still running (unsaved dialog?) — quit it and retry" >&2; exit 1; }
 fi
 
 if [ -d "$DST" ]; then

@@ -340,6 +340,14 @@ fn delete_project_is_soft_then_purged_after_30_days() {
     assert_eq!(s.deleted_projects().len(), 1);
     drop(s);
     clock.advance(2 * 86_400_000);
+    // 31 days on, but nothing was written since the delete: the clock alone is not trusted
+    // (it may have jumped), so nothing is purged yet.
+    let mut s = Store::open_with(dir.path(), "mac-test", c.clone()).unwrap();
+    assert_eq!(s.deleted_projects().len(), 1);
+    // Writing confirms the clock; the next open purges.
+    let ks = s.outline(&keep).unwrap().folders[0].sheets[0].id.clone();
+    s.save_sheet(&keep, &ks, "오늘 쓴 글").unwrap();
+    drop(s);
     let s = Store::open_with(dir.path(), "mac-test", c).unwrap();
     assert!(s.deleted_projects().is_empty());
     assert!(!dir.path().join("projects").join(&p).exists());
@@ -350,7 +358,7 @@ fn delete_project_is_soft_then_purged_after_30_days() {
 fn old_trash_is_emptied_on_open() {
     let dir = tempfile::tempdir().unwrap();
     let (clock, mut s) = open(dir.path());
-    let (p, f, _) = new_project(&mut s);
+    let (p, f, first) = new_project(&mut s);
     let x = s.create_sheet(&p, &f, "버림").unwrap().id;
     s.trash_sheet(&p, &x).unwrap();
     drop(s);
@@ -360,8 +368,44 @@ fn old_trash_is_emptied_on_open() {
         clock: std::sync::Arc::new(move || t.fetch_add(1, std::sync::atomic::Ordering::SeqCst)),
         ..Default::default()
     };
+    let mut s = Store::open_with(dir.path(), "mac-test", o.clone()).unwrap();
+    assert_eq!(
+        s.outline(&p).unwrap().trash.len(),
+        1,
+        "clock not yet confirmed"
+    );
+    s.save_sheet(&p, &first, "오늘").unwrap();
+    drop(s);
     let s = Store::open_with(dir.path(), "mac-test", o).unwrap();
     assert!(s.outline(&p).unwrap().trash.is_empty());
+}
+
+#[test]
+fn clock_jump_forward_purges_nothing() {
+    let dir = tempfile::tempdir().unwrap();
+    let (clock, mut s) = open(dir.path());
+    let (p, f, _) = new_project(&mut s);
+    let x = s.create_sheet(&p, &f, "버림").unwrap().id;
+    s.trash_sheet(&p, &x).unwrap();
+    let gone = s
+        .create_project("지운 작품", Language::Ko, &["F".into()])
+        .unwrap()
+        .id;
+    s.delete_project(&gone).unwrap();
+    drop(s);
+    // The clock jumps a year ahead (bad clock, manual change). Opening repeatedly purges nothing.
+    clock.advance(365 * 86_400_000);
+    for _ in 0..3 {
+        let t = clock.0.clone();
+        let o = ithaca_store::OpenOptions {
+            clock: std::sync::Arc::new(move || t.fetch_add(1, std::sync::atomic::Ordering::SeqCst)),
+            ..Default::default()
+        };
+        let s = Store::open_with(dir.path(), "mac-test", o).unwrap();
+        assert_eq!(s.outline(&p).unwrap().trash.len(), 1);
+        assert_eq!(s.deleted_projects().len(), 1);
+    }
+    assert!(dir.path().join("projects").join(&gone).exists());
 }
 
 #[test]

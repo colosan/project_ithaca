@@ -108,6 +108,14 @@ private struct BackupSettings: View {
                     }
                 }
             }
+            if !model.info.problems.isEmpty {
+                Section(model.t(.libraryProblemsTitle)) {
+                    ForEach(Array(model.info.problems.enumerated()), id: \.offset) { _, p in
+                        Label { Text(p).textSelection(.enabled).fixedSize(horizontal: false, vertical: true) } icon: { Icon(.warning, size: T.Size.iconSm) }
+                            .foregroundStyle(Color.stateWarning)
+                    }
+                }
+            }
             Section {
                 LabeledContent {
                     HStack {

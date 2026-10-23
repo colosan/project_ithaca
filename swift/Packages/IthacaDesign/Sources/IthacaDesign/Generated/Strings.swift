@@ -406,6 +406,22 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case backupRestoreCopies = "backup.restoreCopies"
     case backupRestoredCopies = "backup.restoredCopies"
     case backupFailed = "backup.failed"
+    case actionRetry = "action.retry"
+    case saveFailedTitle = "save.failedTitle"
+    case saveFailedBody = "save.failedBody"
+    case saveCopyText = "save.copyText"
+    case saveExportFile = "save.exportFile"
+    case saveQuitAnyway = "save.quitAnyway"
+    case saveQuitConfirmTitle = "save.quitConfirmTitle"
+    case saveQuitConfirmBody = "save.quitConfirmBody"
+    case saveCopied = "save.copied"
+    case saveExported = "save.exported"
+    case saveAutoRetryHint = "save.autoRetryHint"
+    case libraryOpenFailedTitle = "library.openFailedTitle"
+    case libraryOpenFailedBody = "library.openFailedBody"
+    case libraryLockedByOther = "library.lockedByOther"
+    case libraryProblems = "library.problems"
+    case libraryProblemsTitle = "library.problemsTitle"
 }
 
 enum L10nValue: Sendable {
@@ -826,6 +842,22 @@ public enum L10n {
             .backupRestoreCopies: .text("사본으로 복원"),
             .backupRestoredCopies: .text("백업의 작품 {count}개를 사본으로 추가했어요."),
             .backupFailed: .text("백업하지 못했어요 — {message}"),
+            .actionRetry: .text("다시 시도"),
+            .saveFailedTitle: .text("저장하지 못한 글이 있어요"),
+            .saveFailedBody: .text("쓴 글은 아직 이 창에 그대로 있어요. 다시 시도하거나, 복사하거나, 파일로 내보내 두세요."),
+            .saveCopyText: .text("글 복사하기"),
+            .saveExportFile: .text("파일로 내보내기"),
+            .saveQuitAnyway: .text("그래도 종료"),
+            .saveQuitConfirmTitle: .text("저장하지 않고 종료할까요?"),
+            .saveQuitConfirmBody: .text("저장하지 못한 글은 사라져요. 되돌릴 수 없어요."),
+            .saveCopied: .text("글을 클립보드에 복사했어요."),
+            .saveExported: .text("{path}에 저장했어요."),
+            .saveAutoRetryHint: .text("잠시 뒤 자동으로 다시 시도해요."),
+            .libraryOpenFailedTitle: .text("라이브러리를 열지 못했어요"),
+            .libraryOpenFailedBody: .text("다른 곳에 써 버리지 않도록 편집은 막아 두었어요. 폴더를 확인한 뒤 다시 시도해 주세요."),
+            .libraryLockedByOther: .text("다른 Ithaca가 이 라이브러리를 쓰고 있어요 — 읽기 전용이에요."),
+            .libraryProblems: .text("라이브러리를 열면서 문제를 {count}개 찾았어요. 자세한 내용은 환경설정 → 백업에 있어요."),
+            .libraryProblemsTitle: .text("열면서 찾은 문제"),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -1225,6 +1257,22 @@ public enum L10n {
             .backupRestoreCopies: .text("Restore as copies"),
             .backupRestoredCopies: .plural(one: "Added {count} project from the backup as a copy.", other: "Added {count} projects from the backup as copies."),
             .backupFailed: .text("Backup failed — {message}"),
+            .actionRetry: .text("Try again"),
+            .saveFailedTitle: .text("Some of your writing isn't saved"),
+            .saveFailedBody: .text("Your writing is still here in this window. Try again, copy it, or export it to a file."),
+            .saveCopyText: .text("Copy text"),
+            .saveExportFile: .text("Export to file"),
+            .saveQuitAnyway: .text("Quit anyway"),
+            .saveQuitConfirmTitle: .text("Quit without saving?"),
+            .saveQuitConfirmBody: .text("The unsaved writing will be lost. This can't be undone."),
+            .saveCopied: .text("Copied the text to the clipboard."),
+            .saveExported: .text("Saved to {path}."),
+            .saveAutoRetryHint: .text("Ithaca will try again automatically in a moment."),
+            .libraryOpenFailedTitle: .text("Couldn't open the library"),
+            .libraryOpenFailedBody: .text("Editing is off so nothing gets written where it can't be kept. Check the folder, then try again."),
+            .libraryLockedByOther: .text("Another Ithaca is using this library — read-only here."),
+            .libraryProblems: .plural(one: "Found {count} problem while opening the library. Details are in Settings → Backup.", other: "Found {count} problems while opening the library. Details are in Settings → Backup."),
+            .libraryProblemsTitle: .text("Problems found when opening"),
         ],
     ]
 }
