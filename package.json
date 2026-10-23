@@ -10,8 +10,10 @@
     "wb:build": "vite build --config workbench/vite.config.ts",
     "design:gen": "node tools/design-gen/gen.mjs",
     "design:check": "node tools/design-gen/check.mjs",
-    "typecheck": "tsc -p workbench/tsconfig.json",
-    "design:snap": "node tools/snap/snap.mjs"
+    "typecheck": "tsc -p workbench/tsconfig.json && tsc -p app-web/tsconfig.json",
+    "design:snap": "node tools/snap/snap.mjs",
+    "app": "vite --config app-web/vite.config.ts",
+    "app:build": "vite build --config app-web/vite.config.ts"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

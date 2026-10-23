@@ -21,6 +21,7 @@
 |---|---|
 | `design/` | Design tokens, UI strings, screen specs & prototypes — the source of truth |
 | `workbench/` | Design review viewer: every screen × 4 size classes × light/dark × ko/en |
+| `app-web/` | A usable web build for daily writing while the design settles (stored in the browser) |
 | `tools/design-gen/` | Generates Swift · Kotlin · TS from `design/`, and lints it |
 | `core/` · `swift/` · `kotlin/` | App code (after the design freeze) |
 | `docs/adr/` | Architecture decisions |
@@ -28,6 +29,7 @@
 ```bash
 pnpm install
 pnpm wb            # http://localhost:9151
+pnpm app           # http://localhost:9152 — write in it
 pnpm design:check
 ```
 

@@ -137,7 +137,9 @@
       "\"여기는 바다예요. 아무것도 없어요.\"",
       "\"There was something last night,\" Elliot said, tapping the chart. \"When the light flashed the eleventh time.\"",
       "서윤은 대답하지 않았다. 아버지의 logbook 마지막 장에도 같은 숫자가 적혀 있었기 때문이다 — 11, 그리고 그 옆에 낯선 좌표 하나."
-    ]
+    ],
+    "createdAt": "2026-10-02T21:10:00",
+    "modifiedAt": "2026-10-08T14:32:00"
   },
   "branch": {
     "sheet": "s-4",
@@ -183,7 +185,11 @@
   "mcp": {
     "enabled": true,
     "address": "http://127.0.0.1:7421/mcp",
-    "token": "ith_6f2c…9a1e"
+    "token": "ith_6f2c…9a1e",
+    "permission": "read",
+    "exposed": [
+      "p-keeper"
+    ]
   },
   "search": {
     "recent": [
@@ -273,5 +279,34 @@
     "total": 238,
     "done": 112,
     "size": "4.2 MB"
+  },
+  "backup": {
+    "auto": true,
+    "path": "~/Documents/Ithaca Backups",
+    "records": [
+      {
+        "at": "2026-10-23T09:00:00",
+        "size": "1.8 MB",
+        "sheets": 9
+      },
+      {
+        "at": "2026-10-22T09:00:00",
+        "size": "1.8 MB",
+        "sheets": 9
+      },
+      {
+        "at": "2026-10-21T09:00:00",
+        "size": "1.7 MB",
+        "sheets": 8
+      }
+    ]
+  },
+  "app": {
+    "version": "0.1.0",
+    "channel": "pre-alpha",
+    "build": "2026.10.23",
+    "license": "MIT OR Apache-2.0",
+    "repository": "github.com/colosan/ithaca-writer",
+    "dataPath": "~/Library/Application Support/Ithaca"
   }
 }

@@ -27,7 +27,8 @@
   },
   "opacity": {
     "readOnly": 0.72,
-    "disabled": 0.45
+    "disabled": 0.45,
+    "focusDim": 0.32
   },
   "motion": {
     "fast": {

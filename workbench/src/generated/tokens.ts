@@ -31,6 +31,8 @@ export const type = {
   label: { fontFamily: "var(--type-label-family)", fontSize: "var(--type-label-size)", lineHeight: "var(--type-label-line-height)", letterSpacing: "var(--type-label-tracking)", fontWeight: "var(--type-label-weight)" },
   caption: { fontFamily: "var(--type-caption-family)", fontSize: "var(--type-caption-size)", lineHeight: "var(--type-caption-line-height)", letterSpacing: "var(--type-caption-tracking)", fontWeight: "var(--type-caption-weight)" },
   editorBody: { fontFamily: "var(--type-editor-body-family)", fontSize: "var(--type-editor-body-size)", lineHeight: "var(--type-editor-body-line-height)", letterSpacing: "var(--type-editor-body-tracking)", fontWeight: "var(--type-editor-body-weight)" },
+  editorSmall: { fontFamily: "var(--type-editor-small-family)", fontSize: "var(--type-editor-small-size)", lineHeight: "var(--type-editor-small-line-height)", letterSpacing: "var(--type-editor-small-tracking)", fontWeight: "var(--type-editor-small-weight)" },
+  editorLarge: { fontFamily: "var(--type-editor-large-family)", fontSize: "var(--type-editor-large-size)", lineHeight: "var(--type-editor-large-line-height)", letterSpacing: "var(--type-editor-large-tracking)", fontWeight: "var(--type-editor-large-weight)" },
   editorHeading: { fontFamily: "var(--type-editor-heading-family)", fontSize: "var(--type-editor-heading-size)", lineHeight: "var(--type-editor-heading-line-height)", letterSpacing: "var(--type-editor-heading-tracking)", fontWeight: "var(--type-editor-heading-weight)" },
 } as const;
 
@@ -85,6 +87,7 @@ export const shadow = {
 export const opacity = {
   readOnly: "var(--opacity-read-only)",
   disabled: "var(--opacity-disabled)",
+  focusDim: "var(--opacity-focus-dim)",
 } as const;
 
 export const motion = {

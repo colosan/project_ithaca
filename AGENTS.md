@@ -3,19 +3,20 @@
 바뀐 경로에서 가장 가까운 `AGENTS.md` 가 이 파일보다 우선한다 (`design/AGENTS.md` …).
 
 ## 지금 단계
-**디자인 확정 단계** (ADR-0006). 실제로 동작하는 것은 `design/` · `workbench/` · `tools/` 뿐이다.
+**디자인 확정 단계** (ADR-0006). 실제로 동작하는 것은 `design/` · `workbench/` · `tools/` 와, 매일 써보기 위한 웹 앱 `app-web/` (ADR-0007) 이다.
 `core/` · `swift/` · `kotlin/` 은 디자인 v1.0 동결 전까지 생성물 외에는 손대지 않는다.
 
 ## 결정은 ADR 에 있다
-`docs/adr/0001~0006`. 여기 없는 판단이 필요하면 멈추고 사람에게 묻는다. 결정을 바꾸면 ADR 을 고친다(새 번호 또는 상태 갱신).
+`docs/adr/0001~0007`. 여기 없는 판단이 필요하면 멈추고 사람에게 묻는다. 결정을 바꾸면 ADR 을 고친다(새 번호 또는 상태 갱신).
 
 ## 명령
 | 명령 | 무엇 |
 |---|---|
 | `pnpm wb` | workbench 검수 뷰어 (http://localhost:9151) |
+| `pnpm app` | 실제로 쓰는 웹 앱 (http://localhost:9152, 브라우저 localStorage 저장) |
 | `pnpm design:gen` | design/ → Swift · Kotlin · workbench 생성물 |
 | `pnpm design:check` | 토큰 · 문구 · 드리프트 · 프로토타입 lint (BLOCK 있으면 exit 1) |
-| `pnpm typecheck` | workbench + 프로토타입 타입 검사 |
+| `pnpm typecheck` | workbench + 프로토타입 + app-web 타입 검사 |
 | `pnpm design:snap` | 모든 화면 × 상태를 고정 매트릭스로 스크린샷 → 기준과 비교 · 결함 검출 → `design/snapshots/report.md` (`--only <slug>`, `--update`) |
 
 ## 라이선스 (오픈소스 공개 전제)

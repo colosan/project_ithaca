@@ -211,7 +211,7 @@ try {
 }
 
 // 6. Code comments are English (open-source repo) ───────────────────────────
-const CODE_DIRS = ["tools", "workbench", "design/screens", "swift", "kotlin", "core"];
+const CODE_DIRS = ["tools", "workbench", "app-web/src", "design/screens", "swift", "kotlin", "core"];
 const CODE_EXT = /\.(mjs|js|ts|tsx|css|swift|kt|rs)$/;
 const HANGUL = /[가-힣]/;
 const walk = (dir) =>

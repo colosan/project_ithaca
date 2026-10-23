@@ -45,6 +45,23 @@
     "folder": "folder",
     "sheet": "file-text",
     "delete": "trash-2",
-    "rename": "pencil-line"
+    "rename": "pencil-line",
+    "sync": "refresh-cw",
+    "synced": "cloud-check",
+    "backup": "archive",
+    "editorText": "type",
+    "keyboard": "keyboard",
+    "command": "command",
+    "keyOption": "option",
+    "keyShift": "arrow-big-up",
+    "keyControl": "chevron-up",
+    "focus": "focus",
+    "outline": "list-tree",
+    "stats": "chart-no-axes-column",
+    "license": "scale",
+    "code": "code",
+    "bug": "bug",
+    "trash": "trash",
+    "folderOpen": "folder-open"
   }
 }

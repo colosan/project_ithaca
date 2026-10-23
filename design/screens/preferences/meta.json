@@ -3,9 +3,17 @@
     "ko": "환경설정",
     "en": "Settings"
   },
-  "description": "일반 · 동기화 · Claude 연동(MCP, 데스크톱 전용)",
-  "version": "0.1.0",
+  "description": "일반 · 에디터 · 동기화 · 백업 · 단축키 · Claude 연동(MCP, 데스크톱 전용) · 정보",
+  "version": "0.2.0",
   "links": [
+    {
+      "from": "general",
+      "to": "preferences#editor",
+      "label": {
+        "ko": "에디터",
+        "en": "Editor"
+      }
+    },
     {
       "from": "general",
       "to": "preferences#sync",
@@ -16,10 +24,34 @@
     },
     {
       "from": "general",
+      "to": "preferences#backup",
+      "label": {
+        "ko": "백업",
+        "en": "Backup"
+      }
+    },
+    {
+      "from": "general",
+      "to": "preferences#shortcuts",
+      "label": {
+        "ko": "단축키",
+        "en": "Shortcuts"
+      }
+    },
+    {
+      "from": "general",
       "to": "preferences#claude",
       "label": {
         "ko": "Claude 연동",
         "en": "Claude"
+      }
+    },
+    {
+      "from": "general",
+      "to": "preferences#about",
+      "label": {
+        "ko": "정보",
+        "en": "About"
       }
     },
     {
@@ -34,8 +66,16 @@
       "from": "sync",
       "to": "pair-device#show-code",
       "label": {
-        "ko": "＋ 기기 추가",
+        "ko": "기기 추가",
         "en": "Pair a device"
+      }
+    },
+    {
+      "from": "claude",
+      "to": "history#claude",
+      "label": {
+        "ko": "Claude가 고친 기록",
+        "en": "Edits by Claude"
       }
     }
   ]

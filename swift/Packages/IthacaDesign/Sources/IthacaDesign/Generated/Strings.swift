@@ -178,6 +178,179 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case searchOpen = "search.open"
     case navPrevious = "nav.previous"
     case navNext = "nav.next"
+    case prefsEditor = "prefs.editor"
+    case prefsBackup = "prefs.backup"
+    case prefsShortcuts = "prefs.shortcuts"
+    case prefsAbout = "prefs.about"
+    case prefsLaunch = "prefs.launch"
+    case prefsLaunchHint = "prefs.launchHint"
+    case prefsLaunchLast = "prefs.launch.last"
+    case prefsLaunchLibrary = "prefs.launch.library"
+    case prefsTrash = "prefs.trash"
+    case prefsTrashHint = "prefs.trashHint"
+    case prefsTrashDays30 = "prefs.trash.days30"
+    case prefsTrashNever = "prefs.trash.never"
+    case prefsConfirmDelete = "prefs.confirmDelete"
+    case prefsEditorPreview = "prefs.editor.preview"
+    case prefsEditorTextSize = "prefs.editor.textSize"
+    case prefsEditorSmall = "prefs.editor.small"
+    case prefsEditorNormal = "prefs.editor.normal"
+    case prefsEditorLarge = "prefs.editor.large"
+    case prefsEditorMarkup = "prefs.editor.markup"
+    case prefsEditorMarkupHint = "prefs.editor.markupHint"
+    case prefsEditorMarkupShow = "prefs.editor.markup.show"
+    case prefsEditorMarkupDim = "prefs.editor.markup.dim"
+    case prefsEditorMarkupHide = "prefs.editor.markup.hide"
+    case prefsEditorIndent = "prefs.editor.indent"
+    case prefsEditorParagraphGap = "prefs.editor.paragraphGap"
+    case prefsEditorFocusScope = "prefs.editor.focusScope"
+    case prefsEditorFocusScopeHint = "prefs.editor.focusScopeHint"
+    case prefsEditorFocusSentence = "prefs.editor.focus.sentence"
+    case prefsEditorFocusParagraph = "prefs.editor.focus.paragraph"
+    case prefsEditorTypewriter = "prefs.editor.typewriter"
+    case prefsEditorTypewriterHint = "prefs.editor.typewriterHint"
+    case prefsEditorSpell = "prefs.editor.spell"
+    case prefsEditorSpellHint = "prefs.editor.spellHint"
+    case prefsEditorSmartQuotes = "prefs.editor.smartQuotes"
+    case prefsEditorPairs = "prefs.editor.pairs"
+    case syncUpToDate = "sync.upToDate"
+    case syncInProgress = "sync.inProgress"
+    case syncNow = "sync.now"
+    case syncSaved = "sync.saved"
+    case backupAuto = "backup.auto"
+    case backupAutoHint = "backup.autoHint"
+    case backupEvery = "backup.every"
+    case backupEveryHour = "backup.every.hour"
+    case backupEveryDay = "backup.every.day"
+    case backupEveryWeek = "backup.every.week"
+    case backupKeep = "backup.keep"
+    case backupKeepN = "backup.keep.n"
+    case backupKeepAll = "backup.keep.all"
+    case backupLocation = "backup.location"
+    case backupChange = "backup.change"
+    case backupLocationMobileHint = "backup.locationMobileHint"
+    case backupRecent = "backup.recent"
+    case backupNow = "backup.now"
+    case backupDone = "backup.done"
+    case backupMeta = "backup.meta"
+    case backupRestore = "backup.restore"
+    case backupRestored = "backup.restored"
+    case backupRestoreHint = "backup.restoreHint"
+    case shortcutsGroupGeneral = "shortcuts.group.general"
+    case shortcutsGroupView = "shortcuts.group.view"
+    case shortcutsGroupFormat = "shortcuts.group.format"
+    case shortcutsGroupSheet = "shortcuts.group.sheet"
+    case shortcutsShowLibrary = "shortcuts.showLibrary"
+    case shortcutsShowList = "shortcuts.showList"
+    case shortcutsEditorOnly = "shortcuts.editorOnly"
+    case shortcutsBold = "shortcuts.bold"
+    case shortcutsItalic = "shortcuts.italic"
+    case shortcutsHeading = "shortcuts.heading"
+    case shortcutsKeyboardHint = "shortcuts.keyboardHint"
+    case shortcutsCustomizeLater = "shortcuts.customizeLater"
+    case mcpPermission = "mcp.permission"
+    case mcpPermissionRead = "mcp.permission.read"
+    case mcpPermissionWrite = "mcp.permission.write"
+    case mcpPermissionReadHint = "mcp.permission.readHint"
+    case mcpPermissionWriteHint = "mcp.permission.writeHint"
+    case mcpAskFirst = "mcp.askFirst"
+    case mcpAskFirstHint = "mcp.askFirstHint"
+    case mcpProjects = "mcp.projects"
+    case mcpRotate = "mcp.rotate"
+    case mcpConnect = "mcp.connect"
+    case mcpCopyConfig = "mcp.copyConfig"
+    case mcpConnectHint = "mcp.connectHint"
+    case mcpRecentEdits = "mcp.recentEdits"
+    case aboutVersion = "about.version"
+    case aboutCheckUpdate = "about.checkUpdate"
+    case aboutUpToDate = "about.upToDate"
+    case aboutLicense = "about.license"
+    case aboutSource = "about.source"
+    case aboutReport = "about.report"
+    case aboutThirdParty = "about.thirdParty"
+    case aboutDataFolder = "about.dataFolder"
+    case aboutOpenDataFolder = "about.openDataFolder"
+    case aboutLocalFirst = "about.localFirst"
+    case paletteTitle = "palette.title"
+    case palettePlaceholder = "palette.placeholder"
+    case paletteRecent = "palette.recent"
+    case paletteSheets = "palette.sheets"
+    case paletteCommands = "palette.commands"
+    case paletteNone = "palette.none"
+    case paletteHintOpen = "palette.hintOpen"
+    case paletteHintClose = "palette.hintClose"
+    case focusTitle = "focus.title"
+    case focusExit = "focus.exit"
+    case inspectorTitle = "inspector.title"
+    case inspectorReference = "inspector.reference"
+    case inspectorInfo = "inspector.info"
+    case inspectorOutline = "inspector.outline"
+    case infoWithSpaces = "info.withSpaces"
+    case infoWithoutSpaces = "info.withoutSpaces"
+    case infoManuscriptPages = "info.manuscriptPages"
+    case infoPages = "info.pages"
+    case infoWords = "info.words"
+    case infoParagraphs = "info.paragraphs"
+    case infoReadingTime = "info.readingTime"
+    case infoMinutes = "info.minutes"
+    case infoCreated = "info.created"
+    case infoModified = "info.modified"
+    case outlineEmpty = "outline.empty"
+    case sheetUntitled = "sheet.untitled"
+    case sheetPlaceholderTitle = "sheet.placeholderTitle"
+    case sheetPlaceholderBody = "sheet.placeholderBody"
+    case sheetListEmpty = "sheetList.empty"
+    case trashTitle = "trash.title"
+    case paletteSheetInfo = "palette.sheetInfo"
+    case appFirstProject = "app.firstProject"
+    case editorNoSheet = "editor.noSheet"
+    case syncSavedLocal = "sync.savedLocal"
+    case referenceNone = "reference.none"
+    case folderNamePlaceholder = "folder.namePlaceholder"
+    case folderDeleteConfirm = "folder.deleteConfirm"
+    case projectSettingsLanguageHint = "projectSettings.languageHint"
+    case projectSettingsDelete = "projectSettings.delete"
+    case projectSettingsDeleteConfirm = "projectSettings.deleteConfirm"
+    case backupInvalid = "backup.invalid"
+    case backupReplaceConfirm = "backup.replaceConfirm"
+    case backupWebHint = "backup.webHint"
+    case backupDownload = "backup.download"
+    case backupDownloadHint = "backup.downloadHint"
+    case backupFromFile = "backup.fromFile"
+    case backupFromFileHint = "backup.fromFileHint"
+    case aboutWebBuild = "about.webBuild"
+    case trashHint = "trash.hint"
+    case trashEmpty = "trash.empty"
+    case trashEmptyConfirm = "trash.emptyConfirm"
+    case trashEmptyState = "trash.emptyState"
+    case trashRestore = "trash.restore"
+    case trashDeleteForever = "trash.deleteForever"
+    case trashDeleteForeverConfirm = "trash.deleteForeverConfirm"
+    case sheetTrash = "sheet.trash"
+    case sheetMove = "sheet.move"
+    case backupReplaced = "backup.replaced"
+    case editorLabel = "editor.label"
+    case syncSaving = "sync.saving"
+    case syncSaveFailed = "sync.saveFailed"
+    case actionUndo = "action.undo"
+    case sheetTrashed = "sheet.trashed"
+    case folderDeleteConfirmEmpty = "folder.deleteConfirmEmpty"
+    case backupReminder = "backup.reminder"
+    case backupReminderNever = "backup.reminderNever"
+    case paletteFolder = "palette.folder"
+    case paletteProject = "palette.project"
+    case appSetAside = "app.setAside"
+    case trashRestoreAll = "trash.restoreAll"
+    case exportCount = "export.count"
+    case leaseOtherTab = "lease.otherTab"
+    case projectSettingsDeleted = "projectSettings.deleted"
+    case folderDeleted = "folder.deleted"
+    case backupCopySuffix = "backup.copySuffix"
+    case backupImportedCopies = "backup.importedCopies"
+    case paletteFolders = "palette.folders"
+    case paletteProjects = "palette.projects"
+    case sheetMoveUp = "sheet.moveUp"
+    case sheetMoveDown = "sheet.moveDown"
 }
 
 enum L10nValue: Sendable {
@@ -271,7 +444,7 @@ public enum L10n {
             .syncMinutesAgo: .text("{minutes}분 전 동기화"),
             .prefsClaude: .text("Claude 연동 (MCP)"),
             .mcpToggle: .text("MCP 서버 켜기"),
-            .mcpHint: .text("켜면 이 컴퓨터의 Claude가 모든 작품을 읽고 고칠 수 있어요. 고친 내용은 전부 기록되고 되돌릴 수 있어요."),
+            .mcpHint: .text("켜면 이 컴퓨터의 Claude가 아래에서 고른 작품을 읽을 수 있어요. 고친 내용은 전부 기록되고 되돌릴 수 있어요."),
             .mcpAddress: .text("주소"),
             .mcpToken: .text("토큰"),
             .mcpCopy: .text("복사"),
@@ -372,6 +545,179 @@ public enum L10n {
             .searchOpen: .text("열기"),
             .navPrevious: .text("이전"),
             .navNext: .text("다음"),
+            .prefsEditor: .text("에디터"),
+            .prefsBackup: .text("백업"),
+            .prefsShortcuts: .text("단축키"),
+            .prefsAbout: .text("정보"),
+            .prefsLaunch: .text("앱을 열 때"),
+            .prefsLaunchHint: .text("마지막으로 쓰던 시트를 바로 열지, 라이브러리부터 보여줄지 골라요."),
+            .prefsLaunchLast: .text("마지막 시트"),
+            .prefsLaunchLibrary: .text("라이브러리"),
+            .prefsTrash: .text("휴지통 비우기"),
+            .prefsTrashHint: .text("지운 시트와 폴더는 휴지통에 남아요."),
+            .prefsTrashDays30: .text("30일 뒤"),
+            .prefsTrashNever: .text("직접"),
+            .prefsConfirmDelete: .text("지우기 전에 확인"),
+            .prefsEditorPreview: .text("미리 보기"),
+            .prefsEditorTextSize: .text("글자 크기"),
+            .prefsEditorSmall: .text("작게"),
+            .prefsEditorNormal: .text("보통"),
+            .prefsEditorLarge: .text("크게"),
+            .prefsEditorMarkup: .text("Markdown 기호"),
+            .prefsEditorMarkupHint: .text("# · - · ** 같은 기호를 원고에서 어떻게 보일지 골라요."),
+            .prefsEditorMarkupShow: .text("보이기"),
+            .prefsEditorMarkupDim: .text("흐리게"),
+            .prefsEditorMarkupHide: .text("숨기기"),
+            .prefsEditorIndent: .text("문단 첫 줄 들여쓰기"),
+            .prefsEditorParagraphGap: .text("문단 사이 띄우기"),
+            .prefsEditorFocusScope: .text("집중 모드에서 밝게"),
+            .prefsEditorFocusScopeHint: .text("커서가 있는 곳만 밝게, 나머지는 흐리게 보여요."),
+            .prefsEditorFocusSentence: .text("문장"),
+            .prefsEditorFocusParagraph: .text("문단"),
+            .prefsEditorTypewriter: .text("타자기 스크롤"),
+            .prefsEditorTypewriterHint: .text("쓰고 있는 줄을 항상 화면 가운데에 둬요."),
+            .prefsEditorSpell: .text("맞춤법 검사"),
+            .prefsEditorSpellHint: .text("기기의 사전을 써요."),
+            .prefsEditorSmartQuotes: .text("둥근 따옴표로 바꾸기"),
+            .prefsEditorPairs: .text("괄호 · 따옴표 짝 자동으로 닫기"),
+            .syncUpToDate: .text("모든 기기와 맞춰졌어요"),
+            .syncInProgress: .text("동기화하는 중…"),
+            .syncNow: .text("지금 동기화"),
+            .syncSaved: .text("저장됨"),
+            .backupAuto: .text("자동 백업"),
+            .backupAutoHint: .text("작품 전체를 한 파일로 묶어 이 기기에 보관해요. 동기화와 따로 동작해요."),
+            .backupEvery: .text("주기"),
+            .backupEveryHour: .text("매시간"),
+            .backupEveryDay: .text("매일"),
+            .backupEveryWeek: .text("매주"),
+            .backupKeep: .text("보관"),
+            .backupKeepN: .text("최근 {count}개"),
+            .backupKeepAll: .text("전부"),
+            .backupLocation: .text("저장 위치"),
+            .backupChange: .text("바꾸기"),
+            .backupLocationMobileHint: .text("앱 안의 저장 공간이에요. 파일 앱에서 꺼낼 수 있어요."),
+            .backupRecent: .text("최근 백업"),
+            .backupNow: .text("지금 백업"),
+            .backupDone: .text("백업했어요"),
+            .backupMeta: .text("{size} · 시트 {count}개"),
+            .backupRestore: .text("복원"),
+            .backupRestored: .text("사본으로 복원했어요"),
+            .backupRestoreHint: .text("복원하면 지금 작품을 덮어쓰지 않고 라이브러리에 사본으로 추가해요."),
+            .shortcutsGroupGeneral: .text("일반"),
+            .shortcutsGroupView: .text("보기"),
+            .shortcutsGroupFormat: .text("서식"),
+            .shortcutsGroupSheet: .text("시트"),
+            .shortcutsShowLibrary: .text("라이브러리 보이기"),
+            .shortcutsShowList: .text("시트 목록 보이기"),
+            .shortcutsEditorOnly: .text("에디터만 보기"),
+            .shortcutsBold: .text("굵게"),
+            .shortcutsItalic: .text("기울임"),
+            .shortcutsHeading: .text("제목"),
+            .shortcutsKeyboardHint: .text("키보드를 연결하면 쓸 수 있어요."),
+            .shortcutsCustomizeLater: .text("단축키 바꾸기는 다음 버전에서 할 수 있어요."),
+            .mcpPermission: .text("Claude가 할 수 있는 일"),
+            .mcpPermissionRead: .text("읽기만"),
+            .mcpPermissionWrite: .text("읽고 고치기"),
+            .mcpPermissionReadHint: .text("원고와 설정집을 읽기만 해요."),
+            .mcpPermissionWriteHint: .text("고친 것은 전부 변경 기록에 Claude로 남고 되돌릴 수 있어요."),
+            .mcpAskFirst: .text("고치기 전에 묻기"),
+            .mcpAskFirstHint: .text("Claude가 시트를 고치려 할 때마다 이 기기에서 확인해요."),
+            .mcpProjects: .text("Claude에게 보여줄 작품"),
+            .mcpRotate: .text("새로 발급"),
+            .mcpConnect: .text("Claude 앱에 연결"),
+            .mcpCopyConfig: .text("설정 복사"),
+            .mcpConnectHint: .text("Claude 데스크톱 앱의 MCP 설정에 붙여넣으세요."),
+            .mcpRecentEdits: .text("Claude가 고친 기록 {count}건 보기"),
+            .aboutVersion: .text("버전 {version} ({channel}) · {build}"),
+            .aboutCheckUpdate: .text("업데이트 확인"),
+            .aboutUpToDate: .text("최신 버전이에요"),
+            .aboutLicense: .text("라이선스"),
+            .aboutSource: .text("소스 코드"),
+            .aboutReport: .text("문제 알리기 · 제안하기"),
+            .aboutThirdParty: .text("오픈소스 라이선스"),
+            .aboutDataFolder: .text("데이터 폴더"),
+            .aboutOpenDataFolder: .text("데이터 폴더 열기"),
+            .aboutLocalFirst: .text("Ithaca는 서버 없이 동작해요. 원고는 내 기기에 있고, 동기화를 켠 곳에만 암호화되어 전달돼요."),
+            .paletteTitle: .text("명령 팔레트"),
+            .palettePlaceholder: .text("시트 이름이나 명령을 입력"),
+            .paletteRecent: .text("최근 시트"),
+            .paletteSheets: .text("시트"),
+            .paletteCommands: .text("명령"),
+            .paletteNone: .text("'{query}'에 맞는 것이 없어요."),
+            .paletteHintOpen: .text("Enter 열기"),
+            .paletteHintClose: .text("Esc 닫기"),
+            .focusTitle: .text("집중 모드"),
+            .focusExit: .text("집중 모드 끝내기"),
+            .inspectorTitle: .text("인스펙터"),
+            .inspectorReference: .text("참조"),
+            .inspectorInfo: .text("정보"),
+            .inspectorOutline: .text("개요"),
+            .infoWithSpaces: .text("글자수 (공백 포함)"),
+            .infoWithoutSpaces: .text("글자수 (공백 제외)"),
+            .infoManuscriptPages: .text("원고지"),
+            .infoPages: .text("{count}매"),
+            .infoWords: .text("단어"),
+            .infoParagraphs: .text("문단"),
+            .infoReadingTime: .text("읽는 시간"),
+            .infoMinutes: .text("약 {count}분"),
+            .infoCreated: .text("만든 날"),
+            .infoModified: .text("고친 날"),
+            .outlineEmpty: .text("빈 시트예요."),
+            .sheetUntitled: .text("제목 없음"),
+            .sheetPlaceholderTitle: .text("첫 줄이 제목이 돼요"),
+            .sheetPlaceholderBody: .text("여기서부터 쓰세요."),
+            .sheetListEmpty: .text("아직 시트가 없어요."),
+            .trashTitle: .text("휴지통"),
+            .paletteSheetInfo: .text("시트 정보"),
+            .appFirstProject: .text("첫 작품"),
+            .editorNoSheet: .text("열린 시트가 없어요."),
+            .syncSavedLocal: .text("이 기기에 저장됨"),
+            .referenceNone: .text("참조할 다른 시트가 없어요."),
+            .folderNamePlaceholder: .text("폴더 이름"),
+            .folderDeleteConfirm: .text("'{name}' 폴더를 지울까요? 안에 있는 시트 {count}개는 휴지통으로 가요."),
+            .projectSettingsLanguageHint: .text("분량 단위를 정해요. 한국어는 글자수, 영어는 단어 수."),
+            .projectSettingsDelete: .text("작품 지우기"),
+            .projectSettingsDeleteConfirm: .text("'{name}' 작품과 안의 시트를 모두 지울까요? 되돌릴 수 없어요."),
+            .backupInvalid: .text("Ithaca 백업 파일이 아니에요."),
+            .backupReplaceConfirm: .text("지금 있는 내용을 이 백업(시트 {count}개)으로 바꿀까요? 먼저 지금 상태를 백업해 두세요."),
+            .backupWebHint: .text("웹 버전은 이 브라우저에만 저장해요. 브라우저 데이터를 지우면 원고도 사라지니 백업 파일을 자주 받아 두세요."),
+            .backupDownload: .text("백업 파일 받기"),
+            .backupDownloadHint: .text("작품 전체 · 시트 {count}개 · {date}"),
+            .backupFromFile: .text("백업 파일에서 복원"),
+            .backupFromFileHint: .text("백업 파일의 작품을 사본으로 추가해요. 지금 있는 작품은 그대로예요."),
+            .aboutWebBuild: .text("웹 버전 · 미리 써보기"),
+            .trashHint: .text("30일이 지나면 저절로 비워져요."),
+            .trashEmpty: .text("휴지통 비우기"),
+            .trashEmptyConfirm: .text("휴지통의 시트를 모두 영구히 지울까요?"),
+            .trashEmptyState: .text("휴지통이 비어 있어요."),
+            .trashRestore: .text("되살리기"),
+            .trashDeleteForever: .text("영구 삭제"),
+            .trashDeleteForeverConfirm: .text("이 시트를 영구히 지울까요? 되돌릴 수 없어요."),
+            .sheetTrash: .text("휴지통으로"),
+            .sheetMove: .text("다른 폴더로 옮기기"),
+            .backupReplaced: .text("백업 내용으로 바꿨어요"),
+            .editorLabel: .text("원고"),
+            .syncSaving: .text("저장하는 중…"),
+            .syncSaveFailed: .text("저장하지 못했어요 — 브라우저 저장 공간이 가득 찼어요. 백업 파일을 받아 두세요."),
+            .actionUndo: .text("되돌리기"),
+            .sheetTrashed: .text("휴지통으로 옮겼어요 — {title}"),
+            .folderDeleteConfirmEmpty: .text("빈 폴더 '{name}'을 지울까요?"),
+            .backupReminder: .text("마지막 백업이 {count}일 전이에요. 백업 파일을 받아 두세요."),
+            .backupReminderNever: .text("아직 백업하지 않았어요. 원고는 이 브라우저에만 있어요."),
+            .paletteFolder: .text("폴더"),
+            .paletteProject: .text("작품"),
+            .appSetAside: .text("저장된 데이터를 이 버전이 읽지 못해서 덮어쓰지 않고 따로 보관했어요 ({key})."),
+            .trashRestoreAll: .text("모두 되살리기"),
+            .exportCount: .text("{count}자 (공백 포함)"),
+            .leaseOtherTab: .text("다른 탭에서 이 시트를 쓰고 있어요. 여기서 쓰려면 점유하세요."),
+            .projectSettingsDeleted: .text("'{name}' 작품을 지웠어요. 30일 동안은 되돌릴 수 있어요."),
+            .folderDeleted: .text("폴더를 지웠어요 — {name}"),
+            .backupCopySuffix: .text("(백업 {date})"),
+            .backupImportedCopies: .text("백업의 작품 {count}개를 사본으로 추가했어요."),
+            .paletteFolders: .text("폴더"),
+            .paletteProjects: .text("작품"),
+            .sheetMoveUp: .text("시트를 위로"),
+            .sheetMoveDown: .text("시트를 아래로"),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -444,7 +790,7 @@ public enum L10n {
             .syncMinutesAgo: .text("Synced {minutes} min ago"),
             .prefsClaude: .text("Claude (MCP)"),
             .mcpToggle: .text("Enable MCP server"),
-            .mcpHint: .text("Lets Claude on this computer read and edit every project. Every edit is recorded and can be reverted."),
+            .mcpHint: .text("When on, Claude on this computer can read the projects you pick below. Every edit is recorded and can be reverted."),
             .mcpAddress: .text("Address"),
             .mcpToken: .text("Token"),
             .mcpCopy: .text("Copy"),
@@ -545,6 +891,179 @@ public enum L10n {
             .searchOpen: .text("Open"),
             .navPrevious: .text("Previous"),
             .navNext: .text("Next"),
+            .prefsEditor: .text("Editor"),
+            .prefsBackup: .text("Backup"),
+            .prefsShortcuts: .text("Shortcuts"),
+            .prefsAbout: .text("About"),
+            .prefsLaunch: .text("On launch"),
+            .prefsLaunchHint: .text("Reopen the last sheet, or start at the library"),
+            .prefsLaunchLast: .text("Last sheet"),
+            .prefsLaunchLibrary: .text("Library"),
+            .prefsTrash: .text("Empty trash"),
+            .prefsTrashHint: .text("Deleted sheets and folders stay in the trash"),
+            .prefsTrashDays30: .text("After 30 days"),
+            .prefsTrashNever: .text("Manually"),
+            .prefsConfirmDelete: .text("Confirm before deleting"),
+            .prefsEditorPreview: .text("Preview"),
+            .prefsEditorTextSize: .text("Text size"),
+            .prefsEditorSmall: .text("Small"),
+            .prefsEditorNormal: .text("Default"),
+            .prefsEditorLarge: .text("Large"),
+            .prefsEditorMarkup: .text("Markdown symbols"),
+            .prefsEditorMarkupHint: .text("How # · - · ** appear in the manuscript"),
+            .prefsEditorMarkupShow: .text("Show"),
+            .prefsEditorMarkupDim: .text("Dim"),
+            .prefsEditorMarkupHide: .text("Hide"),
+            .prefsEditorIndent: .text("Indent first line"),
+            .prefsEditorParagraphGap: .text("Space between paragraphs"),
+            .prefsEditorFocusScope: .text("Focus mode highlights"),
+            .prefsEditorFocusScopeHint: .text("Only where the cursor is stays bright"),
+            .prefsEditorFocusSentence: .text("Sentence"),
+            .prefsEditorFocusParagraph: .text("Paragraph"),
+            .prefsEditorTypewriter: .text("Typewriter scrolling"),
+            .prefsEditorTypewriterHint: .text("Keep the line you type in the middle of the screen"),
+            .prefsEditorSpell: .text("Check spelling"),
+            .prefsEditorSpellHint: .text("Uses the system dictionary"),
+            .prefsEditorSmartQuotes: .text("Smart quotes"),
+            .prefsEditorPairs: .text("Close brackets and quotes automatically"),
+            .syncUpToDate: .text("Up to date on all devices"),
+            .syncInProgress: .text("Syncing…"),
+            .syncNow: .text("Sync now"),
+            .syncSaved: .text("Saved"),
+            .backupAuto: .text("Automatic backups"),
+            .backupAutoHint: .text("Bundles every project into one file on this device. Independent of sync"),
+            .backupEvery: .text("Frequency"),
+            .backupEveryHour: .text("Hourly"),
+            .backupEveryDay: .text("Daily"),
+            .backupEveryWeek: .text("Weekly"),
+            .backupKeep: .text("Keep"),
+            .backupKeepN: .plural(one: "Last {count}", other: "Last {count}"),
+            .backupKeepAll: .text("All"),
+            .backupLocation: .text("Location"),
+            .backupChange: .text("Change"),
+            .backupLocationMobileHint: .text("Inside the app's storage. Reachable from the Files app"),
+            .backupRecent: .text("Recent backups"),
+            .backupNow: .text("Back up now"),
+            .backupDone: .text("Backed up"),
+            .backupMeta: .plural(one: "{size} · {count} sheet", other: "{size} · {count} sheets"),
+            .backupRestore: .text("Restore"),
+            .backupRestored: .text("Restored as a copy"),
+            .backupRestoreHint: .text("Restoring never overwrites — the backup is added to the library as a copy"),
+            .shortcutsGroupGeneral: .text("General"),
+            .shortcutsGroupView: .text("View"),
+            .shortcutsGroupFormat: .text("Format"),
+            .shortcutsGroupSheet: .text("Sheet"),
+            .shortcutsShowLibrary: .text("Show library"),
+            .shortcutsShowList: .text("Show sheet list"),
+            .shortcutsEditorOnly: .text("Editor only"),
+            .shortcutsBold: .text("Bold"),
+            .shortcutsItalic: .text("Italic"),
+            .shortcutsHeading: .text("Heading"),
+            .shortcutsKeyboardHint: .text("Available with a hardware keyboard"),
+            .shortcutsCustomizeLater: .text("Custom shortcuts are coming in a later version"),
+            .mcpPermission: .text("What Claude can do"),
+            .mcpPermissionRead: .text("Read only"),
+            .mcpPermissionWrite: .text("Read and edit"),
+            .mcpPermissionReadHint: .text("Can read manuscripts and lore, nothing else"),
+            .mcpPermissionWriteHint: .text("Every edit is recorded as Claude's in History and can be reverted"),
+            .mcpAskFirst: .text("Ask before editing"),
+            .mcpAskFirstHint: .text("Confirm on this device each time Claude wants to edit a sheet"),
+            .mcpProjects: .text("Projects Claude can see"),
+            .mcpRotate: .text("Regenerate"),
+            .mcpConnect: .text("Connect from Claude"),
+            .mcpCopyConfig: .text("Copy configuration"),
+            .mcpConnectHint: .text("Paste into the MCP settings of the Claude desktop app"),
+            .mcpRecentEdits: .plural(one: "View {count} edit by Claude", other: "View {count} edits by Claude"),
+            .aboutVersion: .text("Version {version} ({channel}) · {build}"),
+            .aboutCheckUpdate: .text("Check for updates"),
+            .aboutUpToDate: .text("Up to date"),
+            .aboutLicense: .text("License"),
+            .aboutSource: .text("Source code"),
+            .aboutReport: .text("Report a problem · Suggest"),
+            .aboutThirdParty: .text("Open-source licenses"),
+            .aboutDataFolder: .text("Data folder"),
+            .aboutOpenDataFolder: .text("Open data folder"),
+            .aboutLocalFirst: .text("Ithaca works without a server. Your manuscripts live on your devices and travel, encrypted, only where you turn sync on"),
+            .paletteTitle: .text("Command palette"),
+            .palettePlaceholder: .text("Type a sheet or a command"),
+            .paletteRecent: .text("Recent sheets"),
+            .paletteSheets: .text("Sheets"),
+            .paletteCommands: .text("Commands"),
+            .paletteNone: .text("Nothing matches '{query}'"),
+            .paletteHintOpen: .text("Enter to open"),
+            .paletteHintClose: .text("Esc to close"),
+            .focusTitle: .text("Focus mode"),
+            .focusExit: .text("Exit focus mode"),
+            .inspectorTitle: .text("Inspector"),
+            .inspectorReference: .text("Reference"),
+            .inspectorInfo: .text("Info"),
+            .inspectorOutline: .text("Outline"),
+            .infoWithSpaces: .text("Characters (with spaces)"),
+            .infoWithoutSpaces: .text("Characters (no spaces)"),
+            .infoManuscriptPages: .text("Manuscript pages"),
+            .infoPages: .plural(one: "{count} page", other: "{count} pages"),
+            .infoWords: .text("Words"),
+            .infoParagraphs: .text("Paragraphs"),
+            .infoReadingTime: .text("Reading time"),
+            .infoMinutes: .plural(one: "About {count} min", other: "About {count} min"),
+            .infoCreated: .text("Created"),
+            .infoModified: .text("Modified"),
+            .outlineEmpty: .text("Empty sheet"),
+            .sheetUntitled: .text("Untitled"),
+            .sheetPlaceholderTitle: .text("The first line becomes the title"),
+            .sheetPlaceholderBody: .text("Start writing here"),
+            .sheetListEmpty: .text("No sheets yet."),
+            .trashTitle: .text("Trash"),
+            .paletteSheetInfo: .text("Sheet info"),
+            .appFirstProject: .text("My first project"),
+            .editorNoSheet: .text("No sheet is open."),
+            .syncSavedLocal: .text("Saved on this device"),
+            .referenceNone: .text("No other sheets to refer to."),
+            .folderNamePlaceholder: .text("Folder name"),
+            .folderDeleteConfirm: .plural(one: "Delete the folder '{name}'? Its {count} sheet goes to the trash.", other: "Delete the folder '{name}'? Its {count} sheets go to the trash."),
+            .projectSettingsLanguageHint: .text("Sets the length unit: characters for Korean, words for English."),
+            .projectSettingsDelete: .text("Delete project"),
+            .projectSettingsDeleteConfirm: .text("Delete '{name}' and every sheet in it? This can't be undone."),
+            .backupInvalid: .text("This isn't an Ithaca backup file."),
+            .backupReplaceConfirm: .plural(one: "Replace everything here with this backup ({count} sheet)? Back up the current state first.", other: "Replace everything here with this backup ({count} sheets)? Back up the current state first."),
+            .backupWebHint: .text("The web version stores everything in this browser only. Clearing browser data erases your manuscripts — download backups often."),
+            .backupDownload: .text("Download a backup"),
+            .backupDownloadHint: .plural(one: "All projects · {count} sheet · {date}", other: "All projects · {count} sheets · {date}"),
+            .backupFromFile: .text("Restore from a file"),
+            .backupFromFileHint: .text("Adds the backup's projects as copies. Nothing here is replaced."),
+            .aboutWebBuild: .text("Web version · preview"),
+            .trashHint: .text("Emptied automatically after 30 days."),
+            .trashEmpty: .text("Empty trash"),
+            .trashEmptyConfirm: .text("Permanently delete every sheet in the trash?"),
+            .trashEmptyState: .text("The trash is empty."),
+            .trashRestore: .text("Restore"),
+            .trashDeleteForever: .text("Delete forever"),
+            .trashDeleteForeverConfirm: .text("Delete this sheet forever? This can't be undone."),
+            .sheetTrash: .text("Move to trash"),
+            .sheetMove: .text("Move to folder"),
+            .backupReplaced: .text("Replaced with the backup"),
+            .editorLabel: .text("Manuscript"),
+            .syncSaving: .text("Saving…"),
+            .syncSaveFailed: .text("Not saved — browser storage is full. Download a backup now."),
+            .actionUndo: .text("Undo"),
+            .sheetTrashed: .text("Moved to the trash — {title}"),
+            .folderDeleteConfirmEmpty: .text("Delete the empty folder '{name}'?"),
+            .backupReminder: .plural(one: "Last backup was {count} day ago. Download a backup file.", other: "Last backup was {count} days ago. Download a backup file."),
+            .backupReminderNever: .text("No backup yet — your manuscripts live only in this browser."),
+            .paletteFolder: .text("Folder"),
+            .paletteProject: .text("Project"),
+            .appSetAside: .text("Saved data couldn't be read by this version; it was kept aside, not overwritten ({key})."),
+            .trashRestoreAll: .text("Restore all"),
+            .exportCount: .plural(one: "{count} character", other: "{count} characters"),
+            .leaseOtherTab: .text("Another tab is writing this sheet. Take over to write here."),
+            .projectSettingsDeleted: .text("Deleted '{name}'. It can be brought back for 30 days."),
+            .folderDeleted: .text("Deleted folder — {name}"),
+            .backupCopySuffix: .text("(backup {date})"),
+            .backupImportedCopies: .plural(one: "Added {count} project from the backup as a copy.", other: "Added {count} projects from the backup as copies."),
+            .paletteFolders: .text("Folders"),
+            .paletteProjects: .text("Projects"),
+            .sheetMoveUp: .text("Move sheet up"),
+            .sheetMoveDown: .text("Move sheet down"),
         ],
     ]
 }

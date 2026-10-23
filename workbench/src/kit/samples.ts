@@ -35,12 +35,15 @@ export interface Project {
 export interface Sample {
   projects: Project[];
   open: { project: string; folder: string; sheet: string; reference: string };
-  openSheet: { paragraphs: string[] };
+  openSheet: { paragraphs: string[]; createdAt: string; modifiedAt: string };
   /** An offline branch: `main` and `copy` are paragraph-aligned; null = paragraph absent on that side. */
   branch: { sheet: string; device: string; minutesAgo: number; main: (string | null)[]; copy: (string | null)[] };
   devices: { name: string; platform: Platform; minutesAgo: number }[];
   sync: { relay: string; icloud: boolean; p2p: boolean };
-  mcp: { enabled: boolean; address: string; token: string };
+  mcp: { enabled: boolean; address: string; token: string; permission: "read" | "write"; exposed: string[] };
+  /** Local backups (preferences → Backup). `at` is ISO; format with the frame locale. */
+  backup: { auto: boolean; path: string; records: { at: string; size: string; sheets: number }[] };
+  app: { version: string; channel: string; build: string; license: string; repository: string; dataPath: string };
   search: { recent: string[]; sampleQuery: string; emptyQuery: string };
   history: { total: number; sheet: string; thisDevice: string; records: HistoryRecord[] };
   pair: { code: string; expiresIn: string; total: number; done: number; size: string };

@@ -3,8 +3,8 @@
     "ko": "앱 뼈대",
     "en": "App shell"
   },
-  "description": "라이브러리(작품 → 폴더) / 시트 목록 / 에디터 3단이 size class 에 따라 접히는 방식",
-  "version": "0.2.0",
+  "description": "라이브러리(작품 → 폴더) / 시트 목록 / 에디터 3단이 size class 에 따라 접히는 방식 · 인스펙터(참조 · 정보 · 개요) · 집중 모드",
+  "version": "0.3.0",
   "links": [
     {
       "from": "default",
@@ -12,14 +12,6 @@
       "label": {
         "ko": "참조 패널 열기",
         "en": "Open reference"
-      }
-    },
-    {
-      "from": "reference",
-      "to": "app-shell#default",
-      "label": {
-        "ko": "닫기",
-        "en": "Close"
       }
     },
     {
@@ -92,6 +84,62 @@
       "label": {
         "ko": "내보내기",
         "en": "Export"
+      }
+    },
+    {
+      "from": "reference",
+      "to": "app-shell#default",
+      "label": {
+        "ko": "닫기",
+        "en": "Close"
+      }
+    },
+    {
+      "from": "default",
+      "to": "app-shell#info",
+      "label": {
+        "ko": "인스펙터 · 정보",
+        "en": "Inspector · Info"
+      }
+    },
+    {
+      "from": "info",
+      "to": "app-shell#default",
+      "label": {
+        "ko": "닫기",
+        "en": "Close"
+      }
+    },
+    {
+      "from": "default",
+      "to": "app-shell#focus",
+      "label": {
+        "ko": "집중 모드",
+        "en": "Focus mode"
+      }
+    },
+    {
+      "from": "focus",
+      "to": "app-shell#default",
+      "label": {
+        "ko": "집중 모드 끝내기",
+        "en": "Exit focus mode"
+      }
+    },
+    {
+      "from": "default",
+      "to": "command-palette#default",
+      "label": {
+        "ko": "명령 팔레트 (데스크톱)",
+        "en": "Command palette (desktop)"
+      }
+    },
+    {
+      "from": "default",
+      "to": "trash",
+      "label": {
+        "ko": "휴지통",
+        "en": "Trash"
       }
     }
   ]

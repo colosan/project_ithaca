@@ -1,7 +1,7 @@
 // Shared controls for prototypes. Each one has a native counterpart (SwiftUI / Compose) built to the same tokens,
 // so screens stop hand-drawing their own buttons and checkboxes and look like one app.
 // Only tokens here — no raw numbers — so a token change restyles every screen at once.
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { color, motion, opacity, radius, shadow, size, space, type } from "../generated/tokens";
 import { icons, iconStroke, type IconName } from "../generated/icons";
 
@@ -13,6 +13,37 @@ const ease = `background ${fast}, color ${fast}, border-color ${fast}, box-shado
 function useHover() {
   const [hover, setHover] = useState(false);
   return { hover, bind: { onMouseEnter: () => setHover(true), onMouseLeave: () => setHover(false) } };
+}
+
+// Keyboard focus ring. `:focus-visible` cannot be written inline, so track the last input modality ourselves:
+// a key press switches to "keyboard", any pointer press switches back. Focus that arrives while the last
+// input was a key (Tab, arrows, a shortcut that opened a dialog) shows the ring; a click never does.
+let keyboardModality = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("keydown", () => { keyboardModality = true; }, true);
+  window.addEventListener("pointerdown", () => { keyboardModality = false; }, true);
+}
+
+/** Focus ring that only appears for keyboard focus. Spread `bind` on the element, merge `style`. */
+export function useFocusRing() {
+  const [ring, setRing] = useState(false);
+  return {
+    bind: { onFocus: () => setRing(keyboardModality), onBlur: () => setRing(false) },
+    style: (ring
+      ? { outline: `${size.strokeFocus} solid ${color.accentPrimary}`, outlineOffset: size.strokeHairline }
+      : { outline: "none" }) as CSSProperties,
+  };
+}
+
+/** Tab stop + Enter/Space activation for a non-native control. */
+function pressKeys(onPress: (() => void) | undefined) {
+  return (e: KeyboardEvent) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    if (e.nativeEvent.isComposing) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onPress?.();
+  };
 }
 
 export type IconSize = "sm" | "md" | "lg";
@@ -31,6 +62,7 @@ export function Button({
   variant = "secondary", icon, disabled, onClick, children, full, style,
 }: { variant?: ButtonVariant; icon?: IconName; disabled?: boolean; onClick?: () => void; children: ReactNode; full?: boolean; style?: CSSProperties }) {
   const { hover, bind } = useHover();
+  const focus = useFocusRing();
   const on = hover && !disabled;
   const look: Record<ButtonVariant, CSSProperties> = {
     primary: { background: color.accentPrimary, color: color.inkOnAccent, border: hairline(color.accentPrimary), boxShadow: on ? shadow.raised : undefined },
@@ -41,14 +73,18 @@ export function Button({
   return (
     <span
       {...bind}
+      {...focus.bind}
       role="button"
+      tabIndex={disabled ? -1 : 0}
+      aria-disabled={disabled || undefined}
       onClick={disabled ? undefined : onClick}
+      onKeyDown={pressKeys(disabled ? undefined : onClick)}
       style={{
         display: full ? "flex" : "inline-flex", alignItems: "center", justifyContent: "center", gap: space[100],
         minHeight: size.controlMd, padding: `${space[50]} ${space[200]}`, borderRadius: radius.control,
         ...type.label, fontWeight: type.heading.fontWeight, textAlign: "center",
         cursor: disabled ? "default" : "pointer", opacity: disabled ? opacity.disabled : undefined, transition: ease,
-        ...look[variant], ...style,
+        ...look[variant], ...style, ...focus.style,
       }}
     >
       {icon && <Icon name={icon} size="sm" />}
@@ -60,17 +96,23 @@ export function Button({
 /** Square icon-only button for toolbars. `label` is the tooltip / accessibility name. */
 export function IconButton({ icon, label, onClick, active, tone }: { icon: IconName; label: string; onClick?: () => void; active?: boolean; tone?: string }) {
   const { hover, bind } = useHover();
+  const focus = useFocusRing();
   return (
     <span
       {...bind}
+      {...focus.bind}
       role="button"
+      data-kit="icon-button"
       title={label}
       aria-label={label}
+      aria-pressed={active}
+      tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
+      onKeyDown={pressKeys(onClick)}
       style={{
         flex: "none", display: "inline-grid", placeItems: "center", minWidth: size.controlSm, minHeight: size.controlSm, borderRadius: radius.control,
         background: active ? color.accentSoft : hover ? color.surfaceSelected : "transparent",
-        color: active ? color.accentPrimary : tone ?? color.inkSecondary, cursor: onClick ? "pointer" : "default", transition: ease,
+        color: active ? color.accentPrimary : tone ?? color.inkSecondary, cursor: onClick ? "pointer" : "default", transition: ease, ...focus.style,
       }}
     >
       <Icon name={icon} size="md" />
@@ -78,42 +120,69 @@ export function IconButton({ icon, label, onClick, active, tone }: { icon: IconN
   );
 }
 
-/** Segmented control: a sunken track with the chosen item raised — the same shape on every platform. */
-export function Segmented<T extends string | number>({ items, value, onChange, full }: { items: readonly (readonly [T, string])[]; value: T; onChange: (v: T) => void; full?: boolean }) {
+/** Segmented control: a sunken track with the chosen item raised — the same shape on every platform.
+ *  Behaves as a radio group: one tab stop (the chosen item), arrow keys move the choice. */
+export function Segmented<T extends string | number>({ items, value, onChange, full, label }: { items: readonly (readonly [T, string])[]; value: T; onChange: (v: T) => void; full?: boolean; label?: string }) {
+  const refs = useRef<(HTMLSpanElement | null)[]>([]);
+  const chosen = Math.max(0, items.findIndex(([k]) => k === value));
+  const move = (e: KeyboardEvent, i: number) => {
+    const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
+    const to = e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : step ? (i + step + items.length) % items.length : -1;
+    if (to < 0) return pressKeys(() => onChange(items[i][0]))(e);
+    e.preventDefault();
+    e.stopPropagation();
+    onChange(items[to][0]);
+    refs.current[to]?.focus();
+  };
   return (
-    <div style={{ display: full ? "flex" : "inline-flex", maxWidth: "100%", gap: space[25], padding: space[25], borderRadius: radius.control, background: color.surfaceSelected, ...type.label }}>
-      {items.map(([k, label]) => {
-        const on = k === value;
-        return (
-          <span
-            key={String(k)}
-            role="button"
-            onClick={() => onChange(k)}
-            style={{
-              flex: "1 1 auto", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: `${space[50]} ${space[150]}`, borderRadius: radius.piece,
-              background: on ? color.surfaceRaised : "transparent", boxShadow: on ? shadow.raised : undefined,
-              color: on ? color.inkPrimary : color.inkSecondary, fontWeight: on ? type.heading.fontWeight : undefined,
-              cursor: "pointer", transition: ease,
-            }}
-          >
-            {label}
-          </span>
-        );
-      })}
+    <div role="radiogroup" aria-label={label} style={{ display: full ? "flex" : "inline-flex", maxWidth: "100%", gap: space[25], padding: space[25], borderRadius: radius.control, background: color.surfaceSelected, ...type.label }}>
+      {items.map(([k, text], i) => (
+        <SegmentItem key={String(k)} on={k === value} tab={i === chosen} itemRef={(el) => { refs.current[i] = el; }} onPress={() => onChange(k)} onKeyDown={(e) => move(e, i)}>
+          {text}
+        </SegmentItem>
+      ))}
     </div>
+  );
+}
+
+function SegmentItem({ on, tab, itemRef, onPress, onKeyDown, children }: { on: boolean; tab: boolean; itemRef: (el: HTMLSpanElement | null) => void; onPress: () => void; onKeyDown: (e: KeyboardEvent) => void; children: ReactNode }) {
+  const focus = useFocusRing();
+  return (
+    <span
+      {...focus.bind}
+      ref={itemRef}
+      role="radio"
+      aria-checked={on}
+      tabIndex={tab ? 0 : -1}
+      onClick={onPress}
+      onKeyDown={onKeyDown}
+      style={{
+        flex: "1 1 auto", minWidth: 0, display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", padding: `${space[50]} ${space[150]}`, borderRadius: radius.piece,
+        background: on ? color.surfaceRaised : "transparent", boxShadow: on ? shadow.raised : undefined,
+        color: on ? color.inkPrimary : color.inkSecondary, fontWeight: on ? type.heading.fontWeight : undefined,
+        cursor: "pointer", transition: ease, ...focus.style,
+      }}
+    >
+      {children}
+    </span>
   );
 }
 
 /** Filter chip: a pill that is either on or off. */
 export function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  const focus = useFocusRing();
   return (
     <span
+      {...focus.bind}
       role="button"
+      aria-pressed={active}
+      tabIndex={0}
       onClick={onClick}
+      onKeyDown={pressKeys(onClick)}
       style={{
         display: "inline-flex", alignItems: "center", gap: space[50], ...type.label, padding: `${space[50]} ${space[150]}`, borderRadius: radius.full,
         border: hairline(active ? "transparent" : color.lineStrong), background: active ? color.inkPrimary : "transparent",
-        color: active ? color.surfaceCanvas : color.inkSecondary, cursor: "pointer", transition: ease,
+        color: active ? color.surfaceCanvas : color.inkSecondary, cursor: "pointer", transition: ease, ...focus.style,
       }}
     >
       {children}
@@ -150,13 +219,18 @@ export function Radio({ on }: { on: boolean }) {
 }
 
 /** On/off switch. Fixed size: it holds no text. */
-export function Switch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+export function Switch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label?: string }) {
+  const focus = useFocusRing();
   return (
     <span
+      {...focus.bind}
       role="switch"
       aria-checked={on}
+      aria-label={label}
+      tabIndex={0}
       onClick={onToggle}
-      style={{ position: "relative", flex: "none", width: size.toggleWidth, height: size.toggleHeight, borderRadius: radius.full, background: on ? color.accentPrimary : color.lineStrong, cursor: "pointer", transition: ease }}
+      onKeyDown={pressKeys(onToggle)}
+      style={{ position: "relative", flex: "none", width: size.toggleWidth, height: size.toggleHeight, borderRadius: radius.full, background: on ? color.accentPrimary : color.lineStrong, cursor: "pointer", transition: ease, ...focus.style }}
     >
       <span
         style={{

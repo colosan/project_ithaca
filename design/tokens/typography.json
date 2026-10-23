@@ -13,6 +13,8 @@
     "label":          { "family": "ui",     "size": 13, "lineHeight": 18, "tracking": 0,     "weight": 500, "description": "버튼·칩" },
     "caption":        { "family": "ui",     "size": 12, "lineHeight": 16, "tracking": 0,     "weight": 400, "description": "메타·글자수" },
     "editor.body":    { "family": "editor", "size": 18, "lineHeight": 32, "tracking": 0,     "weight": 400, "description": "원고 본문. 한글 행간 1.75" },
-    "editor.heading": { "family": "editor", "size": 24, "lineHeight": 36, "tracking": -0.01, "weight": 700, "description": "원고 안 # 제목" }
+    "editor.small":   { "family": "editor", "size": 16, "lineHeight": 28, "tracking": 0,     "weight": 400, "description": "환경설정 · 에디터 글자 크기 '작게'" },
+    "editor.large":   { "family": "editor", "size": 21, "lineHeight": 36, "tracking": 0,     "weight": 400, "description": "환경설정 · 에디터 글자 크기 '크게'" },
+    "editor.heading":{ "family": "editor", "size": 24, "lineHeight": 36, "tracking": -0.01, "weight": 700, "description": "원고 안 # 제목" }
   }
 }

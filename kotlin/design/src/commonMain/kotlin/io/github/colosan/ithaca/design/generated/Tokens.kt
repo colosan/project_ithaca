@@ -47,6 +47,8 @@ object Tokens {
         val label = TextStyleToken(family = Family.ui, size = 13f, lineHeight = 18f, tracking = 0f, weight = 500)
         val caption = TextStyleToken(family = Family.ui, size = 12f, lineHeight = 16f, tracking = 0f, weight = 400)
         val editorBody = TextStyleToken(family = Family.editor, size = 18f, lineHeight = 32f, tracking = 0f, weight = 400)
+        val editorSmall = TextStyleToken(family = Family.editor, size = 16f, lineHeight = 28f, tracking = 0f, weight = 400)
+        val editorLarge = TextStyleToken(family = Family.editor, size = 21f, lineHeight = 36f, tracking = 0f, weight = 400)
         val editorHeading = TextStyleToken(family = Family.editor, size = 24f, lineHeight = 36f, tracking = -0.01f, weight = 700)
     }
 
@@ -101,6 +103,7 @@ object Tokens {
     object Opacity {
         const val readOnly = 0.72f
         const val disabled = 0.45f
+        const val focusDim = 0.32f
     }
 
     object Motion {

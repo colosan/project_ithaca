@@ -61,6 +61,10 @@
   --type-caption-line-height: calc(16px * var(--text-scale, 1));
   --type-editor-body-size: calc(18px * var(--text-scale, 1));
   --type-editor-body-line-height: calc(32px * var(--text-scale, 1));
+  --type-editor-small-size: calc(16px * var(--text-scale, 1));
+  --type-editor-small-line-height: calc(28px * var(--text-scale, 1));
+  --type-editor-large-size: calc(21px * var(--text-scale, 1));
+  --type-editor-large-line-height: calc(36px * var(--text-scale, 1));
   --type-editor-heading-size: calc(24px * var(--text-scale, 1));
   --type-editor-heading-line-height: calc(36px * var(--text-scale, 1));
 }
@@ -90,6 +94,12 @@
   --type-editor-body-family: var(--font-editor);
   --type-editor-body-tracking: 0em;
   --type-editor-body-weight: 400;
+  --type-editor-small-family: var(--font-editor);
+  --type-editor-small-tracking: 0em;
+  --type-editor-small-weight: 400;
+  --type-editor-large-family: var(--font-editor);
+  --type-editor-large-tracking: 0em;
+  --type-editor-large-weight: 400;
   --type-editor-heading-family: var(--font-editor);
   --type-editor-heading-tracking: -0.01em;
   --type-editor-heading-weight: 700;
@@ -131,6 +141,7 @@
   --shadow-dialog: 0 12px 40px rgba(0, 0, 0, 0.16);
   --opacity-read-only: 0.72;
   --opacity-disabled: 0.45;
+  --opacity-focus-dim: 0.32;
   --motion-fast-duration: 120ms;
   --motion-fast-easing: cubic-bezier(0.2, 0, 0, 1);
   --motion-normal-duration: 200ms;

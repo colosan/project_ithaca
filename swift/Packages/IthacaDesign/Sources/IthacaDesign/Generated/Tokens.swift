@@ -63,6 +63,8 @@ public enum Tokens {
         public static let label = TextStyleToken(family: Family.ui, size: 13, lineHeight: 18, tracking: 0, weight: 500)
         public static let caption = TextStyleToken(family: Family.ui, size: 12, lineHeight: 16, tracking: 0, weight: 400)
         public static let editorBody = TextStyleToken(family: Family.editor, size: 18, lineHeight: 32, tracking: 0, weight: 400)
+        public static let editorSmall = TextStyleToken(family: Family.editor, size: 16, lineHeight: 28, tracking: 0, weight: 400)
+        public static let editorLarge = TextStyleToken(family: Family.editor, size: 21, lineHeight: 36, tracking: 0, weight: 400)
         public static let editorHeading = TextStyleToken(family: Family.editor, size: 24, lineHeight: 36, tracking: -0.01, weight: 700)
     }
 
@@ -117,6 +119,7 @@ public enum Tokens {
     public enum Opacity {
         public static let readOnly: Double = 0.72
         public static let disabled: Double = 0.45
+        public static let focusDim: Double = 0.32
     }
 
     public enum Motion {

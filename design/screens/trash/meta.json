@@ -1,0 +1,9 @@
+{
+  "title": {
+    "ko": "휴지통",
+    "en": "Trash"
+  },
+  "description": "지운 시트 · 폴더를 모아두고 되살리거나 영구 삭제",
+  "version": "0.0.0",
+  "planned": true
+}

@@ -1,0 +1,114 @@
+{
+  "title": {
+    "ko": "명령 팔레트",
+    "en": "Command palette"
+  },
+  "description": "⌘K / Ctrl+K — 시트로 바로 가거나 명령을 실행하는 상자 (데스크톱 · 키보드 연결한 iPad)",
+  "version": "0.1.0",
+  "links": [
+    {
+      "from": "default",
+      "to": "command-palette#query",
+      "label": {
+        "ko": "입력",
+        "en": "Type"
+      }
+    },
+    {
+      "from": "default",
+      "to": "app-shell#default",
+      "label": {
+        "ko": "닫기 · 시트 열기",
+        "en": "Close · open a sheet"
+      }
+    },
+    {
+      "from": "query",
+      "to": "app-shell#focus",
+      "label": {
+        "ko": "집중 모드",
+        "en": "Focus mode"
+      }
+    },
+    {
+      "from": "query",
+      "to": "preferences#general",
+      "label": {
+        "ko": "환경설정",
+        "en": "Settings"
+      }
+    },
+    {
+      "from": "query",
+      "to": "new-project#default",
+      "label": {
+        "ko": "새 작품",
+        "en": "New project"
+      }
+    },
+    {
+      "from": "query",
+      "to": "search#empty",
+      "label": {
+        "ko": "검색",
+        "en": "Search"
+      }
+    },
+    {
+      "from": "query",
+      "to": "history#all",
+      "label": {
+        "ko": "변경 기록",
+        "en": "History"
+      }
+    },
+    {
+      "from": "query",
+      "to": "export#paste",
+      "label": {
+        "ko": "내보내기",
+        "en": "Export"
+      }
+    },
+    {
+      "from": "query",
+      "to": "branch-resolve",
+      "label": {
+        "ko": "갈라진 시트 열기",
+        "en": "Open a diverged sheet"
+      }
+    },
+    {
+      "from": "query",
+      "to": "app-shell#info",
+      "label": {
+        "ko": "시트 정보",
+        "en": "Sheet info"
+      }
+    },
+    {
+      "from": "query",
+      "to": "project-settings",
+      "label": {
+        "ko": "작품 설정",
+        "en": "Project settings"
+      }
+    },
+    {
+      "from": "query",
+      "to": "preferences#backup",
+      "label": {
+        "ko": "백업",
+        "en": "Backup"
+      }
+    },
+    {
+      "from": "query",
+      "to": "preferences#shortcuts",
+      "label": {
+        "ko": "단축키",
+        "en": "Shortcuts"
+      }
+    }
+  ]
+}

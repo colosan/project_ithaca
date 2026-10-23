@@ -175,6 +175,179 @@ export type StringKey =
   | "search.open"
   | "nav.previous"
   | "nav.next"
+  | "prefs.editor"
+  | "prefs.backup"
+  | "prefs.shortcuts"
+  | "prefs.about"
+  | "prefs.launch"
+  | "prefs.launchHint"
+  | "prefs.launch.last"
+  | "prefs.launch.library"
+  | "prefs.trash"
+  | "prefs.trashHint"
+  | "prefs.trash.days30"
+  | "prefs.trash.never"
+  | "prefs.confirmDelete"
+  | "prefs.editor.preview"
+  | "prefs.editor.textSize"
+  | "prefs.editor.small"
+  | "prefs.editor.normal"
+  | "prefs.editor.large"
+  | "prefs.editor.markup"
+  | "prefs.editor.markupHint"
+  | "prefs.editor.markup.show"
+  | "prefs.editor.markup.dim"
+  | "prefs.editor.markup.hide"
+  | "prefs.editor.indent"
+  | "prefs.editor.paragraphGap"
+  | "prefs.editor.focusScope"
+  | "prefs.editor.focusScopeHint"
+  | "prefs.editor.focus.sentence"
+  | "prefs.editor.focus.paragraph"
+  | "prefs.editor.typewriter"
+  | "prefs.editor.typewriterHint"
+  | "prefs.editor.spell"
+  | "prefs.editor.spellHint"
+  | "prefs.editor.smartQuotes"
+  | "prefs.editor.pairs"
+  | "sync.upToDate"
+  | "sync.inProgress"
+  | "sync.now"
+  | "sync.saved"
+  | "backup.auto"
+  | "backup.autoHint"
+  | "backup.every"
+  | "backup.every.hour"
+  | "backup.every.day"
+  | "backup.every.week"
+  | "backup.keep"
+  | "backup.keep.n"
+  | "backup.keep.all"
+  | "backup.location"
+  | "backup.change"
+  | "backup.locationMobileHint"
+  | "backup.recent"
+  | "backup.now"
+  | "backup.done"
+  | "backup.meta"
+  | "backup.restore"
+  | "backup.restored"
+  | "backup.restoreHint"
+  | "shortcuts.group.general"
+  | "shortcuts.group.view"
+  | "shortcuts.group.format"
+  | "shortcuts.group.sheet"
+  | "shortcuts.showLibrary"
+  | "shortcuts.showList"
+  | "shortcuts.editorOnly"
+  | "shortcuts.bold"
+  | "shortcuts.italic"
+  | "shortcuts.heading"
+  | "shortcuts.keyboardHint"
+  | "shortcuts.customizeLater"
+  | "mcp.permission"
+  | "mcp.permission.read"
+  | "mcp.permission.write"
+  | "mcp.permission.readHint"
+  | "mcp.permission.writeHint"
+  | "mcp.askFirst"
+  | "mcp.askFirstHint"
+  | "mcp.projects"
+  | "mcp.rotate"
+  | "mcp.connect"
+  | "mcp.copyConfig"
+  | "mcp.connectHint"
+  | "mcp.recentEdits"
+  | "about.version"
+  | "about.checkUpdate"
+  | "about.upToDate"
+  | "about.license"
+  | "about.source"
+  | "about.report"
+  | "about.thirdParty"
+  | "about.dataFolder"
+  | "about.openDataFolder"
+  | "about.localFirst"
+  | "palette.title"
+  | "palette.placeholder"
+  | "palette.recent"
+  | "palette.sheets"
+  | "palette.commands"
+  | "palette.none"
+  | "palette.hintOpen"
+  | "palette.hintClose"
+  | "focus.title"
+  | "focus.exit"
+  | "inspector.title"
+  | "inspector.reference"
+  | "inspector.info"
+  | "inspector.outline"
+  | "info.withSpaces"
+  | "info.withoutSpaces"
+  | "info.manuscriptPages"
+  | "info.pages"
+  | "info.words"
+  | "info.paragraphs"
+  | "info.readingTime"
+  | "info.minutes"
+  | "info.created"
+  | "info.modified"
+  | "outline.empty"
+  | "sheet.untitled"
+  | "sheet.placeholderTitle"
+  | "sheet.placeholderBody"
+  | "sheetList.empty"
+  | "trash.title"
+  | "palette.sheetInfo"
+  | "app.firstProject"
+  | "editor.noSheet"
+  | "sync.savedLocal"
+  | "reference.none"
+  | "folder.namePlaceholder"
+  | "folder.deleteConfirm"
+  | "projectSettings.languageHint"
+  | "projectSettings.delete"
+  | "projectSettings.deleteConfirm"
+  | "backup.invalid"
+  | "backup.replaceConfirm"
+  | "backup.webHint"
+  | "backup.download"
+  | "backup.downloadHint"
+  | "backup.fromFile"
+  | "backup.fromFileHint"
+  | "about.webBuild"
+  | "trash.hint"
+  | "trash.empty"
+  | "trash.emptyConfirm"
+  | "trash.emptyState"
+  | "trash.restore"
+  | "trash.deleteForever"
+  | "trash.deleteForeverConfirm"
+  | "sheet.trash"
+  | "sheet.move"
+  | "backup.replaced"
+  | "editor.label"
+  | "sync.saving"
+  | "sync.saveFailed"
+  | "action.undo"
+  | "sheet.trashed"
+  | "folder.deleteConfirmEmpty"
+  | "backup.reminder"
+  | "backup.reminderNever"
+  | "palette.folder"
+  | "palette.project"
+  | "app.setAside"
+  | "trash.restoreAll"
+  | "export.count"
+  | "lease.otherTab"
+  | "projectSettings.deleted"
+  | "folder.deleted"
+  | "backup.copySuffix"
+  | "backup.importedCopies"
+  | "palette.folders"
+  | "palette.projects"
+  | "sheet.moveUp"
+  | "sheet.moveDown"
   ;
 
 type Value = string | { one: string; other: string };
@@ -251,7 +424,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "sync.minutesAgo": "{minutes}분 전 동기화",
     "prefs.claude": "Claude 연동 (MCP)",
     "mcp.toggle": "MCP 서버 켜기",
-    "mcp.hint": "켜면 이 컴퓨터의 Claude가 모든 작품을 읽고 고칠 수 있어요. 고친 내용은 전부 기록되고 되돌릴 수 있어요.",
+    "mcp.hint": "켜면 이 컴퓨터의 Claude가 아래에서 고른 작품을 읽을 수 있어요. 고친 내용은 전부 기록되고 되돌릴 수 있어요.",
     "mcp.address": "주소",
     "mcp.token": "토큰",
     "mcp.copy": "복사",
@@ -351,7 +524,180 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "sync.daysAgo": "{count}일 전 동기화",
     "search.open": "열기",
     "nav.previous": "이전",
-    "nav.next": "다음"
+    "nav.next": "다음",
+    "prefs.editor": "에디터",
+    "prefs.backup": "백업",
+    "prefs.shortcuts": "단축키",
+    "prefs.about": "정보",
+    "prefs.launch": "앱을 열 때",
+    "prefs.launchHint": "마지막으로 쓰던 시트를 바로 열지, 라이브러리부터 보여줄지 골라요.",
+    "prefs.launch.last": "마지막 시트",
+    "prefs.launch.library": "라이브러리",
+    "prefs.trash": "휴지통 비우기",
+    "prefs.trashHint": "지운 시트와 폴더는 휴지통에 남아요.",
+    "prefs.trash.days30": "30일 뒤",
+    "prefs.trash.never": "직접",
+    "prefs.confirmDelete": "지우기 전에 확인",
+    "prefs.editor.preview": "미리 보기",
+    "prefs.editor.textSize": "글자 크기",
+    "prefs.editor.small": "작게",
+    "prefs.editor.normal": "보통",
+    "prefs.editor.large": "크게",
+    "prefs.editor.markup": "Markdown 기호",
+    "prefs.editor.markupHint": "# · - · ** 같은 기호를 원고에서 어떻게 보일지 골라요.",
+    "prefs.editor.markup.show": "보이기",
+    "prefs.editor.markup.dim": "흐리게",
+    "prefs.editor.markup.hide": "숨기기",
+    "prefs.editor.indent": "문단 첫 줄 들여쓰기",
+    "prefs.editor.paragraphGap": "문단 사이 띄우기",
+    "prefs.editor.focusScope": "집중 모드에서 밝게",
+    "prefs.editor.focusScopeHint": "커서가 있는 곳만 밝게, 나머지는 흐리게 보여요.",
+    "prefs.editor.focus.sentence": "문장",
+    "prefs.editor.focus.paragraph": "문단",
+    "prefs.editor.typewriter": "타자기 스크롤",
+    "prefs.editor.typewriterHint": "쓰고 있는 줄을 항상 화면 가운데에 둬요.",
+    "prefs.editor.spell": "맞춤법 검사",
+    "prefs.editor.spellHint": "기기의 사전을 써요.",
+    "prefs.editor.smartQuotes": "둥근 따옴표로 바꾸기",
+    "prefs.editor.pairs": "괄호 · 따옴표 짝 자동으로 닫기",
+    "sync.upToDate": "모든 기기와 맞춰졌어요",
+    "sync.inProgress": "동기화하는 중…",
+    "sync.now": "지금 동기화",
+    "sync.saved": "저장됨",
+    "backup.auto": "자동 백업",
+    "backup.autoHint": "작품 전체를 한 파일로 묶어 이 기기에 보관해요. 동기화와 따로 동작해요.",
+    "backup.every": "주기",
+    "backup.every.hour": "매시간",
+    "backup.every.day": "매일",
+    "backup.every.week": "매주",
+    "backup.keep": "보관",
+    "backup.keep.n": "최근 {count}개",
+    "backup.keep.all": "전부",
+    "backup.location": "저장 위치",
+    "backup.change": "바꾸기",
+    "backup.locationMobileHint": "앱 안의 저장 공간이에요. 파일 앱에서 꺼낼 수 있어요.",
+    "backup.recent": "최근 백업",
+    "backup.now": "지금 백업",
+    "backup.done": "백업했어요",
+    "backup.meta": "{size} · 시트 {count}개",
+    "backup.restore": "복원",
+    "backup.restored": "사본으로 복원했어요",
+    "backup.restoreHint": "복원하면 지금 작품을 덮어쓰지 않고 라이브러리에 사본으로 추가해요.",
+    "shortcuts.group.general": "일반",
+    "shortcuts.group.view": "보기",
+    "shortcuts.group.format": "서식",
+    "shortcuts.group.sheet": "시트",
+    "shortcuts.showLibrary": "라이브러리 보이기",
+    "shortcuts.showList": "시트 목록 보이기",
+    "shortcuts.editorOnly": "에디터만 보기",
+    "shortcuts.bold": "굵게",
+    "shortcuts.italic": "기울임",
+    "shortcuts.heading": "제목",
+    "shortcuts.keyboardHint": "키보드를 연결하면 쓸 수 있어요.",
+    "shortcuts.customizeLater": "단축키 바꾸기는 다음 버전에서 할 수 있어요.",
+    "mcp.permission": "Claude가 할 수 있는 일",
+    "mcp.permission.read": "읽기만",
+    "mcp.permission.write": "읽고 고치기",
+    "mcp.permission.readHint": "원고와 설정집을 읽기만 해요.",
+    "mcp.permission.writeHint": "고친 것은 전부 변경 기록에 Claude로 남고 되돌릴 수 있어요.",
+    "mcp.askFirst": "고치기 전에 묻기",
+    "mcp.askFirstHint": "Claude가 시트를 고치려 할 때마다 이 기기에서 확인해요.",
+    "mcp.projects": "Claude에게 보여줄 작품",
+    "mcp.rotate": "새로 발급",
+    "mcp.connect": "Claude 앱에 연결",
+    "mcp.copyConfig": "설정 복사",
+    "mcp.connectHint": "Claude 데스크톱 앱의 MCP 설정에 붙여넣으세요.",
+    "mcp.recentEdits": "Claude가 고친 기록 {count}건 보기",
+    "about.version": "버전 {version} ({channel}) · {build}",
+    "about.checkUpdate": "업데이트 확인",
+    "about.upToDate": "최신 버전이에요",
+    "about.license": "라이선스",
+    "about.source": "소스 코드",
+    "about.report": "문제 알리기 · 제안하기",
+    "about.thirdParty": "오픈소스 라이선스",
+    "about.dataFolder": "데이터 폴더",
+    "about.openDataFolder": "데이터 폴더 열기",
+    "about.localFirst": "Ithaca는 서버 없이 동작해요. 원고는 내 기기에 있고, 동기화를 켠 곳에만 암호화되어 전달돼요.",
+    "palette.title": "명령 팔레트",
+    "palette.placeholder": "시트 이름이나 명령을 입력",
+    "palette.recent": "최근 시트",
+    "palette.sheets": "시트",
+    "palette.commands": "명령",
+    "palette.none": "'{query}'에 맞는 것이 없어요.",
+    "palette.hintOpen": "Enter 열기",
+    "palette.hintClose": "Esc 닫기",
+    "focus.title": "집중 모드",
+    "focus.exit": "집중 모드 끝내기",
+    "inspector.title": "인스펙터",
+    "inspector.reference": "참조",
+    "inspector.info": "정보",
+    "inspector.outline": "개요",
+    "info.withSpaces": "글자수 (공백 포함)",
+    "info.withoutSpaces": "글자수 (공백 제외)",
+    "info.manuscriptPages": "원고지",
+    "info.pages": "{count}매",
+    "info.words": "단어",
+    "info.paragraphs": "문단",
+    "info.readingTime": "읽는 시간",
+    "info.minutes": "약 {count}분",
+    "info.created": "만든 날",
+    "info.modified": "고친 날",
+    "outline.empty": "빈 시트예요.",
+    "sheet.untitled": "제목 없음",
+    "sheet.placeholderTitle": "첫 줄이 제목이 돼요",
+    "sheet.placeholderBody": "여기서부터 쓰세요.",
+    "sheetList.empty": "아직 시트가 없어요.",
+    "trash.title": "휴지통",
+    "palette.sheetInfo": "시트 정보",
+    "app.firstProject": "첫 작품",
+    "editor.noSheet": "열린 시트가 없어요.",
+    "sync.savedLocal": "이 기기에 저장됨",
+    "reference.none": "참조할 다른 시트가 없어요.",
+    "folder.namePlaceholder": "폴더 이름",
+    "folder.deleteConfirm": "'{name}' 폴더를 지울까요? 안에 있는 시트 {count}개는 휴지통으로 가요.",
+    "projectSettings.languageHint": "분량 단위를 정해요. 한국어는 글자수, 영어는 단어 수.",
+    "projectSettings.delete": "작품 지우기",
+    "projectSettings.deleteConfirm": "'{name}' 작품과 안의 시트를 모두 지울까요? 되돌릴 수 없어요.",
+    "backup.invalid": "Ithaca 백업 파일이 아니에요.",
+    "backup.replaceConfirm": "지금 있는 내용을 이 백업(시트 {count}개)으로 바꿀까요? 먼저 지금 상태를 백업해 두세요.",
+    "backup.webHint": "웹 버전은 이 브라우저에만 저장해요. 브라우저 데이터를 지우면 원고도 사라지니 백업 파일을 자주 받아 두세요.",
+    "backup.download": "백업 파일 받기",
+    "backup.downloadHint": "작품 전체 · 시트 {count}개 · {date}",
+    "backup.fromFile": "백업 파일에서 복원",
+    "backup.fromFileHint": "백업 파일의 작품을 사본으로 추가해요. 지금 있는 작품은 그대로예요.",
+    "about.webBuild": "웹 버전 · 미리 써보기",
+    "trash.hint": "30일이 지나면 저절로 비워져요.",
+    "trash.empty": "휴지통 비우기",
+    "trash.emptyConfirm": "휴지통의 시트를 모두 영구히 지울까요?",
+    "trash.emptyState": "휴지통이 비어 있어요.",
+    "trash.restore": "되살리기",
+    "trash.deleteForever": "영구 삭제",
+    "trash.deleteForeverConfirm": "이 시트를 영구히 지울까요? 되돌릴 수 없어요.",
+    "sheet.trash": "휴지통으로",
+    "sheet.move": "다른 폴더로 옮기기",
+    "backup.replaced": "백업 내용으로 바꿨어요",
+    "editor.label": "원고",
+    "sync.saving": "저장하는 중…",
+    "sync.saveFailed": "저장하지 못했어요 — 브라우저 저장 공간이 가득 찼어요. 백업 파일을 받아 두세요.",
+    "action.undo": "되돌리기",
+    "sheet.trashed": "휴지통으로 옮겼어요 — {title}",
+    "folder.deleteConfirmEmpty": "빈 폴더 '{name}'을 지울까요?",
+    "backup.reminder": "마지막 백업이 {count}일 전이에요. 백업 파일을 받아 두세요.",
+    "backup.reminderNever": "아직 백업하지 않았어요. 원고는 이 브라우저에만 있어요.",
+    "palette.folder": "폴더",
+    "palette.project": "작품",
+    "app.setAside": "저장된 데이터를 이 버전이 읽지 못해서 덮어쓰지 않고 따로 보관했어요 ({key}).",
+    "trash.restoreAll": "모두 되살리기",
+    "export.count": "{count}자 (공백 포함)",
+    "lease.otherTab": "다른 탭에서 이 시트를 쓰고 있어요. 여기서 쓰려면 점유하세요.",
+    "projectSettings.deleted": "'{name}' 작품을 지웠어요. 30일 동안은 되돌릴 수 있어요.",
+    "folder.deleted": "폴더를 지웠어요 — {name}",
+    "backup.copySuffix": "(백업 {date})",
+    "backup.importedCopies": "백업의 작품 {count}개를 사본으로 추가했어요.",
+    "palette.folders": "폴더",
+    "palette.projects": "작품",
+    "sheet.moveUp": "시트를 위로",
+    "sheet.moveDown": "시트를 아래로"
   },
   "en": {
     "app.name": "Ithaca",
@@ -436,7 +782,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "sync.minutesAgo": "Synced {minutes} min ago",
     "prefs.claude": "Claude (MCP)",
     "mcp.toggle": "Enable MCP server",
-    "mcp.hint": "Lets Claude on this computer read and edit every project. Every edit is recorded and can be reverted.",
+    "mcp.hint": "When on, Claude on this computer can read the projects you pick below. Every edit is recorded and can be reverted.",
     "mcp.address": "Address",
     "mcp.token": "Token",
     "mcp.copy": "Copy",
@@ -545,7 +891,213 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     },
     "search.open": "Open",
     "nav.previous": "Previous",
-    "nav.next": "Next"
+    "nav.next": "Next",
+    "prefs.editor": "Editor",
+    "prefs.backup": "Backup",
+    "prefs.shortcuts": "Shortcuts",
+    "prefs.about": "About",
+    "prefs.launch": "On launch",
+    "prefs.launchHint": "Reopen the last sheet, or start at the library",
+    "prefs.launch.last": "Last sheet",
+    "prefs.launch.library": "Library",
+    "prefs.trash": "Empty trash",
+    "prefs.trashHint": "Deleted sheets and folders stay in the trash",
+    "prefs.trash.days30": "After 30 days",
+    "prefs.trash.never": "Manually",
+    "prefs.confirmDelete": "Confirm before deleting",
+    "prefs.editor.preview": "Preview",
+    "prefs.editor.textSize": "Text size",
+    "prefs.editor.small": "Small",
+    "prefs.editor.normal": "Default",
+    "prefs.editor.large": "Large",
+    "prefs.editor.markup": "Markdown symbols",
+    "prefs.editor.markupHint": "How # · - · ** appear in the manuscript",
+    "prefs.editor.markup.show": "Show",
+    "prefs.editor.markup.dim": "Dim",
+    "prefs.editor.markup.hide": "Hide",
+    "prefs.editor.indent": "Indent first line",
+    "prefs.editor.paragraphGap": "Space between paragraphs",
+    "prefs.editor.focusScope": "Focus mode highlights",
+    "prefs.editor.focusScopeHint": "Only where the cursor is stays bright",
+    "prefs.editor.focus.sentence": "Sentence",
+    "prefs.editor.focus.paragraph": "Paragraph",
+    "prefs.editor.typewriter": "Typewriter scrolling",
+    "prefs.editor.typewriterHint": "Keep the line you type in the middle of the screen",
+    "prefs.editor.spell": "Check spelling",
+    "prefs.editor.spellHint": "Uses the system dictionary",
+    "prefs.editor.smartQuotes": "Smart quotes",
+    "prefs.editor.pairs": "Close brackets and quotes automatically",
+    "sync.upToDate": "Up to date on all devices",
+    "sync.inProgress": "Syncing…",
+    "sync.now": "Sync now",
+    "sync.saved": "Saved",
+    "backup.auto": "Automatic backups",
+    "backup.autoHint": "Bundles every project into one file on this device. Independent of sync",
+    "backup.every": "Frequency",
+    "backup.every.hour": "Hourly",
+    "backup.every.day": "Daily",
+    "backup.every.week": "Weekly",
+    "backup.keep": "Keep",
+    "backup.keep.n": {
+      "one": "Last {count}",
+      "other": "Last {count}"
+    },
+    "backup.keep.all": "All",
+    "backup.location": "Location",
+    "backup.change": "Change",
+    "backup.locationMobileHint": "Inside the app's storage. Reachable from the Files app",
+    "backup.recent": "Recent backups",
+    "backup.now": "Back up now",
+    "backup.done": "Backed up",
+    "backup.meta": {
+      "one": "{size} · {count} sheet",
+      "other": "{size} · {count} sheets"
+    },
+    "backup.restore": "Restore",
+    "backup.restored": "Restored as a copy",
+    "backup.restoreHint": "Restoring never overwrites — the backup is added to the library as a copy",
+    "shortcuts.group.general": "General",
+    "shortcuts.group.view": "View",
+    "shortcuts.group.format": "Format",
+    "shortcuts.group.sheet": "Sheet",
+    "shortcuts.showLibrary": "Show library",
+    "shortcuts.showList": "Show sheet list",
+    "shortcuts.editorOnly": "Editor only",
+    "shortcuts.bold": "Bold",
+    "shortcuts.italic": "Italic",
+    "shortcuts.heading": "Heading",
+    "shortcuts.keyboardHint": "Available with a hardware keyboard",
+    "shortcuts.customizeLater": "Custom shortcuts are coming in a later version",
+    "mcp.permission": "What Claude can do",
+    "mcp.permission.read": "Read only",
+    "mcp.permission.write": "Read and edit",
+    "mcp.permission.readHint": "Can read manuscripts and lore, nothing else",
+    "mcp.permission.writeHint": "Every edit is recorded as Claude's in History and can be reverted",
+    "mcp.askFirst": "Ask before editing",
+    "mcp.askFirstHint": "Confirm on this device each time Claude wants to edit a sheet",
+    "mcp.projects": "Projects Claude can see",
+    "mcp.rotate": "Regenerate",
+    "mcp.connect": "Connect from Claude",
+    "mcp.copyConfig": "Copy configuration",
+    "mcp.connectHint": "Paste into the MCP settings of the Claude desktop app",
+    "mcp.recentEdits": {
+      "one": "View {count} edit by Claude",
+      "other": "View {count} edits by Claude"
+    },
+    "about.version": "Version {version} ({channel}) · {build}",
+    "about.checkUpdate": "Check for updates",
+    "about.upToDate": "Up to date",
+    "about.license": "License",
+    "about.source": "Source code",
+    "about.report": "Report a problem · Suggest",
+    "about.thirdParty": "Open-source licenses",
+    "about.dataFolder": "Data folder",
+    "about.openDataFolder": "Open data folder",
+    "about.localFirst": "Ithaca works without a server. Your manuscripts live on your devices and travel, encrypted, only where you turn sync on",
+    "palette.title": "Command palette",
+    "palette.placeholder": "Type a sheet or a command",
+    "palette.recent": "Recent sheets",
+    "palette.sheets": "Sheets",
+    "palette.commands": "Commands",
+    "palette.none": "Nothing matches '{query}'",
+    "palette.hintOpen": "Enter to open",
+    "palette.hintClose": "Esc to close",
+    "focus.title": "Focus mode",
+    "focus.exit": "Exit focus mode",
+    "inspector.title": "Inspector",
+    "inspector.reference": "Reference",
+    "inspector.info": "Info",
+    "inspector.outline": "Outline",
+    "info.withSpaces": "Characters (with spaces)",
+    "info.withoutSpaces": "Characters (no spaces)",
+    "info.manuscriptPages": "Manuscript pages",
+    "info.pages": {
+      "one": "{count} page",
+      "other": "{count} pages"
+    },
+    "info.words": "Words",
+    "info.paragraphs": "Paragraphs",
+    "info.readingTime": "Reading time",
+    "info.minutes": {
+      "one": "About {count} min",
+      "other": "About {count} min"
+    },
+    "info.created": "Created",
+    "info.modified": "Modified",
+    "outline.empty": "Empty sheet",
+    "sheet.untitled": "Untitled",
+    "sheet.placeholderTitle": "The first line becomes the title",
+    "sheet.placeholderBody": "Start writing here",
+    "sheetList.empty": "No sheets yet.",
+    "trash.title": "Trash",
+    "palette.sheetInfo": "Sheet info",
+    "app.firstProject": "My first project",
+    "editor.noSheet": "No sheet is open.",
+    "sync.savedLocal": "Saved on this device",
+    "reference.none": "No other sheets to refer to.",
+    "folder.namePlaceholder": "Folder name",
+    "folder.deleteConfirm": {
+      "one": "Delete the folder '{name}'? Its {count} sheet goes to the trash.",
+      "other": "Delete the folder '{name}'? Its {count} sheets go to the trash."
+    },
+    "projectSettings.languageHint": "Sets the length unit: characters for Korean, words for English.",
+    "projectSettings.delete": "Delete project",
+    "projectSettings.deleteConfirm": "Delete '{name}' and every sheet in it? This can't be undone.",
+    "backup.invalid": "This isn't an Ithaca backup file.",
+    "backup.replaceConfirm": {
+      "one": "Replace everything here with this backup ({count} sheet)? Back up the current state first.",
+      "other": "Replace everything here with this backup ({count} sheets)? Back up the current state first."
+    },
+    "backup.webHint": "The web version stores everything in this browser only. Clearing browser data erases your manuscripts — download backups often.",
+    "backup.download": "Download a backup",
+    "backup.downloadHint": {
+      "one": "All projects · {count} sheet · {date}",
+      "other": "All projects · {count} sheets · {date}"
+    },
+    "backup.fromFile": "Restore from a file",
+    "backup.fromFileHint": "Adds the backup's projects as copies. Nothing here is replaced.",
+    "about.webBuild": "Web version · preview",
+    "trash.hint": "Emptied automatically after 30 days.",
+    "trash.empty": "Empty trash",
+    "trash.emptyConfirm": "Permanently delete every sheet in the trash?",
+    "trash.emptyState": "The trash is empty.",
+    "trash.restore": "Restore",
+    "trash.deleteForever": "Delete forever",
+    "trash.deleteForeverConfirm": "Delete this sheet forever? This can't be undone.",
+    "sheet.trash": "Move to trash",
+    "sheet.move": "Move to folder",
+    "backup.replaced": "Replaced with the backup",
+    "editor.label": "Manuscript",
+    "sync.saving": "Saving…",
+    "sync.saveFailed": "Not saved — browser storage is full. Download a backup now.",
+    "action.undo": "Undo",
+    "sheet.trashed": "Moved to the trash — {title}",
+    "folder.deleteConfirmEmpty": "Delete the empty folder '{name}'?",
+    "backup.reminder": {
+      "one": "Last backup was {count} day ago. Download a backup file.",
+      "other": "Last backup was {count} days ago. Download a backup file."
+    },
+    "backup.reminderNever": "No backup yet — your manuscripts live only in this browser.",
+    "palette.folder": "Folder",
+    "palette.project": "Project",
+    "app.setAside": "Saved data couldn't be read by this version; it was kept aside, not overwritten ({key}).",
+    "trash.restoreAll": "Restore all",
+    "export.count": {
+      "one": "{count} character",
+      "other": "{count} characters"
+    },
+    "lease.otherTab": "Another tab is writing this sheet. Take over to write here.",
+    "projectSettings.deleted": "Deleted '{name}'. It can be brought back for 30 days.",
+    "folder.deleted": "Deleted folder — {name}",
+    "backup.copySuffix": "(backup {date})",
+    "backup.importedCopies": {
+      "one": "Added {count} project from the backup as a copy.",
+      "other": "Added {count} projects from the backup as copies."
+    },
+    "palette.folders": "Folders",
+    "palette.projects": "Projects",
+    "sheet.moveUp": "Move sheet up",
+    "sheet.moveDown": "Move sheet down"
   }
 };
 

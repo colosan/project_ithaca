@@ -1,0 +1,18 @@
+/* Page-level resets only. Everything visual comes from tokens through inline styles, as in the prototypes. */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--color-surface-canvas);
+  color: var(--color-ink-primary);
+  font-family: var(--type-body-family);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+textarea, input { font: inherit; color: inherit; }
+textarea::placeholder, input::placeholder { color: var(--color-ink-tertiary); }
+::selection { background: var(--color-accent-soft); }
+
+/* Touch screens: icon buttons reach the 44pt platform minimum (design/tokens/sizing.json control.lg). */
+@media (hover: none) {
+  [data-kit="icon-button"] { min-width: var(--size-control-lg) !important; min-height: var(--size-control-lg) !important; }
+}
