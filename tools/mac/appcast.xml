@@ -5,6 +5,15 @@
     <link>https://github.com/colosan/project_ithaca</link>
     <language>ko</language>
     <item>
+      <title>0.3.0</title>
+      <pubDate>Fri, 23 Oct 2026 19:42:52 GMT</pubDate>
+      <sparkle:version>23</sparkle:version>
+      <sparkle:shortVersionString>0.3.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<ul><li>Claude connector (read-only MCP) and serial operations</li></ul>]]></description>
+      <enclosure url="https://github.com/colosan/project_ithaca/releases/download/v0.3.0/Ithaca-0.3.0.zip" length="4214790" type="application/octet-stream" sparkle:edSignature="qcm68h5dWc9ZA214zSpNW+fSIpQnLiDf6MFa3wZGVV8lIhGcNGj7gGlANGeydBrtNBerbikGYxvwNnpRF+UmBA=="/>
+    </item>
+    <item>
       <title>0.2.0</title>
       <pubDate>Fri, 23 Oct 2026 19:28:29 GMT</pubDate>
       <sparkle:version>21</sparkle:version>
