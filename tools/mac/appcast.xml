@@ -5,6 +5,15 @@
     <link>https://github.com/colosan/project_ithaca</link>
     <language>ko</language>
     <item>
+      <title>0.5.1</title>
+      <pubDate>Fri, 23 Oct 2026 21:29:03 GMT</pubDate>
+      <sparkle:version>30</sparkle:version>
+      <sparkle:shortVersionString>0.5.1</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<ul><li>Editor line spacing and line width settings</li><li>Memory self-test; handoff notes for the autonomous session</li></ul>]]></description>
+      <enclosure url="https://github.com/colosan/project_ithaca/releases/download/v0.5.1/Ithaca-0.5.1.zip" length="8855227" type="application/octet-stream" sparkle:edSignature="npHDmjLMk1rdsf5NPJ/KwPe14N1sBCKNr2EKiS4Vyv3EYuFzK27zEWwYhtinbiEdiq+mPHdw2b/Tna3+U6qJBQ=="/>
+    </item>
+    <item>
       <title>0.5.0</title>
       <pubDate>Fri, 23 Oct 2026 21:16:02 GMT</pubDate>
       <sparkle:version>27</sparkle:version>
