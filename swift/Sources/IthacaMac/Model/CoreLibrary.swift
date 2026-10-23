@@ -169,18 +169,48 @@ final class CoreLibrary: LibraryAPI {
 
     func munpiaPages(text: String) -> Int { Int(IthacaCore.munpiaPages(text: text)) }
 
+    // MARK: r3 (core/API.md "(added: r3)")
+
+    func goalCount(text: String, basis: GoalBasis) -> Int { Int(IthacaCore.goalCount(text: text, basis: Self.basis(basis))) }
+
+    func nextRelease(project: String, folder: String) throws -> Int64? {
+        try call { try lib.nextRelease(project: project, folder: folder) }
+    }
+
+    func folderStats(project: String, folder: String) throws -> FolderStats {
+        try call {
+            let f = try lib.folderStats(project: project, folder: folder)
+            return FolderStats(sheets: Int(f.sheets), episodes: Int(f.episodes),
+                               counts: Counts(chars: Int(f.total.chars), charsNoSpace: Int(f.total.charsNoSpace), words: Int(f.total.words), paragraphs: Int(f.total.paragraphs)),
+                               averageChars: Int(f.averageChars), munpia: Int(f.munpiaTotal), novelpia: Int(f.novelpiaTotal),
+                               published: Int(f.published), scheduled: Int(f.scheduled), drafts: Int(f.drafts))
+        }
+    }
+
+    func mcpSettings() -> McpSettings {
+        let m = lib.mcpSettings()
+        return McpSettings(enabled: m.enabled, projects: m.projects)
+    }
+
+    func setMcpSettings(_ settings: McpSettings) throws -> McpSettings {
+        try call {
+            let m = try lib.setMcpSettings(enabled: settings.enabled, projects: settings.projects)
+            return McpSettings(enabled: m.enabled, projects: m.projects)
+        }
+    }
+
     private static func backup(_ b: IthacaCore.BackupInfo) -> BackupInfo {
         BackupInfo(path: b.path, at: b.at, bytes: b.bytes, kind: { switch b.kind { case .auto: .auto; case .manual: .manual; case .preMigration: .preMigration } }(), projects: Int(b.projects))
     }
 
     private static func episode(_ e: EpisodeInfo) -> IthacaCore.EpisodeInfo {
         IthacaCore.EpisodeInfo(number: e.number.map { UInt32($0) }, status: { switch e.status { case .draft: .draft; case .revising: .revising; case .scheduled: .scheduled; case .published: .published } }(),
-                               publishAt: e.publishAt, platform: e.platform)
+                               publishAt: e.publishAt, platform: e.platform, excluded: e.excluded)
     }
 
     private static func episode(_ e: IthacaCore.EpisodeInfo) -> EpisodeInfo {
         EpisodeInfo(number: e.number.map { Int($0) }, status: { switch e.status { case .draft: .draft; case .revising: .revising; case .scheduled: .scheduled; case .published: .published } }(),
-                    publishAt: e.publishAt, platform: e.platform)
+                    publishAt: e.publishAt, platform: e.platform, excluded: e.excluded)
     }
 
     // MARK: Mapping
@@ -201,13 +231,31 @@ final class CoreLibrary: LibraryAPI {
     }
 
     private static func lang(_ l: ManuscriptLanguage) -> IthacaCore.Language { l == .ko ? .ko : .en }
-    private static func goal(_ g: Goal) -> IthacaCore.Goal {
-        IthacaCore.Goal(count: UInt32(g.count), basis: { switch g.basis { case .withSpaces: .withSpaces; case .withoutSpaces: .withoutSpaces; case .words: .words } }())
+    private static func goal(_ g: Goal) -> IthacaCore.Goal { IthacaCore.Goal(count: UInt32(g.count), basis: basis(g.basis)) }
+
+    private static func basis(_ b: GoalBasis) -> IthacaCore.GoalBasis {
+        switch b {
+        case .withSpaces: .withSpaces
+        case .withoutSpaces: .withoutSpaces
+        case .words: .words
+        case .munpia: .munpia
+        case .novelpia: .novelpia
+        }
+    }
+
+    private static func basis(_ b: IthacaCore.GoalBasis) -> GoalBasis {
+        switch b {
+        case .withSpaces: .withSpaces
+        case .withoutSpaces: .withoutSpaces
+        case .words: .words
+        case .munpia: .munpia
+        case .novelpia: .novelpia
+        }
     }
 
     private static func project(_ p: IthacaCore.ProjectSummary) -> ProjectSummary {
         let goal = p.goal.flatMap { g -> Goal? in
-            g.count == 0 ? nil : Goal(count: Int(g.count), basis: { switch g.basis { case .withSpaces: .withSpaces; case .withoutSpaces: .withoutSpaces; case .words: .words } }())
+            g.count == 0 ? nil : Goal(count: Int(g.count), basis: basis(g.basis))
         }
         return ProjectSummary(id: p.id, title: p.title, language: p.language == .ko ? .ko : .en, goal: goal, created: p.created, deleted: p.deleted)
     }

@@ -25,6 +25,8 @@ enum Overlay: Identifiable, Equatable {
     }
 }
 
+enum InspectorScope: String, CaseIterable { case sheet, folder }
+
 enum SaveStatus: Equatable { case saved, pending, failed(String) }
 
 /// What to do when the open sheet can't be saved and something wants to replace it (switch, close, quit).
@@ -96,6 +98,8 @@ final class AppModel {
 
     // MARK: View state
     var inspectorOpen = false
+    /// Info tab: the open sheet, or totals of the open folder (folder header / "Folder info").
+    var inspectorScope: InspectorScope = .sheet
     var focusMode = false
     /// Overlay request for panes that can't dock at this width (⌘1 / ⌘2, the library button).
     var libraryOverlay = false
@@ -700,9 +704,63 @@ final class AppModel {
     // MARK: Episodes
 
     func episodeLabel(_ e: EpisodeInfo) -> String {
-        let status = t(statusKey(e.status))
+        var status = t(statusKey(e.status))
+        if e.status == .scheduled, let at = e.publishAt { status = t(.episodeScheduledAt, ["date": releaseDate(at, time: true)]) }
+        if e.excluded { return t(.episodeExcluded) + " · " + status }
         guard let n = e.number else { return status }
         return t(.episodeNumber, ["number": n]) + " · " + status
+    }
+
+    /// "10/26 18:00" (rows, inspector) or "10/26" (folder header): short enough for a 280 pt list.
+    func releaseDate(_ at: Int64, time: Bool) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: locale.rawValue)
+        f.dateFormat = time ? "M/d HH:mm" : "M/d"
+        return f.string(from: at.date)
+    }
+
+    /// Earliest scheduled release of a folder.
+    func nextRelease(_ folder: FolderInfo) -> Int64? {
+        guard let projectId, folder.sheets.contains(where: { $0.episode?.status == .scheduled }) else { return nil }
+        return (try? library.nextRelease(project: projectId, folder: folder.id)) ?? nil
+    }
+
+    func folderStats(_ folder: FolderInfo) -> FolderStats? {
+        guard let projectId else { return nil }
+        return try? library.folderStats(project: projectId, folder: folder.id)
+    }
+
+    /// Scheduled episodes: when it goes up on the platform (nil clears it).
+    func setPublishAt(_ date: Date?) {
+        guard let projectId, let sheet, var info = sheet.episode, !readOnly else { return }
+        info.publishAt = date.map { Int64(($0.timeIntervalSince1970 * 1000).rounded()) }
+        perform { try library.setEpisode(project: projectId, sheet: sheet.id, info: info) }
+    }
+
+    /// Side story / notice: stays in the folder, not numbered (its number is cleared; renumber skips it).
+    func toggleExcluded(_ id: String) {
+        guard let projectId, !readOnly, let s = folders.lazy.flatMap(\.sheets).first(where: { $0.id == id }) else { return }
+        var info = s.episode ?? EpisodeInfo(status: .draft)
+        info.excluded.toggle()
+        if info.excluded { info.number = nil }
+        perform { try library.setEpisode(project: projectId, sheet: id, info: info) }
+    }
+
+    /// Folder header click / "Folder info": the folder's totals in the inspector's Info tab.
+    func showFolderInfo(_ id: String? = nil) {
+        if let id, id != folderId { selectFolder(id) }
+        inspectorScope = .folder
+        defaults.set(InspectorTab.info.rawValue, forKey: "ithaca.inspectorTab")
+        inspectorOpen = true
+        focusMode = false
+    }
+
+    /// Footer goal: the open sheet's count on the project's basis (platform bases count the text as pasted).
+    func goalValue(_ basis: GoalBasis) -> Int {
+        switch basis {
+        case .munpia, .novelpia: library.goalCount(text: liveText, basis: basis)
+        default: TextMetrics.goalValue(liveCounts, basis)
+        }
     }
 
     func statusKey(_ s: EpisodeStatus) -> L10nKey {
@@ -725,6 +783,12 @@ final class AppModel {
         guard let projectId, let sheet else { return }
         var info = sheet.episode ?? EpisodeInfo(status: .draft)
         if let status { info.status = status }
+        // A new schedule starts tomorrow 18:00 so the picker has a sensible date to move from.
+        if status == .scheduled, info.publishAt == nil {
+            let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+            let at = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: tomorrow) ?? tomorrow
+            info.publishAt = Int64(at.timeIntervalSince1970 * 1000)
+        }
         perform { try library.setEpisode(project: projectId, sheet: sheet.id, info: status == nil ? nil : info) }
     }
 

@@ -102,6 +102,8 @@ struct LibraryPane: View {
             Caption(model.number(f.sheets.count))
         }
         .contextMenu {
+            Button(model.t(.folderInfo)) { model.showFolderInfo(f.id) }
+            Divider()
             Button(model.t(.folderRename)) { draft = f.name; editing = f.id; fieldFocused = true }
             Button(model.t(.folderDelete), role: .destructive) { model.deleteFolder(f.id) }
         }

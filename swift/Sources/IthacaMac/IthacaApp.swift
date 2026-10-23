@@ -94,6 +94,41 @@ enum SelfTest {
             model.markPublishedThrough(first.id)
             check(model.folders.first?.sheets.first?.episode?.status == .published, "marked published through the first sheet")
         }
+        // r3: release date, next release, excluded sheets, folder stats, platform goal, Claude settings.
+        if let pid = model.projectId, let folder = model.folders.first, folder.sheets.count >= 2 {
+            let last = folder.sheets.last!
+            model.openSheet(last.id)
+            model.setEpisodeStatus(.scheduled)
+            let when = Calendar.current.date(byAdding: .day, value: 3, to: Date())!
+            model.setPublishAt(when)
+            let saved = model.sheet?.episode?.publishAt
+            check(saved.map { abs($0 - Int64(when.timeIntervalSince1970 * 1000)) < 1000 } == true, "publish date saved (\(saved.map(String.init) ?? "nil"))")
+            let next = model.nextRelease(model.folders.first!)
+            check(next == saved, "next release = the scheduled date")
+            check(model.episodeLabel(model.sheet!.episode!).contains(model.releaseDate(saved ?? 0, time: true)), "row label shows the date: \(model.episodeLabel(model.sheet!.episode!))")
+            let firstId = folder.sheets.first!.id
+            model.toggleExcluded(firstId)
+            model.renumberEpisodes()
+            let after = model.folders.first!.sheets
+            check(after.first?.episode?.excluded == true && after.first?.episode?.number == nil, "excluded sheet has no number")
+            check(after.dropFirst().first?.episode?.number == 1, "next sheet renumbered from 1")
+            if let st = model.folderStats(model.folders.first!) {
+                check(st.sheets == after.count && st.episodes == after.count - 1, "folder stats: \(st.sheets) sheets, \(st.episodes) episodes")
+                check(st.published + st.scheduled + st.drafts == st.episodes && st.scheduled == 1, "status split adds up (\(st.published)/\(st.scheduled)/\(st.drafts))")
+                check(st.counts.chars == after.reduce(0) { $0 + $1.counts.chars }, "folder total = sum of sheets (\(st.counts.chars))")
+                check(st.munpia > 0 && st.novelpia > 0, "platform totals \(st.munpia) / \(st.novelpia)")
+            } else { check(false, "folder stats") }
+            check(try! library.stock(project: pid, folder: folder.id) == after.count - 1 - after.filter { $0.episode?.status == .published && $0.episode?.excluded != true }.count, "stock leaves out the excluded sheet")
+            model.toggleExcluded(firstId)
+            check(model.folders.first!.sheets.first?.episode?.excluded == false, "excluded toggles back")
+            check(library.goalCount(text: "# 제목\n\n**가 나**", basis: .munpia) > 0, "munpia goal count")
+            let mcp = (try? library.setMcpSettings(McpSettings(enabled: true, projects: [pid]))) ?? McpSettings()
+            check(mcp.enabled && mcp.projects == [pid] && library.mcpSettings() == mcp, "Claude settings round-trip")
+            _ = try? library.setMcpSettings(McpSettings())
+            check(library.mcpSettings().enabled == false, "Claude settings off again")
+            model.openSheet(here)
+        }
+
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ithaca-selftest-\(stamp)")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         try? "1화\n\n첫 글".write(to: dir.appendingPathComponent("1화.txt"), atomically: true, encoding: .utf8)

@@ -44,6 +44,7 @@ fn v1_fixture_without_episodes_loads_and_takes_them() {
         status: EpisodeStatus::Published,
         publish_at: Some(1_790_050_000_000),
         platform: Some("노벨피아".into()),
+        excluded: false,
     };
     let sum = s.set_episode(&p, &ep1, Some(info.clone())).unwrap();
     assert_eq!(sum.episode, Some(info.clone()));
@@ -76,6 +77,7 @@ fn episode_json_shape_and_old_tocs() {
         status: EpisodeStatus::Revising,
         publish_at: None,
         platform: None,
+        excluded: false,
     });
     let text = toc.to_text();
     // Unknown fields survive a rewrite; empty episode fields are left out.

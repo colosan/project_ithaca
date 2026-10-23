@@ -1,11 +1,11 @@
-// Settings window (design/screens/preferences): General · Editor · Backup · About.
-// Sync, Shortcuts editing and Claude (MCP) are hidden until they work.
+// Settings window (design/screens/preferences): General · Editor · Backup · Claude · About.
+// Sync and Shortcuts editing are hidden until they work; Claude is read-only (no write permission yet).
 import AppKit
 import IthacaCore
 import IthacaDesign
 import SwiftUI
 
-enum SettingsSection: String { case general, editor, backup, about }
+enum SettingsSection: String { case general, editor, backup, claude, about }
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
@@ -17,6 +17,7 @@ struct SettingsView: View {
             GeneralSettings().tabItem { Label { Text(model.t(.prefsGeneral)) } icon: { Image(lucide: .settings) } }.tag(SettingsSection.general)
             EditorSettings().tabItem { Label { Text(model.t(.prefsEditor)) } icon: { Image(lucide: .editorText) } }.tag(SettingsSection.editor)
             BackupSettings().tabItem { Label { Text(model.t(.prefsBackup)) } icon: { Image(lucide: .backup) } }.tag(SettingsSection.backup)
+            ClaudeSettings().tabItem { Label { Text(model.t(.prefsClaude)) } icon: { Image(lucide: .claude) } }.tag(SettingsSection.claude)
             AboutSettings(updater: updater).tabItem { Label { Text(model.t(.prefsAbout)) } icon: { Image(lucide: .info) } }.tag(SettingsSection.about)
         }
         .frame(width: T.Layout.Pane.dialogDefault + T.Space.s800)
@@ -194,6 +195,97 @@ private struct BackupSettings: View {
     private func restore(_ b: BackupInfo) {
         message = nil
         model.restoreBackupAsCopies(b) { message = $0 }
+    }
+}
+
+/// Claude (MCP), read only: the bundled ithaca-mcp shows Claude Desktop the checked projects.
+/// Settings live in the library (setMcpSettings) so the separate ithaca-mcp process reads the same ones.
+private struct ClaudeSettings: View {
+    @Environment(AppModel.self) private var model
+    @State private var settings = McpSettings()
+    @State private var copied = false
+    @State private var error: String?
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle(isOn: Binding(get: { settings.enabled }, set: { settings.enabled = $0; save() })) {
+                    VStack(alignment: .leading, spacing: T.Space.s25) {
+                        Text(model.t(.mcpReadToggle))
+                        Caption(model.t(.mcpReadOnlyHint)).fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .disabled(model.readOnly)
+            }
+            if settings.enabled {
+                Section {
+                    if model.projects.isEmpty { Caption(model.t(.mcpNoProjects)) }
+                    ForEach(model.projects) { p in
+                        Toggle(p.title, isOn: Binding(get: { settings.projects.contains(p.id) }, set: { on in
+                            settings.projects.removeAll { $0 == p.id }
+                            if on { settings.projects.append(p.id) }
+                            save()
+                        }))
+                        .toggleStyle(.checkbox)
+                    }
+                } header: {
+                    Text(model.t(.mcpProjects))
+                } footer: {
+                    Caption(model.t(.mcpProjectsHint))
+                }
+                Section {
+                    Text(Self.config)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(Color.inkSecondary)
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack {
+                        KitButton(copied ? model.t(.mcpCopied) : model.t(.mcpCopy), icon: copied ? .check : .copy) { copy() }
+                        Spacer(minLength: 0)
+                    }
+                    Caption(model.t(.mcpPasteHint)).fixedSize(horizontal: false, vertical: true)
+                    Caption(model.t(.mcpMoveHint)).fixedSize(horizontal: false, vertical: true)
+                    if !FileManager.default.isExecutableFile(atPath: Self.serverPath) {
+                        Label { Text(model.t(.mcpMissingBinary)).fixedSize(horizontal: false, vertical: true) } icon: { Icon(.warning, size: T.Size.iconSm) }
+                            .textStyle(.caption)
+                            .foregroundStyle(Color.stateWarning)
+                    }
+                } header: {
+                    Text(model.t(.mcpConfigTitle))
+                }
+            }
+            if let error { Text(error).foregroundStyle(Color.stateDanger).fixedSize(horizontal: false, vertical: true) }
+        }
+        .formStyle(.grouped)
+        .onAppear { settings = model.library.mcpSettings() }
+    }
+
+    /// The running bundle's server, so the pasted config points at this copy of the app.
+    static var serverPath: String { Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/ithaca-mcp").path }
+
+    static var config: String {
+        let root: [String: Any] = ["mcpServers": ["ithaca": ["command": serverPath]]]
+        guard let d = try? JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]) else { return "" }
+        return String(decoding: d, as: UTF8.self)
+    }
+
+    private func copy() {
+        // Plain text only (research §6-7).
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(Self.config, forType: .string)
+        copied = true
+        Task { @MainActor in try? await Task.sleep(for: .seconds(2)); copied = false }
+    }
+
+    private func save() {
+        // Only live projects, in library order.
+        let live = Set(model.projects.map(\.id))
+        settings.projects = model.projects.map(\.id).filter { settings.projects.contains($0) && live.contains($0) }
+        do { settings = try model.library.setMcpSettings(settings); error = nil } catch {
+            self.error = error.localizedDescription
+            settings = model.library.mcpSettings()
+        }
     }
 }
 

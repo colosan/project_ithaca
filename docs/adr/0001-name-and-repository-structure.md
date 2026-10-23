@@ -55,6 +55,7 @@ ithaca-relay → ithaca-sync (protocol 만)
 design/{tokens,strings} → tools/design-gen → swift · kotlin · workbench 생성물
 ```
 
+- (보충 2026-10-24, [ADR-0009](0009-claude-connector-mcp.md)) `ithaca-mcp`는 ffi의 feature가 아니라 앱 번들에 들어가는 별도 stdio 바이너리다. ffi는 ithaca-mcp에 의존하지 않는다.
 - `ithaca-ledger`는 IO를 하지 않는다. 그래서 무결성 판정이나 분기 판정을 파일이나 네트워크 없이 테스트할 수 있다.
 - 플랫폼 UI는 `ithaca-ffi`에 있는 함수만 호출한다. 이렇게 API 표면을 하나로 고정해서 iOS와 Android의 동작이 서로 어긋나는 것을 막는다.
 

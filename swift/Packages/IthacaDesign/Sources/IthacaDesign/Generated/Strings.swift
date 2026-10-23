@@ -446,6 +446,38 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case importSkippedHint = "import.skippedHint"
     case busyImportTextFolder = "busy.importTextFolder"
     case menuQuit = "menu.quit"
+    case episodePublishAt = "episode.publishAt"
+    case episodeScheduledAt = "episode.scheduledAt"
+    case episodeNextRelease = "episode.nextRelease"
+    case episodeExclude = "episode.exclude"
+    case episodeExcluded = "episode.excluded"
+    case episodeExcludedHint = "episode.excludedHint"
+    case folderInfo = "folder.info"
+    case inspectorScopeSheet = "inspector.scopeSheet"
+    case inspectorScopeFolder = "inspector.scopeFolder"
+    case folderStatsEpisodes = "folderStats.episodes"
+    case folderStatsEpisodeCount = "folderStats.episodeCount"
+    case folderStatsSheets = "folderStats.sheets"
+    case folderStatsAverage = "folderStats.average"
+    case folderStatsStatus = "folderStats.status"
+    case folderStatsPublished = "folderStats.published"
+    case folderStatsScheduled = "folderStats.scheduled"
+    case folderStatsDrafts = "folderStats.drafts"
+    case folderStatsDraftsHint = "folderStats.draftsHint"
+    case folderStatsNextRelease = "folderStats.nextRelease"
+    case folderStatsNone = "folderStats.none"
+    case folderStatsHint = "folderStats.hint"
+    case goalBasisMunpia = "goal.basis.munpia"
+    case goalBasisNovelpia = "goal.basis.novelpia"
+    case mcpReadToggle = "mcp.readToggle"
+    case mcpReadOnlyHint = "mcp.readOnlyHint"
+    case mcpProjectsHint = "mcp.projectsHint"
+    case mcpNoProjects = "mcp.noProjects"
+    case mcpConfigTitle = "mcp.configTitle"
+    case mcpPasteHint = "mcp.pasteHint"
+    case mcpCopied = "mcp.copied"
+    case mcpMoveHint = "mcp.moveHint"
+    case mcpMissingBinary = "mcp.missingBinary"
 }
 
 enum L10nValue: Sendable {
@@ -906,6 +938,38 @@ public enum L10n {
             .importSkippedHint: .text("아래 파일은 가져오지 않았어요. 나머지는 모두 새 작품에 들어 있어요."),
             .busyImportTextFolder: .text("텍스트 폴더를 가져오는 중이에요…"),
             .menuQuit: .text("Ithaca 종료"),
+            .episodePublishAt: .text("발행 예약일"),
+            .episodeScheduledAt: .text("예약 {date}"),
+            .episodeNextRelease: .text("다음 연재 {date}"),
+            .episodeExclude: .text("외전·공지로 표시 (번호 제외)"),
+            .episodeExcluded: .text("번외"),
+            .episodeExcludedHint: .text("회차 번호를 매기지 않아요. 외전·공지·후기에 써요."),
+            .folderInfo: .text("폴더 정보"),
+            .inspectorScopeSheet: .text("시트"),
+            .inspectorScopeFolder: .text("폴더"),
+            .folderStatsEpisodes: .text("회차"),
+            .folderStatsEpisodeCount: .text("{count}화"),
+            .folderStatsSheets: .text("시트"),
+            .folderStatsAverage: .text("회차 평균"),
+            .folderStatsStatus: .text("회차 상태"),
+            .folderStatsPublished: .text("발행"),
+            .folderStatsScheduled: .text("예약"),
+            .folderStatsDrafts: .text("쓰는 중"),
+            .folderStatsDraftsHint: .text("초고와 퇴고를 합한 수예요."),
+            .folderStatsNextRelease: .text("다음 연재"),
+            .folderStatsNone: .text("이 폴더에는 시트가 없어요."),
+            .folderStatsHint: .text("휴지통에 있는 시트는 빼고 세요. 연재처 기준은 저장된 내용으로 세요."),
+            .goalBasisMunpia: .text("문피아"),
+            .goalBasisNovelpia: .text("노벨피아"),
+            .mcpReadToggle: .text("Claude가 원고를 읽게 하기"),
+            .mcpReadOnlyHint: .text("읽기만 해요. Claude는 원고를 고치거나 지울 수 없어요. 이 컴퓨터 안에서만 연결돼요."),
+            .mcpProjectsHint: .text("체크한 작품만 Claude에게 보여요."),
+            .mcpNoProjects: .text("아직 작품이 없어요."),
+            .mcpConfigTitle: .text("Claude 데스크톱 연결 설정"),
+            .mcpPasteHint: .text("Claude 데스크톱 → 설정 → 개발자 → 구성 편집(Edit Config)으로 열리는 claude_desktop_config.json에 붙여넣고 Claude를 다시 시작하세요. 이미 다른 서버가 있으면 \"mcpServers\" 안에 \"ithaca\" 항목만 더하세요."),
+            .mcpCopied: .text("복사했어요"),
+            .mcpMoveHint: .text("앱을 다른 곳으로 옮기면 경로가 바뀌어요. 그때는 다시 복사해 붙여넣으세요."),
+            .mcpMissingBinary: .text("이 빌드에는 ithaca-mcp가 들어 있지 않아요. 설정은 저장되지만 Claude가 연결할 수 없어요."),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -1345,6 +1409,38 @@ public enum L10n {
             .importSkippedHint: .text("These files weren't imported. Everything else is in the new project."),
             .busyImportTextFolder: .text("Importing the text folder…"),
             .menuQuit: .text("Quit Ithaca"),
+            .episodePublishAt: .text("Publish on"),
+            .episodeScheduledAt: .text("Scheduled {date}"),
+            .episodeNextRelease: .text("next {date}"),
+            .episodeExclude: .text("Side story or notice (no number)"),
+            .episodeExcluded: .text("Extra"),
+            .episodeExcludedHint: .text("Not numbered. For side stories, notices and afterwords."),
+            .folderInfo: .text("Folder info"),
+            .inspectorScopeSheet: .text("Sheet"),
+            .inspectorScopeFolder: .text("Folder"),
+            .folderStatsEpisodes: .text("Episodes"),
+            .folderStatsEpisodeCount: .plural(one: "{count} episode", other: "{count} episodes"),
+            .folderStatsSheets: .text("Sheets"),
+            .folderStatsAverage: .text("Average per episode"),
+            .folderStatsStatus: .text("Episode status"),
+            .folderStatsPublished: .text("Published"),
+            .folderStatsScheduled: .text("Scheduled"),
+            .folderStatsDrafts: .text("In progress"),
+            .folderStatsDraftsHint: .text("Drafts and revisions together."),
+            .folderStatsNextRelease: .text("Next release"),
+            .folderStatsNone: .text("This folder has no sheets."),
+            .folderStatsHint: .text("Sheets in the trash aren't counted. Platform counts use what's saved."),
+            .goalBasisMunpia: .text("Munpia"),
+            .goalBasisNovelpia: .text("Novelpia"),
+            .mcpReadToggle: .text("Let Claude read your manuscripts"),
+            .mcpReadOnlyHint: .text("Read only: Claude can't change or delete anything. It connects only on this Mac."),
+            .mcpProjectsHint: .text("Claude sees only the projects you check."),
+            .mcpNoProjects: .text("No projects yet."),
+            .mcpConfigTitle: .text("Claude Desktop config"),
+            .mcpPasteHint: .text("In Claude Desktop, open Settings → Developer → Edit Config, paste this into claude_desktop_config.json and restart Claude. If it already lists other servers, add just the \"ithaca\" entry inside \"mcpServers\"."),
+            .mcpCopied: .text("Copied"),
+            .mcpMoveHint: .text("If you move the app, the path changes: copy and paste it again."),
+            .mcpMissingBinary: .text("This build doesn't include ithaca-mcp. Settings are saved, but Claude can't connect."),
         ],
     ]
 }

@@ -99,6 +99,16 @@ struct NewProjectView: View {
 }
 
 struct GoalField: View {
+    static func key(_ b: GoalBasis) -> L10nKey {
+        switch b {
+        case .withSpaces: .goalBasisWithSpaces
+        case .withoutSpaces: .goalBasisWithoutSpaces
+        case .words: .goalBasisWords
+        case .munpia: .goalBasisMunpia
+        case .novelpia: .goalBasisNovelpia
+        }
+    }
+
     @Environment(AppModel.self) private var model
     @Binding var on: Bool
     @Binding var count: Int
@@ -112,9 +122,10 @@ struct GoalField: View {
                     Toggle("", isOn: $on).labelsHidden().toggleStyle(.checkbox)
                     TextField("", value: $count, format: .number).labelsHidden().frame(width: 90).disabled(!on)
                     Picker("", selection: $basis) {
-                        Text(model.t(.goalBasisWithSpaces)).tag(GoalBasis.withSpaces)
-                        Text(model.t(.goalBasisWithoutSpaces)).tag(GoalBasis.withoutSpaces)
-                        Text(model.t(.goalBasisWords)).tag(GoalBasis.words)
+                        // Platform bases for Korean manuscripts (research P1); a saved one stays listed either way.
+                        ForEach(GoalBasis.allCases.filter { language == .ko || $0 == basis || ($0 != .munpia && $0 != .novelpia) }, id: \.self) { b in
+                            Text(model.t(Self.key(b))).tag(b)
+                        }
                     }
                     .labelsHidden()
                     .fixedSize()

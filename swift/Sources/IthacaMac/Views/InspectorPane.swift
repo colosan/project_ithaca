@@ -90,7 +90,32 @@ private struct ReferenceTab: View {
     }
 }
 
+/// The open sheet, or its folder's totals ("시트 / 폴더"). With no sheet open it shows the folder.
 private struct InfoTab: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        @Bindable var m = model
+        let folderScope = model.inspectorScope == .folder || model.sheet == nil
+        VStack(alignment: .leading, spacing: T.Space.s150) {
+            if model.folder != nil && model.sheet != nil {
+                Picker("", selection: $m.inspectorScope) {
+                    Text(model.t(.inspectorScopeSheet)).tag(InspectorScope.sheet)
+                    Text(model.t(.inspectorScopeFolder)).tag(InspectorScope.folder)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+            if folderScope, let folder = model.folder {
+                FolderInfoView(folder: folder)
+            } else {
+                SheetInfo()
+            }
+        }
+    }
+}
+
+private struct SheetInfo: View {
     @Environment(AppModel.self) private var model
 
     var body: some View {
@@ -115,6 +140,20 @@ private struct InfoTab: View {
                 }
                 .disabled(model.readOnly)
                 .padding(.bottom, T.Space.s150)
+                if let e = sheet.episode, e.status == .scheduled {
+                    DatePicker(model.t(.episodePublishAt), selection: Binding(
+                        get: { (e.publishAt ?? .nowMillis).date },
+                        set: { model.setPublishAt($0) }), displayedComponents: [.date, .hourAndMinute])
+                        .datePickerStyle(.compact)
+                        .environment(\.locale, Locale(identifier: model.locale.rawValue))
+                        .disabled(model.readOnly)
+                        .padding(.bottom, T.Space.s150)
+                }
+                if sheet.episode?.excluded == true {
+                    Caption(model.t(.episodeExcluded) + " — " + model.t(.episodeExcludedHint))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, T.Space.s150)
+                }
                 ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
                     HStack(alignment: .firstTextBaseline, spacing: T.Space.s150) {
                         Text(row.0).foregroundStyle(Color.inkSecondary)
@@ -213,6 +252,64 @@ private struct PlatformCounts: View {
             Text(k).foregroundStyle(Color.inkSecondary)
             Spacer(minLength: 0)
             Text(v).fontWeight(.semibold)
+        }
+        .textStyle(.body)
+        .padding(.vertical, T.Space.s100)
+        .hairline(.top, first ? .clear : .lineSubtle)
+    }
+}
+
+/// FolderStats (core folder_stats): totals, episodes, platform counts, status breakdown, next release.
+private struct FolderInfoView: View {
+    @Environment(AppModel.self) private var model
+    let folder: FolderInfo
+
+    var body: some View {
+        if let st = model.folderStats(folder) {
+            let ko = model.language == .ko
+            let next = model.nextRelease(folder)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(folder.name).textStyle(.heading).lineLimit(2).padding(.bottom, T.Space.s100)
+                if st.sheets == 0 {
+                    Caption(model.t(.folderStatsNone))
+                } else {
+                    InfoRow(model.t(.infoWithSpaces), model.number(st.counts.chars), first: true)
+                    InfoRow(model.t(.infoWithoutSpaces), model.number(st.counts.charsNoSpace))
+                    if !ko { InfoRow(model.t(.infoWords), model.number(st.counts.words)) }
+                    InfoRow(model.t(.folderStatsSheets), model.t(.sheetListCount, ["count": st.sheets], count: st.sheets))
+                    if st.episodes > 0 {
+                        InfoRow(model.t(.folderStatsEpisodes), model.t(.folderStatsEpisodeCount, ["count": st.episodes], count: st.episodes))
+                        InfoRow(model.t(.folderStatsAverage), ko ? model.t(.infoChars, ["count": st.averageChars], count: st.averageChars)
+                                                                 : model.t(.countWords, ["count": st.episodes == 0 ? 0 : st.counts.words / st.episodes], count: st.counts.words / max(1, st.episodes)))
+                        if ko {
+                            Caption(model.t(.infoPlatform)).padding(.top, T.Space.s200).padding(.bottom, T.Space.s50).help(model.t(.infoPlatformHint))
+                            InfoRow(model.t(.infoMunpia), model.t(.infoChars, ["count": st.munpia], count: st.munpia), first: true)
+                            InfoRow(model.t(.infoNovelpia), model.t(.infoChars, ["count": st.novelpia], count: st.novelpia))
+                        }
+                        Caption(model.t(.folderStatsStatus)).padding(.top, T.Space.s200).padding(.bottom, T.Space.s50)
+                        InfoRow(model.t(.folderStatsPublished), model.t(.folderStatsEpisodeCount, ["count": st.published], count: st.published), first: true)
+                        InfoRow(model.t(.folderStatsScheduled), model.t(.folderStatsEpisodeCount, ["count": st.scheduled], count: st.scheduled))
+                        InfoRow(model.t(.folderStatsDrafts), model.t(.folderStatsEpisodeCount, ["count": st.drafts], count: st.drafts)).help(model.t(.folderStatsDraftsHint))
+                        if let next { InfoRow(model.t(.folderStatsNextRelease), model.releaseDate(next, time: true)) }
+                    }
+                    Caption(model.t(.folderStatsHint)).fixedSize(horizontal: false, vertical: true).padding(.top, T.Space.s200)
+                }
+            }
+        } else {
+            Caption(model.t(.folderStatsNone))
+        }
+    }
+}
+
+private struct InfoRow: View {
+    let key: String, value: String, first: Bool
+    init(_ key: String, _ value: String, first: Bool = false) { self.key = key; self.value = value; self.first = first }
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: T.Space.s150) {
+            Text(key).foregroundStyle(Color.inkSecondary)
+            Spacer(minLength: 0)
+            Text(value).fontWeight(.semibold).multilineTextAlignment(.trailing)
         }
         .textStyle(.body)
         .padding(.vertical, T.Space.s100)

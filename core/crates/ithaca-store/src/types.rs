@@ -161,3 +161,24 @@ pub struct BackupInfo {
     /// Project folders in it (deleted ones included).
     pub projects: u32,
 }
+
+/// (added: r3) Totals for one folder, for the info tab and the Claude connector.
+///
+/// `sheets` and the length totals cover every live sheet of the folder (a prologue is pasted too).
+/// `episodes` are the live sheets that are not excluded; `average_chars` (`Counts::chars`, rounded)
+/// and the status split cover only those, so `published + scheduled + drafts == episodes` and
+/// `scheduled + drafts == stock`. `drafts` = Draft, Revising or no metadata.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct FolderStats {
+    pub sheets: u32,
+    pub episodes: u32,
+    pub total: Counts,
+    pub average_chars: u32,
+    /// Sum over sheets of the `문피아` count of the paste-ready body (`ithaca_model::platform_body`).
+    pub munpia_total: u32,
+    /// Same with the `노벨피아` rule.
+    pub novelpia_total: u32,
+    pub published: u32,
+    pub scheduled: u32,
+    pub drafts: u32,
+}

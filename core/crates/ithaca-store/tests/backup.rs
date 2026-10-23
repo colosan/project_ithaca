@@ -52,6 +52,7 @@ fn backup_now_then_restore_as_copies() {
         status: EpisodeStatus::Published,
         publish_at: Some(T0),
         platform: Some("문피아".into()),
+        excluded: false,
     };
     s.set_episode(&p, &ep1, Some(info.clone())).unwrap();
     let deleted = s

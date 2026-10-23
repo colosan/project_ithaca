@@ -165,7 +165,7 @@ struct EditorFooter: View {
     var body: some View {
         let c = model.liveCounts
         let goal = model.project?.goal
-        let percent = goal.map { min(100, Int((Double(TextMetrics.goalValue(c, $0.basis)) / Double(max(1, $0.count)) * 100).rounded())) } ?? 0
+        let percent = goal.map { min(100, Int((Double(model.goalValue($0.basis)) / Double(max(1, $0.count)) * 100).rounded())) } ?? 0
         VStack(spacing: 0) {
             if goal != nil {
                 GeometryReader { g in
@@ -186,6 +186,7 @@ struct EditorFooter: View {
                 }
                 if let goal {
                     Text(model.t(.goalProgress, ["goal": goal.count, "percent": percent])).foregroundStyle(Color.inkSecondary)
+                        .help(goalBasisName(goal.basis))
                 }
                 saveStatus
             }
@@ -195,6 +196,10 @@ struct EditorFooter: View {
             .frame(maxWidth: .infinity, minHeight: T.Size.controlMd)
         }
         .hairline(.top)
+    }
+
+    private func goalBasisName(_ b: GoalBasis) -> String {
+        model.t(.projectSettingsGoal) + " · " + model.t(GoalField.key(b))
     }
 
     @ViewBuilder private var saveStatus: some View {

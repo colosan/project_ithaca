@@ -6,6 +6,8 @@
 
 use unicode_segmentation::UnicodeSegmentation;
 
+use crate::GoalBasis;
+use crate::export::{ExportOptions, render_sheet};
 use crate::text::{counts, is_js_space};
 
 /// Characters per Munpia "쪽" (page).
@@ -68,6 +70,31 @@ pub fn munpia_pages(text: &str) -> u32 {
     count_for(text, CountRule::Munpia).div_ceil(MUNPIA_PAGE_CHARS)
 }
 
+/// What goes into a platform's body field (added: r3): the sheet exported with the default paste
+/// rules (Markdown stripped, blank line between paragraphs, no indent) but **without its title
+/// line**, since every platform takes the title in a separate field.
+pub fn platform_body(sheet_text: &str) -> String {
+    render_sheet(
+        sheet_text,
+        &ExportOptions {
+            include_title: false,
+            ..Default::default()
+        },
+    )
+}
+
+/// A sheet's length under a goal basis (added: r3). `WithSpaces` / `WithoutSpaces` / `Words` count
+/// the sheet as written (= its `Counts`); `Munpia` / `Novelpia` count [`platform_body`].
+pub fn goal_count(sheet_text: &str, basis: GoalBasis) -> u32 {
+    match basis {
+        GoalBasis::WithSpaces => counts(sheet_text).chars,
+        GoalBasis::WithoutSpaces => counts(sheet_text).chars_no_space,
+        GoalBasis::Words => counts(sheet_text).words,
+        GoalBasis::Munpia => count_for(&platform_body(sheet_text), CountRule::Munpia),
+        GoalBasis::Novelpia => count_for(&platform_body(sheet_text), CountRule::Novelpia),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -122,6 +149,20 @@ mod tests {
             count_for(EP, CountRule::Novelpia),
             count_for(EP, CountRule::WithoutSpaces) - marks
         );
+    }
+
+    #[test]
+    fn goal_counts_use_the_platform_body() {
+        let sheet = "# 1화\n\n**\"가!\"** 나 다.\n\n라";
+        // Body without the title and Markdown: `"가!" 나 다.` + `라`, joined by a blank line.
+        assert_eq!(platform_body(sheet), "\"가!\" 나 다.\n\n라");
+        assert_eq!(goal_count(sheet, GoalBasis::Munpia), 10);
+        assert_eq!(goal_count(sheet, GoalBasis::Novelpia), 4);
+        assert_eq!(
+            goal_count(sheet, GoalBasis::WithSpaces),
+            counts(sheet).chars
+        );
+        assert_eq!(goal_count(sheet, GoalBasis::Words), counts(sheet).words);
     }
 
     #[test]

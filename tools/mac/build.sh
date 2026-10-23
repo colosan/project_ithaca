@@ -14,7 +14,7 @@ BUILD="${BUILD:-$(git rev-list --count HEAD)}"
 APP="$ROOT/dist/Ithaca.app"
 
 echo "▸ core (Rust)"
-(cd core && cargo build --release -p ithaca-ffi)
+(cd core && cargo build --release -p ithaca-ffi -p ithaca-mcp)
 
 echo "▸ bindings (UniFFI → Swift)"
 OUT="$ROOT/core/target/swift-bindings"
@@ -34,6 +34,8 @@ echo "▸ bundle $APP ($VERSION build $BUILD)"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 cp "$BIN/Ithaca" "$APP/Contents/MacOS/Ithaca"
+# Claude connector (ADR-0009): a stdio MCP server Claude Desktop launches by path.
+cp "$ROOT/core/target/release/ithaca-mcp" "$APP/Contents/MacOS/ithaca-mcp"
 sed "s/__VERSION__/$VERSION/; s/__BUILD__/$BUILD/" swift/Apps/macOS/Info.plist > "$APP/Contents/Info.plist"
 # SwiftPM resource bundles (design assets etc.) sit next to the binary.
 for b in "$BIN"/*.bundle; do [ -e "$b" ] && cp -R "$b" "$APP/Contents/Resources/"; done
@@ -51,9 +53,16 @@ if [ -x tools/mac/embed-frameworks.sh ]; then tools/mac/embed-frameworks.sh "$BI
 # Nested code is already signed, so no --deep. Hardened runtime only with Developer ID (notarization needs it;
 # with ad-hoc / self-signed it makes library validation refuse Sparkle.framework).
 echo "▸ sign (${SIGN_IDENTITY/#-/ad-hoc})"
+# Inside-out: the helper binary first, with its own identifier, then the app.
+MCP_BIN="$APP/Contents/MacOS/ithaca-mcp"
 case "$SIGN_IDENTITY" in
-  "Developer ID"*) codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp "$APP" ;;
-  *) codesign --force --sign "$SIGN_IDENTITY" --timestamp=none "$APP" ;;
+  "Developer ID"*)
+    codesign --force --sign "$SIGN_IDENTITY" --identifier io.github.colosan.ithaca.mcp --options runtime --timestamp "$MCP_BIN"
+    codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp "$APP" ;;
+  *)
+    codesign --force --sign "$SIGN_IDENTITY" --identifier io.github.colosan.ithaca.mcp --timestamp=none "$MCP_BIN"
+    codesign --force --sign "$SIGN_IDENTITY" --timestamp=none "$APP" ;;
 esac
 codesign --verify --deep --strict "$APP"
+codesign --verify --strict "$MCP_BIN"
 echo "✓ $APP"

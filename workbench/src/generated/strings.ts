@@ -441,6 +441,38 @@ export type StringKey =
   | "import.skippedHint"
   | "busy.importTextFolder"
   | "menu.quit"
+  | "episode.publishAt"
+  | "episode.scheduledAt"
+  | "episode.nextRelease"
+  | "episode.exclude"
+  | "episode.excluded"
+  | "episode.excludedHint"
+  | "folder.info"
+  | "inspector.scopeSheet"
+  | "inspector.scopeFolder"
+  | "folderStats.episodes"
+  | "folderStats.episodeCount"
+  | "folderStats.sheets"
+  | "folderStats.average"
+  | "folderStats.status"
+  | "folderStats.published"
+  | "folderStats.scheduled"
+  | "folderStats.drafts"
+  | "folderStats.draftsHint"
+  | "folderStats.nextRelease"
+  | "folderStats.none"
+  | "folderStats.hint"
+  | "goal.basis.munpia"
+  | "goal.basis.novelpia"
+  | "mcp.readToggle"
+  | "mcp.readOnlyHint"
+  | "mcp.projectsHint"
+  | "mcp.noProjects"
+  | "mcp.configTitle"
+  | "mcp.pasteHint"
+  | "mcp.copied"
+  | "mcp.moveHint"
+  | "mcp.missingBinary"
   ;
 
 type Value = string | { one: string; other: string };
@@ -883,7 +915,39 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "import.skippedTitle": "건너뛴 파일",
     "import.skippedHint": "아래 파일은 가져오지 않았어요. 나머지는 모두 새 작품에 들어 있어요.",
     "busy.importTextFolder": "텍스트 폴더를 가져오는 중이에요…",
-    "menu.quit": "Ithaca 종료"
+    "menu.quit": "Ithaca 종료",
+    "episode.publishAt": "발행 예약일",
+    "episode.scheduledAt": "예약 {date}",
+    "episode.nextRelease": "다음 연재 {date}",
+    "episode.exclude": "외전·공지로 표시 (번호 제외)",
+    "episode.excluded": "번외",
+    "episode.excludedHint": "회차 번호를 매기지 않아요. 외전·공지·후기에 써요.",
+    "folder.info": "폴더 정보",
+    "inspector.scopeSheet": "시트",
+    "inspector.scopeFolder": "폴더",
+    "folderStats.episodes": "회차",
+    "folderStats.episodeCount": "{count}화",
+    "folderStats.sheets": "시트",
+    "folderStats.average": "회차 평균",
+    "folderStats.status": "회차 상태",
+    "folderStats.published": "발행",
+    "folderStats.scheduled": "예약",
+    "folderStats.drafts": "쓰는 중",
+    "folderStats.draftsHint": "초고와 퇴고를 합한 수예요.",
+    "folderStats.nextRelease": "다음 연재",
+    "folderStats.none": "이 폴더에는 시트가 없어요.",
+    "folderStats.hint": "휴지통에 있는 시트는 빼고 세요. 연재처 기준은 저장된 내용으로 세요.",
+    "goal.basis.munpia": "문피아",
+    "goal.basis.novelpia": "노벨피아",
+    "mcp.readToggle": "Claude가 원고를 읽게 하기",
+    "mcp.readOnlyHint": "읽기만 해요. Claude는 원고를 고치거나 지울 수 없어요. 이 컴퓨터 안에서만 연결돼요.",
+    "mcp.projectsHint": "체크한 작품만 Claude에게 보여요.",
+    "mcp.noProjects": "아직 작품이 없어요.",
+    "mcp.configTitle": "Claude 데스크톱 연결 설정",
+    "mcp.pasteHint": "Claude 데스크톱 → 설정 → 개발자 → 구성 편집(Edit Config)으로 열리는 claude_desktop_config.json에 붙여넣고 Claude를 다시 시작하세요. 이미 다른 서버가 있으면 \"mcpServers\" 안에 \"ithaca\" 항목만 더하세요.",
+    "mcp.copied": "복사했어요",
+    "mcp.moveHint": "앱을 다른 곳으로 옮기면 경로가 바뀌어요. 그때는 다시 복사해 붙여넣으세요.",
+    "mcp.missingBinary": "이 빌드에는 ithaca-mcp가 들어 있지 않아요. 설정은 저장되지만 Claude가 연결할 수 없어요."
   },
   "en": {
     "app.name": "Ithaca",
@@ -1400,7 +1464,42 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "import.skippedTitle": "Skipped files",
     "import.skippedHint": "These files weren't imported. Everything else is in the new project.",
     "busy.importTextFolder": "Importing the text folder…",
-    "menu.quit": "Quit Ithaca"
+    "menu.quit": "Quit Ithaca",
+    "episode.publishAt": "Publish on",
+    "episode.scheduledAt": "Scheduled {date}",
+    "episode.nextRelease": "next {date}",
+    "episode.exclude": "Side story or notice (no number)",
+    "episode.excluded": "Extra",
+    "episode.excludedHint": "Not numbered. For side stories, notices and afterwords.",
+    "folder.info": "Folder info",
+    "inspector.scopeSheet": "Sheet",
+    "inspector.scopeFolder": "Folder",
+    "folderStats.episodes": "Episodes",
+    "folderStats.episodeCount": {
+      "one": "{count} episode",
+      "other": "{count} episodes"
+    },
+    "folderStats.sheets": "Sheets",
+    "folderStats.average": "Average per episode",
+    "folderStats.status": "Episode status",
+    "folderStats.published": "Published",
+    "folderStats.scheduled": "Scheduled",
+    "folderStats.drafts": "In progress",
+    "folderStats.draftsHint": "Drafts and revisions together.",
+    "folderStats.nextRelease": "Next release",
+    "folderStats.none": "This folder has no sheets.",
+    "folderStats.hint": "Sheets in the trash aren't counted. Platform counts use what's saved.",
+    "goal.basis.munpia": "Munpia",
+    "goal.basis.novelpia": "Novelpia",
+    "mcp.readToggle": "Let Claude read your manuscripts",
+    "mcp.readOnlyHint": "Read only: Claude can't change or delete anything. It connects only on this Mac.",
+    "mcp.projectsHint": "Claude sees only the projects you check.",
+    "mcp.noProjects": "No projects yet.",
+    "mcp.configTitle": "Claude Desktop config",
+    "mcp.pasteHint": "In Claude Desktop, open Settings → Developer → Edit Config, paste this into claude_desktop_config.json and restart Claude. If it already lists other servers, add just the \"ithaca\" entry inside \"mcpServers\".",
+    "mcp.copied": "Copied",
+    "mcp.moveHint": "If you move the app, the path changes: copy and paste it again.",
+    "mcp.missingBinary": "This build doesn't include ithaca-mcp. Settings are saved, but Claude can't connect."
   }
 };
 

@@ -254,6 +254,7 @@ final class MockLibrary: LibraryAPI {
         var n = 0
         for i in sheets.indices.sorted(by: { (sheets[$0].order, sheets[$0].created) < (sheets[$1].order, sheets[$1].created) })
         where sheets[i].folder == folder && sheets[i].trashed == nil {
+            if sheets[i].episode?.excluded == true { sheets[i].episode?.number = nil; continue }
             n += 1
             if sheets[i].episode == nil { sheets[i].episode = EpisodeInfo(status: .draft) }
             sheets[i].episode?.number = n
@@ -298,6 +299,39 @@ final class MockLibrary: LibraryAPI {
         return summary(try find(sheet))
     }
 
+    func nextRelease(project: String, folder: String) throws -> Int64? {
+        sheets.filter { $0.folder == folder && $0.trashed == nil && $0.episode?.status == .scheduled }
+            .compactMap { $0.episode?.publishAt }.filter { $0 > .nowMillis }.min()
+    }
+
+    func folderStats(project: String, folder: String) throws -> FolderStats {
+        guard folders.contains(where: { $0.id == folder && $0.deleted == nil }) else { throw LibraryError.notFound }
+        var st = FolderStats()
+        var episodeChars = 0
+        for s in sheets where s.folder == folder && s.trashed == nil {
+            st.sheets += 1
+            let c = TextMetrics.counts(s.text)
+            st.counts.chars += c.chars; st.counts.charsNoSpace += c.charsNoSpace; st.counts.words += c.words; st.counts.paragraphs += c.paragraphs
+            let pasted = TextMetrics.render(s.text, title: TextMetrics.title(s.text), ExportOptions(includeTitle: false))
+            st.munpia += countFor(text: pasted, rule: .munpia)
+            st.novelpia += countFor(text: pasted, rule: .novelpia)
+            guard s.episode?.excluded != true else { continue }
+            st.episodes += 1
+            episodeChars += c.chars
+            switch s.episode?.status {
+            case .published: st.published += 1
+            case .scheduled: st.scheduled += 1
+            default: st.drafts += 1
+            }
+        }
+        st.averageChars = st.episodes == 0 ? 0 : Int((Double(episodeChars) / Double(st.episodes)).rounded())
+        return st
+    }
+
+    private var mcp = McpSettings()
+    func mcpSettings() -> McpSettings { mcp }
+    func setMcpSettings(_ settings: McpSettings) throws -> McpSettings { mcp = settings; return mcp }
+
     func countFor(text: String, rule: CountRule) -> Int {
         let c = TextMetrics.counts(text)
         switch rule {
@@ -310,6 +344,15 @@ final class MockLibrary: LibraryAPI {
     }
 
     func munpiaPages(text: String) -> Int { (countFor(text: text, rule: .munpia) + 469) / 470 }
+
+    func goalCount(text: String, basis: GoalBasis) -> Int {
+        switch basis {
+        case .munpia, .novelpia:
+            let pasted = TextMetrics.render(text, title: TextMetrics.title(text), ExportOptions(includeTitle: false))
+            return countFor(text: pasted, rule: basis == .munpia ? .munpia : .novelpia)
+        default: return TextMetrics.goalValue(TextMetrics.counts(text), basis)
+        }
+    }
 
     // MARK: Helpers
 
@@ -338,6 +381,13 @@ final class MockLibrary: LibraryAPI {
     private static func uid() -> String { String(UUID().uuidString.replacingOccurrences(of: "-", with: "").prefix(12)).lowercased() }
 
     // MARK: Seed (fixtures/sample-project.json)
+
+    /// The day after tomorrow, 18:00 local: always in the future so "next release" shows.
+    static let sampleRelease: Int64 = {
+        let day = Calendar.current.date(byAdding: .day, value: 2, to: Date()) ?? Date()
+        let d = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: day) ?? day
+        return Int64(d.timeIntervalSince1970 * 1000)
+    }()
 
     private func seed() {
         guard let root = try? JSONSerialization.jsonObject(with: Data(MockSeed.json.utf8)) as? [String: Any],
@@ -371,7 +421,11 @@ final class MockLibrary: LibraryAPI {
                     n += 1
                     let at = start + n * 3_600_000
                     var sheet = Sheet(id: sid, folder: fid, order: si, created: at, modified: at, trashed: nil, branched: s["branched"] as? Bool ?? false, versions: [])
-                    if fi == 0 { sheet.episode = EpisodeInfo(number: si + 1, status: si < 2 ? .published : si == 2 ? .revising : .draft) }
+                    // 1–2 published, 3 revising, 4 scheduled.
+                    if fi == 0 {
+                        sheet.episode = EpisodeInfo(number: si + 1, status: si < 2 ? .published : si == 2 ? .revising : si == 3 ? .scheduled : .draft)
+                        if si == 3 { sheet.episode?.publishAt = Self.sampleRelease }
+                    }
                     if sid == (historyRoot?["sheet"] as? String), let records = historyRoot?["records"] as? [[String: Any]] {
                         // Rebuild versions newest → oldest by undoing each record's before/after.
                         var texts: [(String, [String: Any])] = []

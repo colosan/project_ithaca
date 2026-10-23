@@ -379,6 +379,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ithaca-mcp"
+version = "0.1.0"
+dependencies = [
+ "ithaca-model",
+ "ithaca-store",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "ithaca-model"
 version = "0.1.0"
 dependencies = [

@@ -36,6 +36,14 @@ enum Snapshot {
                   setup: { _, d in d.set(tab.rawValue, forKey: "ithaca.settingsTab") },
                   view: { _ in AnyView(SettingsView(updater: updater)) })
         }
+        func claude(_ locale: LocalePref) -> Scene {
+            Scene(name: "settings-claude-on-\(locale.rawValue)", size: CGSize(width: 640, height: 760), locale: locale,
+                  setup: { m, d in
+                      d.set(SettingsSection.claude.rawValue, forKey: "ithaca.settingsTab")
+                      _ = try? m.library.setMcpSettings(McpSettings(enabled: true, projects: m.projects.prefix(1).map(\.id)))
+                  },
+                  view: { _ in AnyView(SettingsView(updater: updater)) })
+        }
         return [
             Scene(name: "shell-ko-light", size: wide),
             Scene(name: "shell-ko-dark", size: wide, dark: true),
@@ -76,6 +84,24 @@ enum Snapshot {
             Scene(name: "new-project-en", size: CGSize(width: 560, height: 480), locale: .en, view: { _ in AnyView(NewProjectView(firstRun: false)) }),
             Scene(name: "project-settings", size: CGSize(width: 560, height: 560), view: { _ in AnyView(ProjectSettingsView()) }),
             settings(.general), settings(.editor), settings(.backup), settings(.about),
+            // r3: release schedule, folder stats, platform goal, Claude connector.
+            Scene(name: "shell-1240-scheduled-sheet", size: wide, setup: { m, d in
+                if let s = m.folder?.sheets.first(where: { $0.episode?.status == .scheduled }) { m.openSheet(s.id) }
+                m.inspectorOpen = true; d.set("info", forKey: "ithaca.inspectorTab")
+            }),
+            Scene(name: "shell-en-scheduled-sheet", size: wide, locale: .en, setup: { m, d in
+                if let s = m.folder?.sheets.first(where: { $0.episode?.status == .scheduled }) { m.openSheet(s.id) }
+                m.inspectorOpen = true; d.set("info", forKey: "ithaca.inspectorTab")
+            }),
+            Scene(name: "shell-1240-folder-stats", size: wide, setup: { m, _ in
+                if let s = m.folder?.sheets.first { m.toggleExcluded(s.id) }
+                m.showFolderInfo()
+            }),
+            Scene(name: "shell-en-folder-stats-1000", size: CGSize(width: 1000, height: 760), locale: .en, setup: { m, _ in m.showFolderInfo() }),
+            Scene(name: "shell-goal-munpia", size: wide, setup: { m, _ in m.updateProject(ProjectPatch(goal: .some(Goal(count: 5000, basis: .munpia)))) }),
+            Scene(name: "project-settings-munpia", size: CGSize(width: 560, height: 560), setup: { m, _ in m.updateProject(ProjectPatch(goal: .some(Goal(count: 5000, basis: .munpia)))) },
+                  view: { _ in AnyView(ProjectSettingsView()) }),
+            claude(.ko), claude(.en), settings(.claude),
             Scene(name: "icons", size: CGSize(width: 720, height: 300), view: { _ in AnyView(IconSheet()) }),
         ]
     }

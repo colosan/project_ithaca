@@ -17,6 +17,11 @@ impl Library {
     /// returns `CoreError::ReadOnly` and nothing on disk is touched.
     /// On a writable open, projects deleted and sheets trashed more than 30 days ago are purged.
     #[uniffi::constructor] fn open(path: String, device_id: String) -> Result<Arc<Library>, CoreError>;
+    /// (added: r3) Opens an EXISTING library for reading only — e.g. a second process beside the app.
+    /// Takes no lock and writes nothing (no lock file, cache, cleanup, purge or migration); every write
+    /// → `ReadOnly`; `info().read_only == true`, `locked_by_other == false`. A snapshot of the moment
+    /// it opened: open again to see later writes. No `library.json` in `path` → `NotFound`.
+    #[uniffi::constructor] fn open_read_only(path: String) -> Result<Arc<Library>, CoreError>;
     fn info(&self) -> LibraryInfo;
     // LibraryInfo { format: u32, core_version: String, read_only: bool, migrated_from: Option<u32>, backup_path: Option<String>,
     //               locked_by_other: bool /* (added: safety) */, problems: Vec<String> /* (added: safety) */ }
@@ -51,7 +56,8 @@ fn projects(&self) -> Vec<ProjectSummary>;                  // live projects, in
 // copies go last even though they keep their original `created`. Ties: `created`, then id.
 // ProjectSummary { id, title, language: Language, goal: Option<Goal>, created, modified, deleted: Option<i64>,
 //                  sheets: u32 /* live sheets */, counts: Counts /* sum over live sheets */ }
-// Goal { count: u32, basis: GoalBasis }   GoalBasis { WithSpaces, WithoutSpaces, Words }
+// Goal { count: u32, basis: GoalBasis }   GoalBasis { WithSpaces, WithoutSpaces, Words, Munpia /* (added: r3) */, Novelpia /* (added: r3) */ }
+// (added: r3) Progress toward a Munpia / Novelpia goal = `goal_count(sheet_text, basis)` (§Platform counts).
 // `modified` = time of the newest block in the project (any sheet or the table of contents).
 
 /// `folders` must not be empty (InvalidInput). Like the web app, one empty sheet is created in the first folder.
@@ -98,17 +104,22 @@ fn empty_trash(&self, project: String) -> Result<(), CoreError>;
 
 ```rust
 // EpisodeInfo { number: Option<u32> = nil, status: EpisodeStatus /* no default */, publish_at: Option<i64> = nil,
-//               platform: Option<String> = nil /* free text, e.g. "문피아" */ }
+//               platform: Option<String> = nil /* free text, e.g. "문피아" */,
+//               excluded: bool = false /* (added: r3) prologue · 외전 · 공지: not an episode */ }
+// (added: r3) `excluded == true`: keeps no number (renumber_episodes skips it and clears its number),
+// never counted by `stock`, left out of FolderStats.episodes/average/status counts. Status, date and
+// platform still work (a scheduled 외전 counts for `next_release`).
 // EpisodeStatus { Draft /* 초고 */, Revising /* 퇴고 */, Scheduled /* 예약 */, Published /* 발행 */ }
 /// Sets (`Some`) or clears (`None`) a sheet's episode metadata; trashed sheets too. One toc block.
 fn set_episode(&self, project: String, sheet: String, info: Option<EpisodeInfo>) -> Result<SheetSummary, CoreError>;
 /// 비축분: live sheets of a live folder whose status is not Published. A sheet with no episode
 /// metadata counts as not published. Unknown/deleted folder → NotFound.
+/// (changed: r3) Excluded sheets are never stock.
 fn stock(&self, project: String, folder: String) -> Result<u32, CoreError>;
 /// (changed: qa1) Numbers **every live sheet** of the folder 1..n in serial order; a sheet without
 /// metadata gets `EpisodeInfo { number, status: Draft }`. Status, date and platform are untouched; one
 /// toc block; returns n. Trashed sheets keep their old number. (Before qa1 sheets without metadata
-/// were skipped.)
+/// were skipped.) (changed: r3) Excluded sheets are skipped and their number cleared; n counts the rest.
 fn renumber_episodes(&self, project: String, folder: String) -> Result<u32, CoreError>;
 /// (added: qa1) Sets `status` on every live sheet of `folder` up to and including `sheet`, in serial
 /// order ("여기까지 발행"); sheets without metadata get `EpisodeInfo { number: nil, status }`. Other fields
@@ -116,6 +127,47 @@ fn renumber_episodes(&self, project: String, folder: String) -> Result<u32, Core
 /// unknown/deleted folder → NotFound.
 fn set_status_through(&self, project: String, folder: String, sheet: String, status: EpisodeStatus) -> Result<u32, CoreError>;
 ```
+
+## Serial stats (added: r3)
+
+```rust
+/// 다음 연재일: the earliest `publish_at` later than now among the folder's live sheets with status
+/// Scheduled (excluded ones included). nil when none. Unknown/deleted folder → NotFound.
+fn next_release(&self, project: String, folder: String) -> Result<Option<i64>, CoreError>;
+/// 폴더 통계. Unknown/deleted folder → NotFound.
+fn folder_stats(&self, project: String, folder: String) -> Result<FolderStats, CoreError>;
+// FolderStats { sheets: u32,          // live sheets of the folder
+//               episodes: u32,        // live sheets not excluded
+//               total: Counts,        // sum over ALL live sheets (a prologue is pasted too)
+//               average_chars: u32,   // Counts.chars averaged over episodes, rounded; 0 when none
+//               munpia_total: u32,    // Σ count_for(platform_body(text), Munpia) over all live sheets
+//               novelpia_total: u32,  // same, Novelpia rule
+//               published: u32, scheduled: u32,
+//               drafts: u32 }         // over episodes; drafts = Draft | Revising | no metadata
+// Invariants: published + scheduled + drafts == episodes; scheduled + drafts == stock(...).
+```
+
+## Claude connector (added: r3)
+
+`ithaca-mcp` (bundled at `Ithaca.app/Contents/MacOS/ithaca-mcp`) reads `<library>/mcp.json` on every
+request and shows Claude only the live projects listed there (FORMAT.md §mcp.json, ADR-0009).
+
+```rust
+/// Missing or unreadable file → McpSettings { enabled: false, projects: [], permission: Read }.
+fn mcp_settings(&self) -> McpSettings;
+/// Rewrites mcp.json atomically (`permission` = Read; unknown fields kept). Ids are kept in the
+/// order given, duplicates dropped; ids of projects not in the library are kept too. Read-only → ReadOnly.
+fn set_mcp_settings(&self, enabled: bool, projects: Vec<String>) -> Result<McpSettings, CoreError>;
+// McpSettings { enabled: bool, projects: Vec<String>, permission: McpPermission }   McpPermission { Read }
+```
+
+- Changes apply to Claude's next tool call; Claude Desktop needs no restart.
+- Settings → Claude shows this config to paste into Claude Desktop (`claude_desktop_config.json`):
+  `{"mcpServers":{"ithaca":{"command":"/Applications/Ithaca.app/Contents/MacOS/ithaca-mcp"}}}`
+  (use the app's real bundle path when it is not in /Applications). Optional `"args": ["--library", "<folder>"]`
+  for a library elsewhere; default `~/Library/Application Support/Ithaca/Library`.
+- Tools: `list_projects`, `get_outline`, `read_sheet`, `search`, `get_lore`, `get_episode_stats` — all
+  read-only. No address or token: stdio only (the spec's 주소 · 토큰 rows are not needed yet).
 
 ## Backups (added round 2)
 
@@ -198,6 +250,12 @@ what will be pasted. Grapheme clusters, like `Counts`. Sources: docs/research/20
 ```rust
 fn count_for(text: String, rule: CountRule) -> u32;
 fn munpia_pages(text: String) -> u32;   // ⌈count_for(Munpia) / 470⌉; empty → 0
+/// (added: r3) What goes into a platform's body field: export_text's default rules (Markdown stripped,
+/// blank line between paragraphs, no indent) WITHOUT the title line (platforms take it separately).
+fn platform_body(text: String) -> String;
+/// (added: r3) A sheet's length under a goal basis: WithSpaces / WithoutSpaces / Words = its Counts
+/// (the sheet as written); Munpia / Novelpia = count_for(platform_body(text), rule).
+fn goal_count(text: String, basis: GoalBasis) -> u32;
 // CountRule {
 //   WithSpaces     // = Counts.chars (every grapheme except "\n")
 //   WithoutSpaces  // = Counts.chars_no_space
@@ -271,7 +329,7 @@ fn export_text(&self, project: String, sheets: Vec<String>, options: ExportOptio
 
 ## Types
 
-`Language { Ko, En }` · `GoalBasis { WithSpaces, WithoutSpaces, Words }` · `Actor { Me, Claude }` ·
+`Language { Ko, En }` · `GoalBasis { WithSpaces, WithoutSpaces, Words, Munpia, Novelpia }` (r3) · `McpPermission { Read }` (r3) · `Actor { Me, Claude }` ·
 `EpisodeStatus` · `BackupKind` · `CountRule` (added round 2, above) ·
 `BlockKind { Edit, Lease, Merge, Meta }` · `IssueKind` (above) ·
 `CoreError { NotFound, ReadOnly, InvalidInput{message}, Io{message}, Corrupt{message} }` (uniffi::Error).

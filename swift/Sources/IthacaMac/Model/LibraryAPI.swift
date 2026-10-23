@@ -4,7 +4,8 @@
 import Foundation
 
 enum ManuscriptLanguage: String, Codable, Sendable, CaseIterable { case ko, en }
-enum GoalBasis: String, Codable, Sendable, CaseIterable { case withSpaces, withoutSpaces, words }
+/// (r3) munpia / novelpia: the platform's own count of the text as it would be pasted (Markdown stripped).
+enum GoalBasis: String, Codable, Sendable, CaseIterable { case withSpaces, withoutSpaces, words, munpia, novelpia }
 enum Actor: String, Sendable { case me, claude }
 enum BlockKind: String, Sendable { case edit, lease, merge, meta }
 
@@ -15,6 +16,30 @@ struct EpisodeInfo: Equatable, Sendable {
     var status: EpisodeStatus
     var publishAt: Int64?
     var platform: String?
+    /// (r3) Side story / notice: kept in the folder but skipped when numbering.
+    var excluded = false
+}
+
+/// (r3) `folder_stats` (core/API.md §Serial stats). `sheets` and the totals cover every live sheet of the folder;
+/// `episodes` = live sheets not excluded, and the average and status split cover only those
+/// (published + scheduled + drafts == episodes; drafts = draft, revising or no metadata).
+struct FolderStats: Equatable, Sendable {
+    var sheets = 0
+    var episodes = 0
+    var counts = Counts()
+    var averageChars = 0
+    /// Platform counts of the paste-ready bodies.
+    var munpia = 0
+    var novelpia = 0
+    var published = 0
+    var scheduled = 0
+    var drafts = 0
+}
+
+/// (r3) What the bundled `ithaca-mcp` server may show Claude (read only).
+struct McpSettings: Equatable, Sendable {
+    var enabled = false
+    var projects: [String] = []
 }
 
 enum BackupKind: String, Sendable { case auto, preMigration, manual }
@@ -199,6 +224,14 @@ protocol LibraryAPI: AnyObject {
     @discardableResult func recoverSheetFromBackup(project: String, sheet: String) throws -> SheetSummary
     /// (qa1) No usable backup: go on from the last good text; the sheet is editable again.
     @discardableResult func keepLastGoodText(project: String, sheet: String) throws -> SheetSummary
+    /// (r3) Earliest future `publish_at` among the folder's live Scheduled sheets; nil when none.
+    func nextRelease(project: String, folder: String) throws -> Int64?
+    /// (r3) Totals of one folder for the inspector.
+    func folderStats(project: String, folder: String) throws -> FolderStats
+
+    // Claude (MCP, r3): persisted in the library so the ithaca-mcp process reads the same settings.
+    func mcpSettings() -> McpSettings
+    @discardableResult func setMcpSettings(_ settings: McpSettings) throws -> McpSettings
 
     // Backups (round 2). The copies take seconds: these run off the main thread.
     func backupDue() -> Bool
@@ -212,6 +245,8 @@ protocol LibraryAPI: AnyObject {
     // Platform counts (round 2, free functions in the core)
     func countFor(text: String, rule: CountRule) -> Int
     func munpiaPages(text: String) -> Int
+    /// (r3) A sheet's length on a goal basis; munpia / novelpia count the paste-ready body.
+    func goalCount(text: String, basis: GoalBasis) -> Int
 
     func search(query: String, project: String?) -> [SearchHit]
     /// (qa1) Every live project, `current` first, so one long project can't crowd out the rest.

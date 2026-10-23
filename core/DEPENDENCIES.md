@@ -15,6 +15,7 @@ getrandom, is used under its MIT/Apache option).
 | uuid (v4) | 1.29 | MIT OR Apache-2.0 | store | project, folder and sheet ids |
 | encoding_rs | 0.8 | (Apache-2.0 OR MIT) AND BSD-3-Clause (the BSD part covers WHATWG-derived index data) | store | CP949 / EUC-KR and UTF-16 decoding for `import_text_folder` (txt-import); new transitive: simdutf8, scopeguard, multiversion_no_op (proc-macro), core_detect (lockfile only), all MIT OR Apache-2.0 |
 | libc *(unix only)* | 0.2 | MIT OR Apache-2.0 | store | `localtime_r` for local-time backup names (qa1); was already transitive |
+| serde_json *(ithaca-mcp)* | 1 | MIT OR Apache-2.0 | ithaca-mcp | JSON-RPC / MCP messages; no MCP SDK is used (ADR-0009), so the server adds **no new crate** |
 | tempfile *(dev only)* | 3.27 | MIT OR Apache-2.0 | tests | temporary library folders |
 
 No crate is used for the library lock: `std::fs::File::try_lock` (stable since Rust 1.89; `flock` on

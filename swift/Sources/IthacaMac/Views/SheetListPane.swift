@@ -66,19 +66,31 @@ struct SheetListPane: View {
         let short = ko ? model.t(.countCharsShort, ["count": total], count: total) : model.t(.countWords, ["count": total], count: total)
         let full = ko ? model.t(.countWithSpaces, ["count": total], count: total) : model.t(.countWords, ["count": total], count: total)
         let stock = trash ? nil : model.folder.flatMap { model.stock($0) }
+        let next = trash ? nil : model.folder.flatMap { model.nextRelease($0) }
         let line = model.t(.sheetListCount, ["count": sheets.count], count: sheets.count)
             + (!trash && !sheets.isEmpty ? " · \(short)" : "")
-            + (stock.map { " · " + model.t(.episodeStock, ["count": $0]) } ?? "")
+        // Serial folders: "비축 3화 · 다음 연재 10/26" on its own line so neither gets cut off in a 280 pt list.
+        let serial = [stock.map { model.t(.episodeStock, ["count": $0]) },
+                      next.map { model.t(.episodeNextRelease, ["date": model.releaseDate($0, time: false)]) }].compactMap { $0 }.joined(separator: " · ")
         let tip = [model.t(.sheetListCount, ["count": sheets.count], count: sheets.count), trash || sheets.isEmpty ? nil : full,
-                   stock.map { model.t(.episodeStock, ["count": $0]) + " — " + model.t(.episodeStockHint) }].compactMap { $0 }.joined(separator: "\n")
+                   stock.map { model.t(.episodeStock, ["count": $0]) + " — " + model.t(.episodeStockHint) },
+                   next.map { model.t(.folderStatsNextRelease) + " " + model.releaseDate($0, time: true) },
+                   trash ? nil : model.t(.folderInfo)].compactMap { $0 }.joined(separator: "\n")
         return HStack(spacing: T.Space.s50) {
             if !model.dockedLibrary && !model.libraryOverlay {
                 IconButton(.library, label: model.t(.libraryShow)) { model.libraryOverlay = true }
             }
             VStack(alignment: .leading, spacing: 0) {
                 Text(trash ? model.t(.trashTitle) : model.folder?.name ?? "").textStyle(.heading).lineLimit(1)
-                Caption(line).lineLimit(1).truncationMode(.tail).help(tip)
+                Caption(line).lineLimit(1).truncationMode(.tail)
+                if !serial.isEmpty { Caption(serial).lineLimit(1).truncationMode(.tail) }
             }
+            .padding(.vertical, T.Space.s50)
+            .contentShape(Rectangle())
+            .help(tip)
+            // Clicking the folder header shows its totals in the inspector (FolderStats).
+            .onTapGesture { if !trash, model.folder != nil { model.showFolderInfo() } }
+            .accessibilityAddTraits(trash ? [] : .isButton)
             Spacer(minLength: 0)
             IconButton(.search, label: model.t(.searchTitle)) { model.show(.palette(search: true)) }
             if !trash && model.folder != nil && !model.readOnly {
@@ -149,6 +161,7 @@ struct SheetRow: View {
         .onTapGesture {
             guard !trash else { return }
             model.openSheet(sheet.id)
+            model.inspectorScope = .sheet
             model.libraryOverlay = false
         }
         .contextMenu { if !trash { menu } }
@@ -171,9 +184,12 @@ struct SheetRow: View {
                 ForEach(others) { f in Button(f.name) { model.move(sheet: sheet.id, to: f.id, before: nil) } }
             }
         }
-        if sheet.episode != nil && !model.readOnly {
+        if !model.readOnly && (sheet.episode != nil || sheet.folder == model.folders.first?.id) {
             Divider()
-            Button(model.t(.episodePublishedThrough)) { model.markPublishedThrough(sheet.id) }
+            if sheet.episode != nil {
+                Button(model.t(.episodePublishedThrough)) { model.markPublishedThrough(sheet.id) }
+            }
+            Toggle(model.t(.episodeExclude), isOn: Binding(get: { sheet.episode?.excluded == true }, set: { _ in model.toggleExcluded(sheet.id) }))
         }
         Divider()
         Button(model.t(.navHistory)) { model.openSheet(sheet.id); model.show(.history) }

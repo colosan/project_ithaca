@@ -8,6 +8,7 @@ pub mod format;
 pub mod fsutil;
 mod import;
 pub mod lock;
+pub mod mcp;
 pub mod project;
 mod recover;
 mod search;
@@ -123,15 +124,36 @@ impl Store {
     }
 
     pub fn open_with(path: impl AsRef<Path>, device: &str, opts: OpenOptions) -> Result<Store> {
+        Self::open_inner(path.as_ref(), device, opts, false)
+    }
+
+    /// (added: r3) Opens an existing library for reading only, for a second process such as the
+    /// `ithaca-mcp` server while the app holds the lock. Nothing is written — not the lock file, no
+    /// cache, no cleanup, no purge, no migration — and every write returns `ReadOnly`. It is a
+    /// snapshot of the moment it opened (blocks are written atomically, so it sees whole blocks
+    /// only): open again to see later writes. A folder without `library.json` → NotFound.
+    pub fn open_read_only(path: impl AsRef<Path>) -> Result<Store> {
+        Self::open_read_only_with(path, OpenOptions::default())
+    }
+
+    pub fn open_read_only_with(path: impl AsRef<Path>, opts: OpenOptions) -> Result<Store> {
+        let root = path.as_ref();
+        if !root.join(format::LIBRARY_FILE).is_file() {
+            return Err(StoreError::NotFound);
+        }
+        Self::open_inner(root, "read-only", opts, true)
+    }
+
+    fn open_inner(root: &Path, device: &str, opts: OpenOptions, read_only: bool) -> Result<Store> {
         if device.trim().is_empty() {
             return Err(invalid("device id is empty"));
         }
-        let root = path.as_ref().to_path_buf();
+        let root = root.to_path_buf();
         let now = (opts.clock)();
         let mut problems = Vec::new();
         // Lock first, then look: everything below may write only while holding the lock.
         let (mut lock, mut locked_by_other) = (None, false);
-        let mut can_write = format::may_write(&root, opts.supported_format);
+        let mut can_write = !read_only && format::may_write(&root, opts.supported_format);
         if can_write {
             fs::create_dir_all(&root)?;
             match lock::acquire(&root) {
@@ -913,6 +935,7 @@ impl Store {
 
     /// `비축분`: live sheets of the folder that are not `Published`. A sheet without episode metadata
     /// counts as not published (a serial folder's new sheet is stock until marked otherwise).
+    /// (changed: r3) Excluded sheets (prologue, `외전`, `공지`) are never stock.
     pub fn stock(&self, project: &str, folder: &str) -> Result<u32> {
         let p = self.project(project)?;
         let f = Self::live_folder(p, folder)?;
@@ -922,7 +945,7 @@ impl Store {
                 p.toc.sheets[*s]
                     .episode
                     .as_ref()
-                    .is_none_or(|e| e.status != EpisodeStatus::Published)
+                    .is_none_or(|e| !e.excluded && e.status != EpisodeStatus::Published)
             })
             .count() as u32)
     }
@@ -930,6 +953,7 @@ impl Store {
     /// Numbers every live sheet of the folder 1..n in serial order (one toc block); a sheet without
     /// episode metadata gets `Draft` metadata. Status, date and platform are untouched. Returns n.
     /// (changed: qa1 — sheets without metadata used to be skipped.)
+    /// (changed: r3) Excluded sheets are skipped and lose their number; n counts the others.
     pub fn renumber_episodes(&mut self, project: &str, folder: &str) -> Result<u32> {
         Self::live_folder(self.project(project)?, folder)?;
         self.edit_toc(project, |t, _| {
@@ -938,6 +962,10 @@ impl Store {
             let mut n = 0;
             for id in ids {
                 if let Some(entry) = t.sheets.get_mut(&id) {
+                    if let Some(e) = entry.episode.as_mut().filter(|e| e.excluded) {
+                        e.number = None;
+                        continue;
+                    }
                     n += 1;
                     entry
                         .episode
@@ -978,6 +1006,56 @@ impl Store {
             }
             Ok(upto as u32 + 1)
         })
+    }
+
+    /// (added: r3) `다음 연재일`: the earliest `publish_at` after now among the folder's live
+    /// `Scheduled` sheets (excluded ones too — a scheduled `외전` is still a release). `None` when
+    /// nothing is scheduled ahead. Unknown/deleted folder → NotFound.
+    pub fn next_release(&self, project: &str, folder: &str) -> Result<Option<i64>> {
+        let p = self.project(project)?;
+        let f = Self::live_folder(p, folder)?;
+        let now = self.now();
+        Ok(p.toc
+            .live_sheets(f)
+            .filter_map(|s| p.toc.sheets[s].episode.as_ref())
+            .filter(|e| e.status == EpisodeStatus::Scheduled)
+            .filter_map(|e| e.publish_at)
+            .filter(|at| *at > now)
+            .min())
+    }
+
+    /// (added: r3) Totals for one live folder (`폴더 통계`): see [`FolderStats`].
+    pub fn folder_stats(&self, project: &str, folder: &str) -> Result<FolderStats> {
+        let p = self.project(project)?;
+        let f = Self::live_folder(p, folder)?;
+        let mut st = FolderStats::default();
+        let mut episode_chars: u64 = 0;
+        for s in p.toc.live_sheets(f) {
+            let chain = p.chains.get(s);
+            let text = chain.map_or("", |c| c.text.as_str());
+            let counts = chain.map(|c| c.counts).unwrap_or_default();
+            st.sheets += 1;
+            st.total = st.total + counts;
+            let body = ithaca_model::platform_body(text);
+            st.munpia_total += ithaca_model::count_for(&body, ithaca_model::CountRule::Munpia);
+            st.novelpia_total += ithaca_model::count_for(&body, ithaca_model::CountRule::Novelpia);
+            let ep = p.toc.sheets[s].episode.as_ref();
+            if ep.is_some_and(|e| e.excluded) {
+                continue;
+            }
+            st.episodes += 1;
+            episode_chars += u64::from(counts.chars);
+            match ep.map(|e| e.status) {
+                Some(EpisodeStatus::Published) => st.published += 1,
+                Some(EpisodeStatus::Scheduled) => st.scheduled += 1,
+                _ => st.drafts += 1,
+            }
+        }
+        if st.episodes > 0 {
+            let n = u64::from(st.episodes);
+            st.average_chars = ((episode_chars + n / 2) / n) as u32;
+        }
+        Ok(st)
     }
 
     // ── History ───────────────────────────────────────────────────────

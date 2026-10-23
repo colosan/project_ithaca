@@ -33,4 +33,12 @@ pub struct EpisodeInfo {
     /// Free text, e.g. "문피아". Not an enum: platforms come and go.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub platform: Option<String>,
+    /// (added: r3) Not counted as an episode: prologue, `외전`, `공지`. Keeps no number (renumbering
+    /// skips it and clears its number) and is not stock. Left out of the toc when false.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub excluded: bool,
+}
+
+fn is_false(b: &bool) -> bool {
+    !*b
 }

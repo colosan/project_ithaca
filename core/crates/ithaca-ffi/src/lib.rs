@@ -46,6 +46,20 @@ pub fn munpia_pages(text: String) -> u32 {
     ithaca_model::munpia_pages(&text)
 }
 
+/// (added: r3) A sheet's length under a goal basis: `WithSpaces` / `WithoutSpaces` / `Words` count
+/// the sheet as written (= its `Counts`); `Munpia` / `Novelpia` count `platform_body(text)`.
+#[uniffi::export]
+pub fn goal_count(text: String, basis: GoalBasis) -> u32 {
+    ithaca_model::goal_count(&text, basis.into())
+}
+
+/// (added: r3) What is pasted into a platform's body field: the default export rules without the
+/// title line.
+#[uniffi::export]
+pub fn platform_body(text: String) -> String {
+    ithaca_model::platform_body(&text)
+}
+
 // ── Types ─────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, uniffi::Error)]
@@ -86,6 +100,10 @@ pub enum GoalBasis {
     WithSpaces,
     WithoutSpaces,
     Words,
+    /// (added: r3)
+    Munpia,
+    /// (added: r3)
+    Novelpia,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
@@ -204,6 +222,65 @@ pub struct EpisodeInfo {
     pub publish_at: Option<i64>,
     #[uniffi(default = None)]
     pub platform: Option<String>,
+    /// (added: r3) Prologue / side story / notice: no number, skipped by renumbering, never stock.
+    #[uniffi(default = false)]
+    pub excluded: bool,
+}
+
+/// (added: r3) See core/API.md §Serial stats.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, uniffi::Record)]
+pub struct FolderStats {
+    pub sheets: u32,
+    pub episodes: u32,
+    pub total: Counts,
+    pub average_chars: u32,
+    pub munpia_total: u32,
+    pub novelpia_total: u32,
+    pub published: u32,
+    pub scheduled: u32,
+    pub drafts: u32,
+}
+
+impl From<store::FolderStats> for FolderStats {
+    fn from(f: store::FolderStats) -> Self {
+        FolderStats {
+            sheets: f.sheets,
+            episodes: f.episodes,
+            total: f.total.into(),
+            average_chars: f.average_chars,
+            munpia_total: f.munpia_total,
+            novelpia_total: f.novelpia_total,
+            published: f.published,
+            scheduled: f.scheduled,
+            drafts: f.drafts,
+        }
+    }
+}
+
+/// (added: r3) What the Claude connector may do. Only `Read` today.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
+pub enum McpPermission {
+    Read,
+}
+
+/// (added: r3) `<library>/mcp.json`, read by `ithaca-mcp` on every request.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct McpSettings {
+    pub enabled: bool,
+    pub projects: Vec<String>,
+    pub permission: McpPermission,
+}
+
+impl From<store::mcp::McpSettings> for McpSettings {
+    fn from(s: store::mcp::McpSettings) -> Self {
+        McpSettings {
+            enabled: s.enabled,
+            projects: s.projects,
+            permission: match s.permission {
+                store::mcp::McpPermission::Read => McpPermission::Read,
+            },
+        }
+    }
 }
 
 /// Added round 2.
@@ -341,6 +418,8 @@ impl From<ithaca_model::Goal> for Goal {
             B::WithSpaces => GoalBasis::WithSpaces,
             B::WithoutSpaces => GoalBasis::WithoutSpaces,
             B::Words => GoalBasis::Words,
+            B::Munpia => GoalBasis::Munpia,
+            B::Novelpia => GoalBasis::Novelpia,
         };
         Goal {
             count: g.count,
@@ -349,17 +428,24 @@ impl From<ithaca_model::Goal> for Goal {
     }
 }
 
-impl From<Goal> for ithaca_model::Goal {
-    fn from(g: Goal) -> Self {
+impl From<GoalBasis> for ithaca_model::GoalBasis {
+    fn from(b: GoalBasis) -> Self {
         use ithaca_model::GoalBasis as B;
-        let basis = match g.basis {
+        match b {
             GoalBasis::WithSpaces => B::WithSpaces,
             GoalBasis::WithoutSpaces => B::WithoutSpaces,
             GoalBasis::Words => B::Words,
-        };
+            GoalBasis::Munpia => B::Munpia,
+            GoalBasis::Novelpia => B::Novelpia,
+        }
+    }
+}
+
+impl From<Goal> for ithaca_model::Goal {
+    fn from(g: Goal) -> Self {
         ithaca_model::Goal {
             count: g.count,
-            basis,
+            basis: g.basis.into(),
         }
     }
 }
@@ -423,6 +509,7 @@ impl From<ithaca_model::EpisodeInfo> for EpisodeInfo {
             },
             publish_at: e.publish_at,
             platform: e.platform,
+            excluded: e.excluded,
         }
     }
 }
@@ -446,6 +533,7 @@ impl From<EpisodeInfo> for ithaca_model::EpisodeInfo {
             status: e.status.into(),
             publish_at: e.publish_at,
             platform: e.platform,
+            excluded: e.excluded,
         }
     }
 }
@@ -591,6 +679,13 @@ impl Library {
     #[uniffi::constructor]
     pub fn open(path: String, device_id: String) -> R<Arc<Library>> {
         Ok(Library::from_store(Store::open(path, &device_id)?))
+    }
+
+    /// (added: r3) Opens an existing library for reading only: no lock, nothing written, every
+    /// write → ReadOnly. A snapshot of the moment it opened. No `library.json` → NotFound.
+    #[uniffi::constructor]
+    pub fn open_read_only(path: String) -> R<Arc<Library>> {
+        Ok(Library::from_store(Store::open_read_only(path)?))
     }
 
     pub fn info(&self) -> LibraryInfo {
@@ -865,6 +960,27 @@ impl Library {
     pub fn keep_last_good_text(&self, project: String, sheet: String) -> R<SheetSummary> {
         Ok(self.lock().keep_last_good_text(&project, &sheet)?.into())
     }
+
+    // Added: r3
+
+    /// Earliest future `publish_at` among the folder's live Scheduled sheets.
+    pub fn next_release(&self, project: String, folder: String) -> R<Option<i64>> {
+        Ok(self.lock().next_release(&project, &folder)?)
+    }
+
+    pub fn folder_stats(&self, project: String, folder: String) -> R<FolderStats> {
+        Ok(self.lock().folder_stats(&project, &folder)?.into())
+    }
+
+    /// `<library>/mcp.json`; off with no projects when missing or unreadable.
+    pub fn mcp_settings(&self) -> McpSettings {
+        self.lock().mcp_settings().into()
+    }
+
+    /// Rewrites `<library>/mcp.json` atomically (permission stays Read). Read-only → ReadOnly.
+    pub fn set_mcp_settings(&self, enabled: bool, projects: Vec<String>) -> R<McpSettings> {
+        Ok(self.lock().set_mcp_settings(enabled, &projects)?.into())
+    }
 }
 
 #[cfg(test)]
@@ -981,5 +1097,53 @@ mod tests {
         assert_eq!(count_for("가 나\n".into(), CountRule::Munpia), 3);
         assert_eq!(count_for("가".into(), CountRule::BytesUtf8), 3);
         assert_eq!(munpia_pages("가".repeat(471)), 2);
+    }
+
+    #[test]
+    fn r3_additions() {
+        let dir = tempfile::tempdir().unwrap();
+        let path: String = dir.path().join("Library").to_string_lossy().into();
+        assert!(matches!(
+            Library::open_read_only(path.clone()),
+            Err(CoreError::NotFound)
+        ));
+        let lib = Library::open(path.clone(), "mac-1".into()).unwrap();
+        let p = lib
+            .create_project("작품".into(), Language::Ko, vec!["연재".into()])
+            .unwrap();
+        let o = lib.outline(p.id.clone()).unwrap();
+        let (folder, sheet) = (o.folders[0].id.clone(), o.folders[0].sheets[0].id.clone());
+        lib.save_sheet(p.id.clone(), sheet.clone(), "# 프롤로그\n\n밤".into())
+            .unwrap();
+        lib.set_episode(
+            p.id.clone(),
+            sheet,
+            Some(EpisodeInfo {
+                excluded: true,
+                ..Default::default()
+            }),
+        )
+        .unwrap();
+        assert_eq!(
+            lib.renumber_episodes(p.id.clone(), folder.clone()).unwrap(),
+            0
+        );
+        assert_eq!(lib.stock(p.id.clone(), folder.clone()).unwrap(), 0);
+        let st = lib.folder_stats(p.id.clone(), folder.clone()).unwrap();
+        assert_eq!((st.sheets, st.episodes, st.munpia_total), (1, 0, 1));
+        assert_eq!(lib.next_release(p.id.clone(), folder).unwrap(), None);
+        assert_eq!(goal_count("# 제목\n\n가 나".into(), GoalBasis::Munpia), 3);
+        assert_eq!(platform_body("# 제목\n\n가 나".into()), "가 나");
+
+        assert!(!lib.mcp_settings().enabled);
+        let m = lib.set_mcp_settings(true, vec![p.id.clone()]).unwrap();
+        assert_eq!(m.permission, McpPermission::Read);
+        let ro = Library::open_read_only(path).unwrap();
+        assert!(ro.info().read_only);
+        assert_eq!(ro.mcp_settings(), m);
+        assert!(matches!(
+            ro.set_mcp_settings(false, vec![]),
+            Err(CoreError::ReadOnly)
+        ));
     }
 }

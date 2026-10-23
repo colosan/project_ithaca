@@ -10,7 +10,9 @@ use serde::{Deserialize, Serialize};
 
 pub use episode::{EpisodeInfo, EpisodeStatus};
 pub use export::{ExportOptions, export_sheets, render_sheet};
-pub use platform::{CountRule, MUNPIA_PAGE_CHARS, count_for, munpia_pages};
+pub use platform::{
+    CountRule, MUNPIA_PAGE_CHARS, count_for, goal_count, munpia_pages, platform_body,
+};
 pub use text::{Counts, counts, excerpt_of, title_of};
 pub use toc::{Extra, FolderEntry, SheetEntry, Toc};
 
@@ -30,6 +32,10 @@ pub enum GoalBasis {
     WithSpaces,
     WithoutSpaces,
     Words,
+    /// (added: r3) `문피아` count ([`CountRule::Munpia`]) of the paste-ready body.
+    Munpia,
+    /// (added: r3) `노벨피아` count ([`CountRule::Novelpia`]) of the paste-ready body.
+    Novelpia,
 }
 
 /// Per-episode length goal.

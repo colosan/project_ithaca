@@ -9,6 +9,7 @@ written in format 1 must open in every later core, through a migration if need b
 <library>/                         default: ~/Library/Application Support/Ithaca/Library/
   .lock                            empty; exclusive flock of the open writer (§Lock)
   library.json                     { "format": 1, "created": <ms> }
+  mcp.json                         Claude connector settings (§mcp.json, added: r3); optional
   projects/<project-id>/
     changes/<hash>                 immutable block files — the only source of truth
     cache/<chain-id>.json          derived; deleting it loses nothing
@@ -33,6 +34,27 @@ never deleted) and holds it while open; the OS releases it on close or crash. An
 held is read-only and writes nothing. Only the lock holder removes `.tmp-` files, writes caches,
 purges or migrates. A read-only open for a newer format (or a missing `library.json`, above) does not
 touch the lock. On a filesystem without `flock` the open proceeds unlocked and says so.
+
+A **read-only open** (`open_read_only`, added: r3; used by `ithaca-mcp` beside the app) never takes or
+creates the lock and writes nothing at all. It reads whatever blocks exist when it opens: block and
+cache files are written atomically (temp file + rename), and a sheet's blocks are written before the
+`toc` block that names them, so it never sees half a block or a sheet the toc names without blocks. A
+cache older than the blocks is detected (not every listed block covered) and the chain is rebuilt in
+memory. It is a snapshot: later writes need a fresh open.
+
+## mcp.json (added: r3)
+
+Written by the app (atomically), read by `ithaca-mcp` on every request. Not part of the format number;
+missing = off.
+
+```json
+{ "enabled": true, "projects": ["<project id>", …], "permission": "read" }
+```
+
+- Missing, unparsable, or `enabled: false` → Claude sees nothing. Only listed, live (not deleted)
+  projects are visible. `permission` is `read` (the only value today); an unknown value reads as `read`.
+- Unknown fields are kept when the app rewrites it. Backups copy it like any library file; restoring
+  a backup as copies gives new project ids, which are not shared until the writer picks them.
 
 ## Opening projects
 
@@ -109,7 +131,7 @@ line keeps deltas small), stored with the same snapshot/delta rules as sheets, `
 ```json
 {
   "title": "등대지기의 딸", "language": "ko",
-  "goal": { "count": 5500, "basis": "withSpaces" },   // or null; basis: withSpaces | withoutSpaces | words
+  "goal": { "count": 5500, "basis": "withSpaces" },   // or null; basis: withSpaces | withoutSpaces | words | munpia | novelpia
   "created": 1790000000000,
   "deleted": null,                                       // ms when soft-deleted
   "folders": [ { "id": "…", "name": "연재", "deleted": null, "sheets": ["<sheet id>", …] } ],
@@ -122,6 +144,11 @@ line keeps deltas small), stored with the same snapshot/delta rules as sheets, `
 - `episode` (optional, added in core 0.1 round 2 within format 1): absent = not an episode. Inside it every
   field is optional and left out when empty; `status` is `draft | revising | scheduled | published`
   (default `draft`). Tables of contents written before it existed load unchanged.
+  (added: r3) `"excluded": true` marks a prologue / 외전 / 공지 (left out when false). Older cores ignore it
+  and keep it (unknown fields are kept).
+- `goal.basis` (added: r3) may also be `munpia | novelpia`. **A core older than r3 (app ≤ 0.2.0) cannot
+  parse such a goal and skips that project on open** (reported, nothing written; it loads again in a
+  newer app). Accepted: apps only move forward via updates; see ADR-0009.
 - **Unknown fields are kept.** A core keeps fields it does not know at the top level, in folder entries and
   in sheet entries, and writes them back when it rewrites the table of contents, so adding an optional
   field never needs a format bump and an older core never drops a newer core's data.
