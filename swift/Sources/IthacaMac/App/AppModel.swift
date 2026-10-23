@@ -142,6 +142,7 @@ final class AppModel {
         switch defaults.string(forKey: "ithaca.spell") { case "on": spellCheck = true; case "off": spellCheck = false; default: spellCheck = nil }
         carets = (defaults.dictionary(forKey: "ithaca.carets") as? [String: Int]) ?? [:]
         menu.locale = locale
+        menu.readOnly = info.readOnly || info.lockedByOther
         refreshProjects()
         restoreSelection()
     }
@@ -189,7 +190,43 @@ final class AppModel {
     var readOnly: Bool { info.readOnly || info.lockedByOther }
     /// The open sheet can't be typed into: read-only library, or a damaged sheet (shown as its last intact text).
     var editorLocked: Bool { readOnly || sheet?.damaged == true }
-    var readOnlyMessage: String { info.lockedByOther ? t(.libraryLockedByOther) : t(.libraryReadOnly) }
+    var readOnlyMessage: String {
+        switch readOnlyCause {
+        case .lockedByOther: t(.libraryLockedByOther)
+        case .problems: t(.libraryReadOnlyProblems)
+        case .newerFormat, nil: t(.libraryReadOnly)
+        }
+    }
+    /// Why nothing may be written: another Ithaca holds the lock, the core opened it read-only because of
+    /// problems it found (missing library.json, failed update…), or — read-only with nothing to report — a newer format.
+    enum ReadOnlyCause { case lockedByOther, newerFormat, problems }
+    var readOnlyCause: ReadOnlyCause? {
+        guard readOnly else { return nil }
+        if info.lockedByOther { return .lockedByOther }
+        return info.problems.isEmpty ? .newerFormat : .problems
+    }
+
+    /// Dates in the app's language: 24-hour clock for Korean, the locale's own clock for English.
+    var dateLocale: Locale {
+        guard locale == .ko else { return Locale(identifier: locale.rawValue) }
+        var c = Locale.Components(identifier: locale.rawValue)
+        c.hourCycle = .zeroToTwentyThree
+        return Locale(components: c)
+    }
+
+    /// "10월 4일 17:49" / "Oct 4, 5:49 PM"; the year only when it isn't this year (or `year`).
+    func dateTime(_ d: Date, year: Bool = false) -> String {
+        let showYear = year || Calendar.current.component(.year, from: d) != Calendar.current.component(.year, from: Date())
+        func fmt(_ template: String) -> String {
+            let f = DateFormatter()
+            f.locale = dateLocale
+            f.setLocalizedDateFormatFromTemplate(template)
+            return f.string(from: d)
+        }
+        // Date and time formatted apart: the joined English template reads "Oct 4 at 7:00 AM" (too long for a row).
+        return locale == .ko ? fmt((showYear ? "y" : "") + "MMMd") + " " + fmt("HHmm")
+                             : fmt((showYear ? "y" : "") + "MMMd") + ", " + fmt("jmm")
+    }
     var spellCheckActive: Bool { spellCheck ?? (language == .en) }
 
     func folderName(_ id: String) -> String? { folders.first { $0.id == id }?.name }
@@ -250,7 +287,7 @@ final class AppModel {
         guard let projectId else { return }
         if let f = folders.first(where: { $0.sheets.contains { $0.id == id } }) { folderId = f.id }
         do {
-            text = try library.sheetText(project: projectId, sheet: id)
+            text = try library.sheetText(project: projectId, sheet: id).normalizedNewlines
         } catch {
             showToast(Toast(message: "\(error.localizedDescription)"))
             return
@@ -294,6 +331,9 @@ final class AppModel {
     /// (the switch already happened in the model) is ignored, so the old sheet's text never lands in the new one.
     func textDidChange(_ newText: String, token: Int) {
         guard token == loadToken, sheetId != nil, !editorLocked else { return }
+        // The text view only ever holds \n line endings (paste / typing are normalized); normalize again so a stray \r
+        // can never make the buffer differ from what the core saves back.
+        let newText = newText.normalizedNewlines
         guard newText != text else { return }
         text = newText
         dirty = true
@@ -470,7 +510,7 @@ final class AppModel {
     }
 
     func moveSheet(_ delta: Int) {
-        guard let projectId, let sheetId, let folder else { return }
+        guard let projectId, let sheetId, let folder, !readOnly else { return }
         let list = folder.sheets
         guard let i = list.firstIndex(where: { $0.id == sheetId }) else { return }
         let j = i + delta
@@ -481,14 +521,14 @@ final class AppModel {
 
     /// Drag-and-drop reorder inside the list, or a move to another folder (`before == nil` → end).
     func move(sheet: String, to folder: String, before: String?) {
-        guard let projectId, sheet != before else { return }
+        guard let projectId, sheet != before, !readOnly else { return }
         flushSave()
         perform { try library.moveSheet(project: projectId, sheet: sheet, folder: folder, before: before) }
         if sheet == sheetId { folderId = folder }
     }
 
     func trashSheet(_ id: String? = nil) {
-        guard let projectId, let id = id ?? sheetId else { return }
+        guard let projectId, let id = id ?? sheetId, !readOnly else { return }
         let title = folders.flatMap(\.sheets).first { $0.id == id }?.title ?? ""
         if id == sheetId { guard ensureSaved() else { return } }
         // Keep the position so the next sheet opens, like closing a tab.
@@ -507,41 +547,41 @@ final class AppModel {
     }
 
     func restoreSheet(_ id: String) {
-        guard let projectId else { return }
+        guard let projectId, !readOnly else { return }
         perform { try library.restoreSheet(project: projectId, sheet: id) }
         showingTrash = false
         openSheet(id)
     }
 
     func restoreAll() {
-        guard let projectId else { return }
+        guard let projectId, !readOnly else { return }
         for s in trash { try? library.restoreSheet(project: projectId, sheet: s.id) }
         reloadOutline()
         showingTrash = false
     }
 
     func deleteForever(_ id: String) {
-        guard let projectId, confirm(t(.trashDeleteForeverConfirm)) else { return }
+        guard let projectId, !readOnly, confirm(t(.trashDeleteForeverConfirm)) else { return }
         perform { try library.deleteSheetForever(project: projectId, sheet: id) }
     }
 
     func emptyTrash() {
-        guard let projectId, confirm(t(.trashEmptyConfirm)) else { return }
+        guard let projectId, !readOnly, confirm(t(.trashEmptyConfirm)) else { return }
         perform { try library.emptyTrash(project: projectId) }
     }
 
     func createFolder(_ name: String) {
-        guard let projectId, !name.isEmpty else { return }
+        guard let projectId, !name.isEmpty, !readOnly else { return }
         perform { _ = try library.createFolder(project: projectId, name: name) }
     }
 
     func renameFolder(_ id: String, _ name: String) {
-        guard let projectId, !name.isEmpty else { return }
+        guard let projectId, !name.isEmpty, !readOnly else { return }
         perform { try library.renameFolder(project: projectId, folder: id, name: name) }
     }
 
     func deleteFolder(_ id: String) {
-        guard let projectId, let f = folders.first(where: { $0.id == id }) else { return }
+        guard let projectId, !readOnly, let f = folders.first(where: { $0.id == id }) else { return }
         let ok = f.sheets.isEmpty ? confirm(t(.folderDeleteConfirmEmpty, ["name": f.name]))
                                   : confirm(t(.folderDeleteConfirm, ["name": f.name], count: f.sheets.count))
         guard ok else { return }
@@ -557,7 +597,7 @@ final class AppModel {
     }
 
     func createProject(title: String, language: ManuscriptLanguage, folders names: [String], goal: Goal?) {
-        guard ensureSaved() else { return }
+        guard !readOnly, ensureSaved() else { return }
         do {
             let p = try library.createProject(title: title, language: language, folders: names.isEmpty ? [defaultFolderName(.folderDefaultSerial, language)] : names)
             if let goal { _ = try library.updateProject(id: p.id, patch: ProjectPatch(goal: .some(goal))) }
@@ -579,14 +619,14 @@ final class AppModel {
     }
 
     func updateProject(_ patch: ProjectPatch) {
-        guard let projectId else { return }
+        guard let projectId, !readOnly else { return }
         perform { _ = try library.updateProject(id: projectId, patch: patch) }
         refreshProjects()
     }
 
     /// Soft delete (kept 30 days) with an undo that stays until dismissed.
     func deleteProject() {
-        guard let p = project, confirm(t(.projectSettingsDeleteConfirm, ["name": p.title])) else { return }
+        guard let p = project, !readOnly, confirm(t(.projectSettingsDeleteConfirm, ["name": p.title])) else { return }
         guard ensureSaved() else { return }
         perform { try library.deleteProject(id: p.id) }
         overlay = nil
@@ -605,7 +645,7 @@ final class AppModel {
     var busy: String?
 
     func importWebBackup() {
-        guard busy == nil else { return }
+        guard busy == nil, !readOnly else { return }
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.json]
         panel.allowsMultipleSelection = false
@@ -714,8 +754,8 @@ final class AppModel {
     /// "10/26 18:00" (rows, inspector) or "10/26" (folder header): short enough for a 280 pt list.
     func releaseDate(_ at: Int64, time: Bool) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: locale.rawValue)
-        f.dateFormat = time ? "M/d HH:mm" : "M/d"
+        f.locale = dateLocale
+        if !time { f.dateFormat = "M/d" } else if locale == .ko { f.dateFormat = "M/d HH:mm" } else { f.setLocalizedDateFormatFromTemplate("Mdjmm") }
         return f.string(from: at.date)
     }
 
@@ -780,7 +820,7 @@ final class AppModel {
 
     /// nil = not an episode (prologue, notice, notes).
     func setEpisodeStatus(_ status: EpisodeStatus?) {
-        guard let projectId, let sheet else { return }
+        guard let projectId, let sheet, !readOnly else { return }
         var info = sheet.episode ?? EpisodeInfo(status: .draft)
         if let status { info.status = status }
         // A new schedule starts tomorrow 18:00 so the picker has a sensible date to move from.
@@ -940,4 +980,6 @@ final class MenuState: ObservableObject {
     @Published var locale: L10nLocale = .ko
     @Published var hasSheet = false
     @Published var hasProject = false
+    /// Read-only library: write commands are disabled.
+    @Published var readOnly = false
 }

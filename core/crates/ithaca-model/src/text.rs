@@ -44,6 +44,15 @@ pub fn is_js_space(c: char) -> bool {
     )
 }
 
+/// `\r\n` and lone `\r` → `\n` (added: qa4). Borrows when there is no `\r`.
+pub fn normalize_newlines(s: &str) -> std::borrow::Cow<'_, str> {
+    if s.contains('\r') {
+        s.replace("\r\n", "\n").replace('\r', "\n").into()
+    } else {
+        s.into()
+    }
+}
+
 /// `String.prototype.trim`.
 pub fn js_trim(s: &str) -> &str {
     s.trim_matches(is_js_space)

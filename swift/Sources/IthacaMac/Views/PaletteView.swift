@@ -46,7 +46,9 @@ enum AppCommand: CaseIterable {
 
     /// Same rule as the menu bar's disabled items: sheet commands need an open sheet, project commands a project.
     @MainActor func available(_ m: AppModel) -> Bool {
-        switch self {
+        // Read-only library: nothing that writes.
+        if m.readOnly, [.newSheet, .newProject, .moveUp, .moveDown, .trashSheet, .importWeb].contains(self) { return false }
+        return switch self {
         case .sheetInfo, .history, .moveUp, .moveDown, .trashSheet: m.sheetId != nil
         case .export, .projectSettings, .showTrash, .newSheet: m.projectId != nil
         default: true

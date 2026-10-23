@@ -1,5 +1,6 @@
 // Native counterparts of the workbench kit (DESIGN.md: one kit for controls): Button variants, IconButton.
 // Segmented · Switch · Checkbox · TextField use the native macOS controls, tinted with the accent token.
+import AppKit
 import IthacaDesign
 import SwiftUI
 
@@ -108,5 +109,64 @@ struct Caption: View {
     init(_ text: String) { self.text = text }
     var body: some View {
         Text(text).textStyle(.caption).foregroundStyle(Color.inkTertiary)
+    }
+}
+
+/// The kit Switch: accent fill when on, also in an inactive window (the native NSSwitch turns grey there,
+/// which read as "off"). Label on the leading side, switch trailing — same layout as the native one in a Form.
+struct KitSwitchStyle: ToggleStyle {
+    @Environment(\.isEnabled) private var enabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: T.Space.s150) {
+            configuration.label
+            Spacer(minLength: 0)
+            Button { configuration.isOn.toggle() } label: {
+                ZStack(alignment: configuration.isOn ? .trailing : .leading) {
+                    Capsule().fill(configuration.isOn ? Color.accentPrimary : Color.lineStrong)
+                    Circle().fill(Color.white).padding(2).shadow(color: .black.opacity(0.2), radius: 0.5, y: 0.5)
+                }
+                .frame(width: 32, height: 18)
+                .animation(.easeOut(duration: 0.12), value: configuration.isOn)
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .opacity(enabled ? 1 : T.Opacity.disabled)
+            .accessibilityAddTraits(.isToggle)
+            .accessibilityValue(configuration.isOn ? "1" : "0")
+        }
+    }
+}
+
+/// Native segmented control that fills its width with equal segments (SwiftUI's segmented Picker sizes to its
+/// labels, so short Korean labels gave a small control while English filled the bar).
+struct FillSegmented<Value: Hashable>: NSViewRepresentable {
+    let items: [(Value, String)]
+    @Binding var selection: Value
+
+    func makeNSView(context: Context) -> NSSegmentedControl {
+        let c = NSSegmentedControl(labels: items.map(\.1), trackingMode: .selectOne, target: context.coordinator, action: #selector(Coordinator.changed(_:)))
+        c.segmentDistribution = .fillEqually
+        c.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        c.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return c
+    }
+
+    func updateNSView(_ c: NSSegmentedControl, context: Context) {
+        context.coordinator.parent = self
+        if c.segmentCount != items.count { c.segmentCount = items.count }
+        for (i, item) in items.enumerated() where c.label(forSegment: i) != item.1 { c.setLabel(item.1, forSegment: i) }
+        if let i = items.firstIndex(where: { $0.0 == selection }) { c.selectedSegment = i }
+    }
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    final class Coordinator: NSObject {
+        var parent: FillSegmented
+        init(_ p: FillSegmented) { parent = p }
+        @objc func changed(_ c: NSSegmentedControl) {
+            guard parent.items.indices.contains(c.selectedSegment) else { return }
+            parent.selection = parent.items[c.selectedSegment].0
+        }
     }
 }

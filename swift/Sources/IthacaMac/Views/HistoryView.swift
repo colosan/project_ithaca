@@ -87,7 +87,7 @@ struct HistoryView: View {
                             }
                         }
                         .textStyle(.label)
-                        Caption("\(e.at.date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(Locale(identifier: model.locale.rawValue)))) · \(deviceLabel(e.device))")
+                        Caption("\(model.dateTime(e.at.date, year: true)) · \(deviceLabel(e.device))")
                     }
                     .padding(.horizontal, T.Space.s200)
                     .padding(.vertical, T.Space.s150)

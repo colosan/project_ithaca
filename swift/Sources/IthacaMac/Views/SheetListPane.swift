@@ -10,7 +10,7 @@ struct SheetListPane: View {
         let sheets = trash ? model.trash : (model.folder?.sheets ?? [])
         VStack(spacing: 0) {
             header(trash: trash, sheets: sheets)
-            if trash && !sheets.isEmpty {
+            if trash && !sheets.isEmpty && !model.readOnly {
                 // Hint on its own line, buttons below: side by side they clipped in a 280 pt list (English worst).
                 VStack(alignment: .leading, spacing: T.Space.s100) {
                     Caption(model.t(.trashHint)).fixedSize(horizontal: false, vertical: true)
@@ -37,7 +37,7 @@ struct SheetListPane: View {
                     // Dropping below the last row moves a sheet to the end.
                     Color.clear.frame(height: T.Size.rowSheet)
                         .dropDestination(for: String.self) { ids, _ in
-                            guard !trash, let id = ids.first, let f = model.folder else { return false }
+                            guard !trash, !model.readOnly, let id = ids.first, let f = model.folder else { return false }
                             model.move(sheet: id, to: f.id, before: nil)
                             return true
                         }
@@ -130,12 +130,17 @@ struct SheetRow: View {
                 if !sheet.excerpt.isEmpty {
                     Text(sheet.excerpt).textStyle(.caption).foregroundStyle(Color.inkSecondary).lineLimit(1)
                 }
-                HStack(spacing: T.Space.s100) {
-                    if let e = sheet.episode {
-                        Text(model.episodeLabel(e)).foregroundStyle(e.status == .published ? Color.inkTertiary : .accentPrimary).fixedSize()
-                    }
+                // One line when it fits; otherwise the episode label gets its own line so the date isn't cut off.
+                let episode = sheet.episode.map { e in
+                    Text(model.episodeLabel(e)).foregroundStyle(e.status == .published ? Color.inkTertiary : .accentPrimary).fixedSize()
+                }
+                let rest = HStack(spacing: T.Space.s100) {
                     Text(length).help(lengthFull).fixedSize()
-                    Text(trash ? (model.folderName(sheet.folder) ?? "") : sheet.modified.date.formatted(.dateTime.month(.abbreviated).day().hour().minute().locale(Locale(identifier: model.locale.rawValue))))
+                    Text(trash ? (model.folderName(sheet.folder) ?? "") : model.dateTime(sheet.modified.date))
+                }
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: T.Space.s100) { episode; rest.fixedSize() }
+                    VStack(alignment: .leading, spacing: T.Space.s25) { episode; rest }
                 }
                 .lineLimit(1)
                 .textStyle(.caption)
@@ -143,7 +148,9 @@ struct SheetRow: View {
                 .padding(.top, T.Space.s25)
             }
             Spacer(minLength: 0)
-            if trash {
+            if model.readOnly {
+                // Read-only library: no trash, restore or delete buttons.
+            } else if trash {
                 IconButton(.restore, label: model.t(.trashRestore)) { model.restoreSheet(sheet.id) }
                 IconButton(.delete, label: model.t(.trashDeleteForever)) { model.deleteForever(sheet.id) }
             } else if hover || active {
@@ -169,16 +176,18 @@ struct SheetRow: View {
             Text(sheet.title.isEmpty ? model.t(.sheetUntitled) : sheet.title).padding(T.Space.s100).background(Color.surfaceRaised)
         }
         .dropDestination(for: String.self) { ids, _ in
-            guard !trash, let id = ids.first, id != sheet.id else { return false }
+            guard !trash, !model.readOnly, let id = ids.first, id != sheet.id else { return false }
             model.move(sheet: id, to: sheet.folder, before: sheet.id)
             return true
-        } isTargeted: { dropAbove = $0 && !trash }
+        } isTargeted: { dropAbove = $0 && !trash && !model.readOnly }
     }
 
     @ViewBuilder private var menu: some View {
-        Button(model.t(.sheetMoveUp)) { model.openSheet(sheet.id); model.moveSheet(-1) }
-        Button(model.t(.sheetMoveDown)) { model.openSheet(sheet.id); model.moveSheet(1) }
-        let others = model.folders.filter { $0.id != sheet.folder }
+        if !model.readOnly {
+            Button(model.t(.sheetMoveUp)) { model.openSheet(sheet.id); model.moveSheet(-1) }
+            Button(model.t(.sheetMoveDown)) { model.openSheet(sheet.id); model.moveSheet(1) }
+        }
+        let others = model.readOnly ? [] : model.folders.filter { $0.id != sheet.folder }
         if !others.isEmpty {
             Menu(model.t(.sheetMove)) {
                 ForEach(others) { f in Button(f.name) { model.move(sheet: sheet.id, to: f.id, before: nil) } }
@@ -194,7 +203,9 @@ struct SheetRow: View {
         Divider()
         Button(model.t(.navHistory)) { model.openSheet(sheet.id); model.show(.history) }
         Button(model.t(.exportTitle) + "…") { model.openSheet(sheet.id); model.show(.export) }
-        Divider()
-        Button(model.t(.sheetTrash), role: .destructive) { model.trashSheet(sheet.id) }
+        if !model.readOnly {
+            Divider()
+            Button(model.t(.sheetTrash), role: .destructive) { model.trashSheet(sheet.id) }
+        }
     }
 }

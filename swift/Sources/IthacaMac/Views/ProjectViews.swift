@@ -172,17 +172,22 @@ struct ProjectSettingsView: View {
                 }
             }
             .formStyle(.columns)
+            .disabled(model.readOnly)
             HStack {
-                KitButton(model.t(.projectSettingsDelete), icon: .delete, variant: .danger) { model.deleteProject() }
+                if !model.readOnly {
+                    KitButton(model.t(.projectSettingsDelete), icon: .delete, variant: .danger) { model.deleteProject() }
+                }
                 Spacer()
                 KitButton(model.t(.actionCancel), variant: .ghost) { dismiss() }.keyboardShortcut(.cancelAction)
                 KitButton(model.t(.actionDone), variant: .primary, action: save).keyboardShortcut(.defaultAction)
-                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || model.readOnly)
             }
         }
         .textStyle(.body)
         .padding(T.Space.s300)
         .frame(width: T.Layout.Pane.dialogDefault)
+        // Hug the content: the sheet otherwise grew taller than the form and centred it under empty space.
+        .fixedSize(horizontal: false, vertical: true)
         .background(Color.surfaceCanvas)
         .onAppear {
             guard let p = model.project else { return }

@@ -134,6 +134,19 @@ export type StringKey =
   | "export.format.txt"
   | "export.format.md"
   | "export.format.docx"
+  | "export.docx.font"
+  | "export.docx.size"
+  | "export.docx.lineSpacing"
+  | "export.docx.pageBreak"
+  | "export.docx.titles"
+  | "export.docx.page"
+  | "export.docx.paper"
+  | "export.docx.marginTop"
+  | "export.docx.marginBottom"
+  | "export.docx.marginLeft"
+  | "export.docx.marginRight"
+  | "export.docx.reset"
+  | "export.docx.failed"
   | "export.format.epub"
   | "export.copy"
   | "export.copied"
@@ -473,6 +486,10 @@ export type StringKey =
   | "mcp.copied"
   | "mcp.moveHint"
   | "mcp.missingBinary"
+  | "action.details"
+  | "action.hideDetails"
+  | "sync.damaged"
+  | "library.readOnlyProblems"
   ;
 
 type Value = string | { one: string; other: string };
@@ -609,6 +626,19 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "export.format.txt": "텍스트 (.txt)",
     "export.format.md": "Markdown (.md)",
     "export.format.docx": "Word (.docx)",
+    "export.docx.font": "글꼴",
+    "export.docx.size": "글자 크기 (pt)",
+    "export.docx.lineSpacing": "줄 간격 (%)",
+    "export.docx.pageBreak": "시트마다 새 쪽에서 시작",
+    "export.docx.titles": "제목을 제목 스타일로 넣기",
+    "export.docx.page": "쪽 설정",
+    "export.docx.paper": "A4 세로 · 여백 (mm)",
+    "export.docx.marginTop": "위",
+    "export.docx.marginBottom": "아래",
+    "export.docx.marginLeft": "왼쪽",
+    "export.docx.marginRight": "오른쪽",
+    "export.docx.reset": "기본값으로",
+    "export.docx.failed": "Word 파일을 만들지 못했어요: {reason}",
     "export.format.epub": "EPUB (.epub) — 준비 중",
     "export.copy": "클립보드에 복사",
     "export.copied": "복사했어요",
@@ -947,7 +977,11 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "mcp.pasteHint": "Claude 데스크톱 → 설정 → 개발자 → 구성 편집(Edit Config)으로 열리는 claude_desktop_config.json에 붙여넣고 Claude를 다시 시작하세요. 이미 다른 서버가 있으면 \"mcpServers\" 안에 \"ithaca\" 항목만 더하세요.",
     "mcp.copied": "복사했어요",
     "mcp.moveHint": "앱을 다른 곳으로 옮기면 경로가 바뀌어요. 그때는 다시 복사해 붙여넣으세요.",
-    "mcp.missingBinary": "이 빌드에는 ithaca-mcp가 들어 있지 않아요. 설정은 저장되지만 Claude가 연결할 수 없어요."
+    "mcp.missingBinary": "이 빌드에는 ithaca-mcp가 들어 있지 않아요. 설정은 저장되지만 Claude가 연결할 수 없어요.",
+    "action.details": "자세히",
+    "action.hideDetails": "접기",
+    "sync.damaged": "저장할 수 없음 (손상)",
+    "library.readOnlyProblems": "라이브러리에 문제가 있어서 읽기 전용으로 열었어요. 아무것도 덮어쓰지 않아요."
   },
   "en": {
     "app.name": "Ithaca",
@@ -1098,6 +1132,19 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "export.format.txt": "Plain text (.txt)",
     "export.format.md": "Markdown (.md)",
     "export.format.docx": "Word (.docx)",
+    "export.docx.font": "Font",
+    "export.docx.size": "Size (pt)",
+    "export.docx.lineSpacing": "Line spacing (%)",
+    "export.docx.pageBreak": "Start each sheet on a new page",
+    "export.docx.titles": "Include titles as headings",
+    "export.docx.page": "Page setup",
+    "export.docx.paper": "A4 portrait · margins (mm)",
+    "export.docx.marginTop": "Top",
+    "export.docx.marginBottom": "Bottom",
+    "export.docx.marginLeft": "Left",
+    "export.docx.marginRight": "Right",
+    "export.docx.reset": "Reset to defaults",
+    "export.docx.failed": "Couldn't create the Word file: {reason}",
     "export.format.epub": "EPUB (.epub) — coming soon",
     "export.copy": "Copy to clipboard",
     "export.copied": "Copied",
@@ -1499,7 +1546,11 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "mcp.pasteHint": "In Claude Desktop, open Settings → Developer → Edit Config, paste this into claude_desktop_config.json and restart Claude. If it already lists other servers, add just the \"ithaca\" entry inside \"mcpServers\".",
     "mcp.copied": "Copied",
     "mcp.moveHint": "If you move the app, the path changes: copy and paste it again.",
-    "mcp.missingBinary": "This build doesn't include ithaca-mcp. Settings are saved, but Claude can't connect."
+    "mcp.missingBinary": "This build doesn't include ithaca-mcp. Settings are saved, but Claude can't connect.",
+    "action.details": "Details",
+    "action.hideDetails": "Hide details",
+    "sync.damaged": "Can't save (damaged)",
+    "library.readOnlyProblems": "Opened read-only because of problems in the library, so nothing gets overwritten."
   }
 };
 

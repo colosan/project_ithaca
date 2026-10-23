@@ -20,6 +20,8 @@ final class MockLibrary: LibraryAPI {
     private let device: String
     /// Snapshots: sheets to report as damaged (a recover clears the mark).
     var damagedSheets: Set<String> = []
+    /// Snapshots: a read-only / problems library.
+    var infoOverride: LibraryInfo?
 
     init(seeded: Bool, device: String = Host.current().localizedName ?? "Mac") {
         self.device = device
@@ -27,7 +29,7 @@ final class MockLibrary: LibraryAPI {
     }
 
     func info() -> LibraryInfo {
-        LibraryInfo(format: 1, coreVersion: "mock", readOnly: false, migratedFrom: nil, backupPath: nil, inMemory: true)
+        infoOverride ?? LibraryInfo(format: 1, coreVersion: "mock", readOnly: false, migratedFrom: nil, backupPath: nil, inMemory: true)
     }
 
     // MARK: Projects
@@ -236,6 +238,11 @@ final class MockLibrary: LibraryAPI {
             return TextMetrics.render(text, title: TextMetrics.title(text), options)
         }
         return parts.joined(separator: options.markdown ? "\n\n---\n\n" : "\n\n\n")
+    }
+
+    /// The mock has no core to build a Word package: the plain text stands in (snapshots never save).
+    func exportDocx(project: String, sheets ids: [String], options: DocxOptions) throws -> Data {
+        Data(try exportText(project: project, sheets: ids, options: ExportOptions(indent: options.firstLineIndent, includeTitle: options.includeTitles)).utf8)
     }
 
     // MARK: Episodes · backups · platform counts

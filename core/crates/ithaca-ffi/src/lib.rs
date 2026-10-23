@@ -632,6 +632,48 @@ impl From<store::SearchHit> for SearchHit {
     }
 }
 
+/// (added: docx) Word export layout. A4 portrait; sizes in points, margins in millimetres.
+#[derive(Debug, Clone, PartialEq, uniffi::Record)]
+pub struct DocxOptions {
+    #[uniffi(default = "맑은 고딕")]
+    pub font: String,
+    #[uniffi(default = 10.0)]
+    pub font_size: f32,
+    #[uniffi(default = 160)]
+    pub line_spacing: u32,
+    #[uniffi(default = true)]
+    pub first_line_indent: bool,
+    #[uniffi(default = true)]
+    pub page_break: bool,
+    #[uniffi(default = true)]
+    pub include_titles: bool,
+    #[uniffi(default = 20.0)]
+    pub margin_top_mm: f32,
+    #[uniffi(default = 15.0)]
+    pub margin_bottom_mm: f32,
+    #[uniffi(default = 30.0)]
+    pub margin_left_mm: f32,
+    #[uniffi(default = 30.0)]
+    pub margin_right_mm: f32,
+}
+
+impl From<DocxOptions> for ithaca_model::DocxOptions {
+    fn from(o: DocxOptions) -> Self {
+        ithaca_model::DocxOptions {
+            font: o.font,
+            font_size: o.font_size,
+            line_spacing: o.line_spacing,
+            first_line_indent: o.first_line_indent,
+            page_break: o.page_break,
+            include_titles: o.include_titles,
+            margin_top_mm: o.margin_top_mm,
+            margin_bottom_mm: o.margin_bottom_mm,
+            margin_left_mm: o.margin_left_mm,
+            margin_right_mm: o.margin_right_mm,
+        }
+    }
+}
+
 impl From<ExportOptions> for ithaca_model::ExportOptions {
     fn from(o: ExportOptions) -> Self {
         ithaca_model::ExportOptions {
@@ -846,6 +888,18 @@ impl Library {
             .export_text(&project, &sheets, &options.into())?)
     }
 
+    /// (added: docx) The sheets as a .docx file's bytes; write them where the user chose.
+    pub fn export_docx(
+        &self,
+        project: String,
+        sheets: Vec<String>,
+        options: DocxOptions,
+    ) -> R<Vec<u8>> {
+        Ok(self
+            .lock()
+            .export_docx(&project, &sheets, &options.into())?)
+    }
+
     // Episodes (added round 2)
 
     pub fn set_episode(
@@ -986,6 +1040,80 @@ impl Library {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// (added: docx) A real file through the FFI; on macOS also read back by `textutil`, which
+    /// parses .docx the way Pages / TextEdit do.
+    #[test]
+    fn export_docx_through_ffi() {
+        let dir = tempfile::tempdir().unwrap();
+        let lib =
+            Library::open(dir.path().join("lib").to_string_lossy().into(), "d".into()).unwrap();
+        let p = lib
+            .create_project("작품 & 시험".into(), Language::Ko, vec!["연재".into()])
+            .unwrap();
+        let o = lib.outline(p.id.clone()).unwrap();
+        let s1 = o.folders[0].sheets[0].id.clone();
+        lib.save_sheet(
+            p.id.clone(),
+            s1,
+            "# 1화\n그날 밤, **비가** 왔다.\n***\n끝 <꼭> & 끝.".into(),
+        )
+        .unwrap();
+        lib.create_sheet(
+            p.id.clone(),
+            o.folders[0].id.clone(),
+            "# 2화\n둘째 날.".into(),
+        )
+        .unwrap();
+        let opts = DocxOptions {
+            font: "맑은 고딕".into(),
+            font_size: 10.0,
+            line_spacing: 160,
+            first_line_indent: true,
+            page_break: true,
+            include_titles: true,
+            margin_top_mm: 20.0,
+            margin_bottom_mm: 15.0,
+            margin_left_mm: 30.0,
+            margin_right_mm: 30.0,
+        };
+        let bytes = lib.export_docx(p.id.clone(), vec![], opts.clone()).unwrap();
+        assert_eq!(&bytes[..2], b"PK");
+        assert!(matches!(
+            lib.export_docx(p.id.clone(), vec!["nope".into()], opts),
+            Err(CoreError::NotFound)
+        ));
+
+        if cfg!(target_os = "macos") {
+            let path = dir.path().join("out.docx");
+            std::fs::write(&path, &bytes).unwrap();
+            let out = std::process::Command::new("textutil")
+                .args(["-convert", "txt", "-stdout"])
+                .arg(&path)
+                .output()
+                .expect("textutil ships with macOS");
+            assert!(out.status.success(), "textutil could not read the file");
+            {
+                let text = String::from_utf8(out.stdout).unwrap();
+                let lines: Vec<&str> = text
+                    .lines()
+                    .map(|l| l.trim_matches(|c: char| c.is_whitespace() || c == '\u{c}'))
+                    .filter(|l| !l.is_empty())
+                    .collect();
+                assert_eq!(
+                    lines,
+                    [
+                        "1화",
+                        "그날 밤, 비가 왔다.",
+                        "* * *",
+                        "끝 <꼭> & 끝.",
+                        "2화",
+                        "둘째 날."
+                    ]
+                );
+            }
+        }
+    }
 
     #[test]
     fn library_is_send_and_sync() {

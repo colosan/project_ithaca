@@ -12,7 +12,7 @@ use ithaca_mcp::{SERVER_VERSION, Server, default_library};
 
 const USAGE: &str = "usage: ithaca-mcp [--library <folder>]\n\
 Read-only MCP server (stdio) for the Ithaca library. Default folder:\n\
-~/Library/Application Support/Ithaca/Library";
+$ITHACA_LIBRARY_PATH if set, else ~/Library/Application Support/Ithaca/Library";
 
 fn main() -> ExitCode {
     let mut library: Option<PathBuf> = None;
@@ -50,17 +50,25 @@ fn main() -> ExitCode {
         server.library().display()
     );
 
-    let stdin = std::io::stdin().lock();
+    let mut stdin = std::io::stdin().lock();
     let mut stdout = std::io::stdout().lock();
-    for line in stdin.lines() {
-        let line = match line {
-            Ok(l) => l,
+    // Raw bytes split on `\n`, so a line that is not UTF-8 gets an error reply instead of ending
+    // the session.
+    let mut line = Vec::new();
+    loop {
+        line.clear();
+        match stdin.read_until(b'\n', &mut line) {
+            Ok(0) => break,
+            Ok(_) => {}
             Err(e) => {
                 eprintln!("ithaca-mcp: stdin: {e}");
                 return ExitCode::FAILURE;
             }
-        };
-        if let Some(reply) = server.handle_line(&line)
+        }
+        if line.last() == Some(&b'\n') {
+            line.pop();
+        }
+        if let Some(reply) = server.handle_bytes(&line)
             && writeln!(stdout, "{reply}")
                 .and_then(|_| stdout.flush())
                 .is_err()

@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*"]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.3.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/colosan/project_ithaca"
@@ -19,10 +19,14 @@ uniffi = "0.32"
 blake3 = "1"
 similar = "2"
 unicode-segmentation = "1"
+# (added: qa4) NFC for imported file names (macOS hands out decomposed Hangul).
+unicode-normalization = "0.1"
 uuid = { version = "1", features = ["v4"] }
 tempfile = "3"
 libc = "0.2"
 encoding_rs = "0.8"
+# (added: docx) Deflate only, pure Rust (zlib-rs); no crypto, bzip2, lzma, zstd or time.
+zip = { version = "9", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 
 [profile.release]
 lto = "thin"

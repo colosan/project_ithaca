@@ -146,6 +146,20 @@ struct ExportOptions: Equatable, Sendable, Codable {
     var markdown = false
 }
 
+/// (docx) Word export layout; defaults = core DocxOptions (A4, Hangul Office's margins).
+struct DocxOptions: Equatable, Sendable, Codable {
+    var font = "맑은 고딕"
+    var fontSize: Double = 10
+    var lineSpacing = 160
+    var firstLineIndent = true
+    var pageBreak = true
+    var includeTitles = true
+    var marginTop: Double = 20
+    var marginBottom: Double = 15
+    var marginLeft: Double = 30
+    var marginRight: Double = 30
+}
+
 struct ImportReport: Equatable, Sendable {
     var projects: Int; var folders: Int; var sheets: Int
     /// "relative/path (reason)" for files a text-folder import left out.
@@ -256,6 +270,8 @@ protocol LibraryAPI: AnyObject {
     /// A folder of .txt/.md files → one new project (`title`/`language` nil = folder name / detected).
     func importTextFolder(path: String, title: String?, language: ManuscriptLanguage?) async throws -> ImportReport
     func exportText(project: String, sheets: [String], options: ExportOptions) throws -> String
+    /// (docx) The sheets as a .docx file's bytes (`sheets` as in exportText).
+    func exportDocx(project: String, sheets: [String], options: DocxOptions) throws -> Data
 }
 
 extension Int64 {

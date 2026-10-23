@@ -13,6 +13,10 @@ enum Snapshot {
         var dark = false
         var locale: LocalePref = .ko
         var setup: (AppModel, UserDefaults) -> Void = { _, _ in }
+        /// Settings render as a pane without a window title bar (it showed as an empty strip above the form).
+        var titled = true
+        /// Before the model exists (what info() reports: read-only, problems…).
+        var info: LibraryInfo? = nil
         var view: (AppModel) -> AnyView = { _ in AnyView(ShellView()) }
     }
 
@@ -33,16 +37,16 @@ enum Snapshot {
         let updater = UpdaterViewModel()
         func settings(_ tab: SettingsSection) -> Scene {
             Scene(name: "settings-\(tab.rawValue)", size: CGSize(width: 640, height: 560),
-                  setup: { _, d in d.set(tab.rawValue, forKey: "ithaca.settingsTab") },
-                  view: { _ in AnyView(SettingsView(updater: updater)) })
+                  setup: { _, d in d.set(tab.rawValue, forKey: "ithaca.settingsTab") }, titled: false,
+                  view: { _ in AnyView(SettingsView(updater: updater, only: tab)) })
         }
         func claude(_ locale: LocalePref) -> Scene {
             Scene(name: "settings-claude-on-\(locale.rawValue)", size: CGSize(width: 640, height: 760), locale: locale,
                   setup: { m, d in
                       d.set(SettingsSection.claude.rawValue, forKey: "ithaca.settingsTab")
                       _ = try? m.library.setMcpSettings(McpSettings(enabled: true, projects: m.projects.prefix(1).map(\.id)))
-                  },
-                  view: { _ in AnyView(SettingsView(updater: updater)) })
+                  }, titled: false,
+                  view: { _ in AnyView(SettingsView(updater: updater, only: .claude)) })
         }
         return [
             Scene(name: "shell-ko-light", size: wide),
@@ -102,8 +106,21 @@ enum Snapshot {
             Scene(name: "project-settings-munpia", size: CGSize(width: 560, height: 560), setup: { m, _ in m.updateProject(ProjectPatch(goal: .some(Goal(count: 5000, basis: .munpia)))) },
                   view: { _ in AnyView(ProjectSettingsView()) }),
             claude(.ko), claude(.en), settings(.claude),
+            // fix4: read-only causes, one compact notice bar.
+            Scene(name: "shell-readonly-locked-damaged", size: wide,
+                  setup: { m, _ in if let mock = m.library as? MockLibrary, let id = m.sheetId { mock.damagedSheets.insert(id); m.reloadOutline(); m.openSheet(id) } },
+                  info: Self.roInfo(locked: true, problems: ["Another Ithaca has this library open. Opened read-only; close the other one and open again to edit.", "Project x could not be read."])),
+            Scene(name: "shell-readonly-newer-en", size: wide, locale: .en, info: Self.roInfo(locked: false, problems: [])),
+            Scene(name: "shell-readonly-problems-expanded", size: wide,
+                  setup: { _, d in d.set(true, forKey: "ithaca.noticeExpanded") },
+                  info: Self.roInfo(locked: false, problems: ["library.json is missing but the folder holds projects. Opened read-only so nothing is overwritten."])),
+            Scene(name: "shell-problems-only", size: wide, info: { var i = Self.roInfo(locked: false, problems: ["Project y could not be read."]); i.readOnly = false; return i }()),
             Scene(name: "icons", size: CGSize(width: 720, height: 300), view: { _ in AnyView(IconSheet()) }),
         ]
+    }
+
+    static func roInfo(locked: Bool, problems: [String]) -> LibraryInfo {
+        LibraryInfo(format: 1, coreVersion: "mock", readOnly: !locked, migratedFrom: nil, backupPath: nil, inMemory: true, lockedByOther: locked, problems: problems)
     }
 
     private static func render(_ s: Scene, to url: URL) {
@@ -111,7 +128,9 @@ enum Snapshot {
         UserDefaults().removePersistentDomain(forName: suite)
         let defaults = UserDefaults(suiteName: suite)!
         defaults.set(s.locale.rawValue, forKey: "ithaca.locale")
-        let model = AppModel(library: MockLibrary(seeded: true, device: AppEnvironment.deviceName), defaults: defaults)
+        let mock = MockLibrary(seeded: true, device: AppEnvironment.deviceName)
+        mock.infoOverride = s.info
+        let model = AppModel(library: mock, defaults: defaults)
         s.setup(model, defaults)
         let appearance = NSAppearance(named: s.dark ? .darkAqua : .aqua)
         NSApp.appearance = appearance
@@ -119,9 +138,9 @@ enum Snapshot {
             .environment(model)
             .environment(\.locale, Locale(identifier: model.locale.rawValue))
             .defaultAppStorage(defaults)
-            .frame(width: s.size.width, height: s.size.height)
+            .frame(width: s.size.width, height: s.size.height, alignment: .top)
             .background(Color.surfaceCanvas)
-        let window = NSWindow(contentRect: CGRect(origin: .zero, size: s.size), styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
+        let window = NSWindow(contentRect: CGRect(origin: .zero, size: s.size), styleMask: s.titled ? [.titled, .fullSizeContentView] : [.borderless], backing: .buffered, defer: false)
         window.appearance = appearance
         let host = NSHostingView(rootView: root)
         host.frame = CGRect(origin: .zero, size: s.size)

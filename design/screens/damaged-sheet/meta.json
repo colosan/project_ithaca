@@ -1,0 +1,9 @@
+{
+  "title": {
+    "ko": "손상된 시트",
+    "en": "Damaged sheet"
+  },
+  "description": "깨진 기록의 시트를 마지막 온전한 내용으로 보여주고 백업에서 되살린다 (Mac 0.3.0 구현, 프로토타입 없음)",
+  "version": "0.0.0",
+  "planned": true
+}

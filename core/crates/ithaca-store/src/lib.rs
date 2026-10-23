@@ -298,6 +298,12 @@ impl Store {
         at: i64,
     ) -> Result<bool> {
         self.writable()?;
+        // (changed: qa4) Sheet text is stored with `\n` line breaks only.
+        let text: &str = &if sheet == Toc::SHEET_ID {
+            std::borrow::Cow::Borrowed(text)
+        } else {
+            ithaca_model::text::normalize_newlines(text)
+        };
         let device = self.device.clone();
         let p = self.project_mut(project)?;
         if p.damage.contains_key(sheet) {
@@ -529,6 +535,7 @@ impl Store {
                 toc: Toc::default(),
                 chains: Default::default(),
                 damage: Default::default(),
+                damage_direct: Default::default(),
                 unattributed: Default::default(),
             },
         );
@@ -1321,6 +1328,33 @@ impl Store {
         }
         Ok(export_sheets(bodies, options))
     }
+
+    /// (added: docx) The same sheets as a Word file (ithaca_model::docx). The project title goes into
+    /// the document properties; its language into the text language (Hangul is always ko-KR).
+    pub fn export_docx(
+        &self,
+        project: &str,
+        sheets: &[String],
+        options: &ithaca_model::DocxOptions,
+    ) -> Result<Vec<u8>> {
+        let p = self.project(project)?;
+        let ids = if sheets.is_empty() {
+            Self::reading_order(p)
+        } else {
+            sheets.to_vec()
+        };
+        let mut bodies = Vec::with_capacity(ids.len());
+        for s in &ids {
+            self.check_sheet(project, s)?;
+            bodies.push(p.chains.get(s).map_or("", |c| c.text.as_str()));
+        }
+        Ok(ithaca_model::export_docx(
+            bodies,
+            &p.toc.title,
+            p.toc.language,
+            options,
+        )?)
+    }
 }
 
 /// The error a write to a damaged chain gets.
@@ -1337,16 +1371,39 @@ fn damaged_error(chain: &str) -> StoreError {
     }
 }
 
+/// "1 change file damaged; 2 later changes depend on it" (changed: qa4): only the files that are
+/// broken themselves count as damaged. No files at all: the sheet's files are missing.
+fn damage_count(direct: usize, all: usize) -> String {
+    let dependents = all.saturating_sub(direct);
+    let mut s = match direct {
+        0 if all == 0 => return "its change files are missing".into(),
+        0 if all == 1 => return "1 change can't be verified".into(),
+        0 => return format!("{all} changes can't be verified"),
+        1 => "1 change file damaged".into(),
+        n => format!("{n} change files damaged"),
+    };
+    let them = if direct == 1 { "it" } else { "them" };
+    match dependents {
+        0 => {}
+        1 => s.push_str(&format!("; 1 later change depends on {them}")),
+        n => s.push_str(&format!("; {n} later changes depend on {them}")),
+    }
+    s
+}
+
 /// What opening tells the writer about a damaged project.
 fn damage_problems(p: &Project) -> Vec<String> {
     let title = &p.toc.title;
     let mut out = Vec::new();
     for (chain, files) in &p.damage {
+        let what = damage_count(
+            p.damage_direct.get(chain).copied().unwrap_or(files.len()),
+            files.len(),
+        );
         if chain == Toc::SHEET_ID {
             out.push(format!(
-                "The table of contents of \"{title}\" is damaged ({} change files broken). It shows \
-                 its last good state and can't be changed; restore the project from a backup.",
-                files.len()
+                "The table of contents of \"{title}\" is damaged ({what}). It shows its last good \
+                 state and can't be changed; restore the project from a backup."
             ));
         } else {
             let name = p
@@ -1355,9 +1412,8 @@ fn damage_problems(p: &Project) -> Vec<String> {
                 .map(|c| title_of(&c.text))
                 .unwrap_or_default();
             out.push(format!(
-                "Sheet \"{name}\" in \"{title}\" is damaged ({} change files broken or missing). It \
-                 shows its last good text and can't be edited until it is recovered from a backup.",
-                files.len()
+                "Sheet \"{name}\" in \"{title}\" is damaged ({what}). It shows its last good text \
+                 and can't be edited until it is recovered from a backup."
             ));
         }
     }

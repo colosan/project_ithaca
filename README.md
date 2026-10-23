@@ -4,7 +4,21 @@
 
 **연재 작가를 위한 오픈소스 글쓰기 앱.** 서버도 구독도 없이, 내 Claude 가 내 설정집을 읽는다.
 
-> 🚧 Pre-alpha — the **Mac app** is being built now (Rust core + SwiftUI). Other platforms follow the design freeze.
+> 🚧 Pre-alpha — the **Mac app** is in daily use (Rust core + SwiftUI). Other platforms follow the design freeze.
+
+## Mac app
+
+**Install:** download `Ithaca-<version>.zip` from [GitHub Releases (latest)](https://github.com/colosan/project_ithaca/releases/latest), unzip, move `Ithaca.app` to `/Applications`, and on first launch use System Settings → Privacy & Security → **Open Anyway** (the app isn't notarized yet). Updates arrive in-app (Sparkle, signature-checked). Apple Silicon only for now. User guide (Korean): [`docs/mac-app.md`](docs/mac-app.md).
+
+- **Projects → folders → sheets**, Markdown kept as typed, serial order by drag or ⌥⌘↑↓, trash with 30-day undo.
+- **Episodes** — numbering (prologue/side stories excluded), draft · revising · scheduled · published, release dates, stock count and next release in the list, folder stats.
+- **Counts** — with/without spaces always on screen, 원고지 pages, Munpia/Novelpia counts, per-sheet goals.
+- **Paste-ready export** — plain text for serial platforms (blank lines, indent, Markdown stripped), or .txt / .md files.
+- **History** — every save is a hash-chained block; restore any version without losing the rest.
+- **Claude (read-only)** — Claude Desktop reads the projects you tick, via a bundled local MCP server. No token, no network.
+- **Safe by default** — autosave that never drops unsaved text, daily local backups (7 days + 4 weeks) restored as copies, damaged-sheet recovery, one writer per library (a second instance opens read-only).
+- **Import** — the web version's JSON backup, or a folder of .txt/.md files (natural order, CP949-aware).
+- Inspector (reference · info · outline), focus mode, typewriter scrolling, ⌘K palette, Korean & English UI.
 
 ## Why
 

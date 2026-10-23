@@ -41,7 +41,9 @@ struct LibraryPane: View {
                 .padding(.bottom, T.Space.s100)
             }
             HStack(spacing: T.Space.s100) {
-                KitButton(model.t(.libraryNewProject), icon: .add, variant: .ghost) { model.show(.newProject(firstRun: false)) }
+                if !model.readOnly {
+                    KitButton(model.t(.libraryNewProject), icon: .add, variant: .ghost) { model.show(.newProject(firstRun: false)) }
+                }
                 Spacer(minLength: 0)
                 SettingsLink {
                     Icon(.settings, size: T.Size.iconMd, color: .inkSecondary).frame(width: T.Size.controlSm, height: T.Size.controlSm)
@@ -75,7 +77,9 @@ struct LibraryPane: View {
                 ForEach(model.folders) { f in
                     if editing == f.id { field } else { folderRow(f) }
                 }
-                if editing == "new" { field } else {
+                if model.readOnly {
+                    // Read-only library: no new folder.
+                } else if editing == "new" { field } else {
                     LibraryRow(active: false, muted: true, indent: true) {
                         draft = ""; editing = "new"; fieldFocused = true
                     } content: {
@@ -103,12 +107,14 @@ struct LibraryPane: View {
         }
         .contextMenu {
             Button(model.t(.folderInfo)) { model.showFolderInfo(f.id) }
-            Divider()
-            Button(model.t(.folderRename)) { draft = f.name; editing = f.id; fieldFocused = true }
-            Button(model.t(.folderDelete), role: .destructive) { model.deleteFolder(f.id) }
+            if !model.readOnly {
+                Divider()
+                Button(model.t(.folderRename)) { draft = f.name; editing = f.id; fieldFocused = true }
+                Button(model.t(.folderDelete), role: .destructive) { model.deleteFolder(f.id) }
+            }
         }
         .dropDestination(for: String.self) { ids, _ in
-            guard let id = ids.first else { return false }
+            guard !model.readOnly, let id = ids.first else { return false }
             model.move(sheet: id, to: f.id, before: nil)
             return true
         }

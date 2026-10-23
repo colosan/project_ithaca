@@ -14,6 +14,8 @@ BUILD="${BUILD:-$(git rev-list --count HEAD)}"
 APP="$ROOT/dist/Ithaca.app"
 
 echo "▸ core (Rust)"
+# ithaca-mcp reports the app version (serverInfo, --version) rather than the core crate's.
+export ITHACA_APP_VERSION="$VERSION"
 (cd core && cargo build --release -p ithaca-ffi -p ithaca-mcp)
 
 echo "▸ bindings (UniFFI → Swift)"

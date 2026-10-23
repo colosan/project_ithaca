@@ -10,20 +10,7 @@ struct EditorPane: View {
     var body: some View {
         VStack(spacing: 0) {
             toolbar
-            if model.readOnly {
-                EditorBanner(icon: .lease, message: model.readOnlyMessage)
-            }
-            if !model.info.problems.isEmpty && !model.problemsDismissed {
-                EditorBanner(icon: .warning, message: model.t(.libraryProblems, ["count": model.info.problems.count], count: model.info.problems.count)) {
-                    model.problemsDismissed = true
-                }
-            }
-            if model.projectId != nil && model.tocDamagedProject == model.projectId {
-                TocDamagedBanner()
-            }
-            if model.sheet?.damaged == true {
-                DamagedSheetBanner()
-            }
+            NoticeBar()
             if model.sheetId != nil {
                 ManuscriptView(model: model, sizeClass: sizeClass)
                     .opacity(model.editorLocked ? T.Opacity.readOnly : 1)
@@ -71,90 +58,147 @@ struct EditorPane: View {
     }
 }
 
-/// A warning strip above the manuscript (read-only library, problems found on open). `dismiss` adds a close button.
-struct EditorBanner: View {
+/// Everything wrong above the manuscript in one compact bar: the most important notice on one line (with its
+/// main action), the rest behind "자세히" — damaged sheet › damaged table of contents › read-only library › problems on open.
+struct NoticeBar: View {
     @Environment(AppModel.self) private var model
-    let icon: IthacaIcon
-    let message: String
-    var dismiss: (() -> Void)?
+    @AppStorage("ithaca.noticeExpanded") private var expanded = false
+
+    private enum Kind { case damagedSheet, tocDamaged, readOnly, problems }
+
+    private var kinds: [Kind] {
+        var k: [Kind] = []
+        if model.sheet?.damaged == true { k.append(.damagedSheet) }
+        if model.projectId != nil && model.tocDamagedProject == model.projectId { k.append(.tocDamaged) }
+        if model.readOnly { k.append(.readOnly) }
+        // Read-only because of these problems: the read-only notice already says so; the list sits under "자세히".
+        if !model.info.problems.isEmpty && !model.problemsDismissed && model.readOnlyCause == nil { k.append(.problems) }
+        return k
+    }
 
     var body: some View {
-        HStack(spacing: T.Space.s150) {
-            Icon(icon, size: T.Size.iconSm)
-            Text(message).textStyle(.label).fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-            if let dismiss {
-                Button(action: dismiss) { Icon(.close, size: T.Size.iconSm) }
+        let kinds = kinds
+        if let first = kinds.first {
+            VStack(alignment: .leading, spacing: T.Space.s100) {
+                HStack(spacing: T.Space.s100) {
+                    Icon(icon(first), size: T.Size.iconSm)
+                    // One line; "자세히" wraps it in full.
+                    Text(message(first)).textStyle(.label).lineLimit(expanded ? nil : 1).truncationMode(.tail)
+                        .fixedSize(horizontal: false, vertical: expanded).help(message(first))
+                    Spacer(minLength: T.Space.s50)
+                    primaryAction(first)
+                    // "자세히" only when there is more to show (other notices, the problem list, more actions, a long line).
+                    if kinds.count > 1 || !model.info.problems.isEmpty || first == .damagedSheet || message(first).count > 60 {
+                    Button { withAnimation(.easeOut(duration: 0.15)) { expanded.toggle() } } label: {
+                        HStack(spacing: T.Space.s25) {
+                            Text(model.t(expanded ? .actionHideDetails : .actionDetails))
+                            Icon(expanded ? .expanded : .collapsed, size: T.Size.iconSm)
+                        }
+                        .textStyle(.label)
+                    }
                     .buttonStyle(.plain)
-                    .help(model.t(.actionClose))
+                    .fixedSize()
+                    }
+                    if first == .problems {
+                        Button { model.problemsDismissed = true } label: { Icon(.close, size: T.Size.iconSm) }
+                            .buttonStyle(.plain)
+                            .help(model.t(.actionClose))
+                    }
+                }
+                .foregroundStyle(tone(first))
+                if expanded {
+                    // Grows with its content, scrolls past ~180 pt so the manuscript stays in view.
+                    if kinds.count + model.info.problems.count > 4 {
+                        ScrollView { detailList(kinds) }.frame(height: 180)
+                    } else {
+                        detailList(kinds)
+                    }
+                }
             }
+            .padding(.horizontal, T.Space.s150)
+            .padding(.vertical, T.Space.s100)
+            .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.accentSoft))
+            .padding(.horizontal, T.Space.s200)
+            .padding(.bottom, T.Space.s50)
         }
-        .foregroundStyle(Color.stateWarning)
-        .padding(T.Space.s150)
-        .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.accentSoft))
-        .padding(.horizontal, T.Space.s200)
     }
-}
 
-/// A damaged sheet (part of its history unreadable): the last intact text, read-only, with a way back.
-struct DamagedSheetBanner: View {
-    @Environment(AppModel.self) private var model
+    private func detailList(_ kinds: [Kind]) -> some View {
+                        VStack(alignment: .leading, spacing: T.Space.s150) {
+                            ForEach(Array(kinds.enumerated()), id: \.offset) { i, k in details(k, first: i == 0) }
+                            if !model.info.problems.isEmpty {
+                                VStack(alignment: .leading, spacing: T.Space.s50) {
+                                    Caption(model.t(.libraryProblemsTitle))
+                                    ForEach(Array(model.info.problems.enumerated()), id: \.offset) { _, p in
+                                        Text("· " + p).textStyle(.caption).foregroundStyle(Color.inkSecondary)
+                                            .textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+    }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: T.Space.s100) {
-            HStack(alignment: .top, spacing: T.Space.s150) {
-                Icon(.warning, size: T.Size.iconSm)
-                Text(model.t(.sheetDamaged)).textStyle(.label).fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-            }
-            .foregroundStyle(Color.stateDanger)
-            let noBackup = model.noBackupForSheet == model.sheetId
+    private func icon(_ k: Kind) -> IthacaIcon { k == .readOnly ? .lease : .warning }
+    private func tone(_ k: Kind) -> Color { k == .damagedSheet || k == .tocDamaged ? .stateDanger : .stateWarning }
+
+    private func message(_ k: Kind) -> String {
+        switch k {
+        case .damagedSheet: model.t(.sheetDamaged)
+        case .tocDamaged: model.t(.projectTocDamaged)
+        case .readOnly: model.readOnlyMessage
+        case .problems: model.t(.libraryProblems, ["count": model.info.problems.count], count: model.info.problems.count)
+        }
+    }
+
+    private var noBackup: Bool { model.noBackupForSheet == model.sheetId }
+
+    @ViewBuilder private func primaryAction(_ k: Kind) -> some View {
+        switch k {
+        case .damagedSheet:
             if noBackup {
-                Text(model.t(.sheetNoBackupHasIt)).textStyle(.caption).foregroundStyle(Color.inkSecondary).fixedSize(horizontal: false, vertical: true)
+                KitButton(model.t(.sheetKeepLastGood), icon: .check, variant: .primary) { model.keepLastGoodText() }.disabled(model.readOnly).fixedSize()
+            } else {
+                KitButton(model.t(.sheetRecoverFromBackup), icon: .restore, variant: .primary) { model.recoverDamagedSheet() }.disabled(model.readOnly).fixedSize()
             }
-            // Wraps when the editor is narrow (three buttons side by side clip below ~700 pt).
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: T.Space.s100) { buttons(noBackup); Spacer(minLength: 0) }
-                VStack(alignment: .leading, spacing: T.Space.s100) { buttons(noBackup) }
-            }
+        case .tocDamaged:
+            KitButton(model.t(.projectTocDamagedAction), icon: .backup) { openBackupSettings() }.fixedSize()
+        case .readOnly, .problems:
+            EmptyView()
         }
-        .padding(T.Space.s150)
-        .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.accentSoft))
-        .padding(.horizontal, T.Space.s200)
-        .padding(.bottom, T.Space.s100)
     }
 
-    @ViewBuilder private func buttons(_ noBackup: Bool) -> some View {
-        if noBackup {
-            KitButton(model.t(.sheetKeepLastGood), icon: .check, variant: .primary) { model.keepLastGoodText() }.disabled(model.readOnly)
-            KitButton(model.t(.sheetRecoverFromBackup), icon: .restore) { model.recoverDamagedSheet() }.disabled(model.readOnly)
-        } else {
-            KitButton(model.t(.sheetRecoverFromBackup), icon: .restore, variant: .primary) { model.recoverDamagedSheet() }.disabled(model.readOnly)
-        }
-        KitButton(model.t(.saveCopyText), icon: .copy) { model.copyUnsavedText() }
-    }
-}
-
-/// Damaged table of contents: changes to this project can't be saved; restoring a backup copy is the way out.
-struct TocDamagedBanner: View {
-    @Environment(AppModel.self) private var model
-
-    var body: some View {
-        HStack(alignment: .top, spacing: T.Space.s150) {
-            Icon(.warning, size: T.Size.iconSm)
-            Text(model.t(.projectTocDamaged)).textStyle(.label).fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-            KitButton(model.t(.projectTocDamagedAction), icon: .backup) {
-                AppEnvironment.defaults.set(SettingsSection.backup.rawValue, forKey: "ithaca.settingsTab")
-                openSettingsWindow()
+    /// The full sentence of each notice, wrapped, with the actions that didn't fit on the line.
+    @ViewBuilder private func details(_ k: Kind, first: Bool) -> some View {
+        VStack(alignment: .leading, spacing: T.Space.s50) {
+            if !first {  // the first one is already the (now wrapped) top line
+                HStack(alignment: .top, spacing: T.Space.s100) {
+                    Icon(icon(k), size: T.Size.iconSm)
+                    Text(message(k)).textStyle(.label).fixedSize(horizontal: false, vertical: true)
+                }
+                .foregroundStyle(tone(k))
             }
-            .fixedSize()
+            switch k {
+            case .damagedSheet:
+                if noBackup {
+                    Text(model.t(.sheetNoBackupHasIt)).textStyle(.caption).foregroundStyle(Color.inkSecondary).fixedSize(horizontal: false, vertical: true)
+                }
+                HStack(spacing: T.Space.s100) {
+                    if !first { primaryAction(k) }
+                    if noBackup { KitButton(model.t(.sheetRecoverFromBackup), icon: .restore) { model.recoverDamagedSheet() }.disabled(model.readOnly).fixedSize() }
+                    KitButton(model.t(.saveCopyText), icon: .copy) { model.copyUnsavedText() }.fixedSize()
+                }
+            case .tocDamaged:
+                if !first { primaryAction(k) }
+            case .readOnly, .problems:
+                EmptyView()
+            }
         }
-        .foregroundStyle(Color.stateDanger)
-        .padding(T.Space.s150)
-        .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.accentSoft))
-        .padding(.horizontal, T.Space.s200)
-        .padding(.bottom, T.Space.s100)
+    }
+
+    private func openBackupSettings() {
+        AppEnvironment.defaults.set(SettingsSection.backup.rawValue, forKey: "ithaca.settingsTab")
+        openSettingsWindow()
     }
 }
 
@@ -203,6 +247,22 @@ struct EditorFooter: View {
     }
 
     @ViewBuilder private var saveStatus: some View {
+        if model.sheet?.damaged == true {
+            // A damaged sheet shows its last intact text; nothing typed here is kept — never "saved".
+            Label { Text(model.t(.syncDamaged)) } icon: { Icon(.warning, size: T.Size.iconSm) }
+                .foregroundStyle(Color.stateDanger)
+                .fontWeight(.semibold)
+                .help(model.t(.sheetDamaged))
+        } else if model.readOnly, model.saveStatus == .saved {
+            Label { Text(model.t(.leaseReadOnly)) } icon: { Icon(.lease, size: T.Size.iconSm) }
+                .foregroundStyle(Color.stateWarning)
+                .help(model.readOnlyMessage)
+        } else {
+            status
+        }
+    }
+
+    @ViewBuilder private var status: some View {
         switch model.saveStatus {
         case .saved:
             Label { Text(model.t(.syncSavedLocal)) } icon: { Icon(.synced, size: T.Size.iconSm) }.foregroundStyle(Color.stateSuccess)

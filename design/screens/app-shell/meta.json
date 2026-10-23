@@ -141,6 +141,38 @@
         "ko": "휴지통",
         "en": "Trash"
       }
+    },
+    {
+      "from": "default",
+      "to": "episodes",
+      "label": {
+        "ko": "연재 폴더 머리 · 회차 상태",
+        "en": "Serial folder header · episode status"
+      }
+    },
+    {
+      "from": "default",
+      "to": "damaged-sheet",
+      "label": {
+        "ko": "손상된 시트를 엶",
+        "en": "Open a damaged sheet"
+      }
+    },
+    {
+      "from": "readonly",
+      "to": "library-error",
+      "label": {
+        "ko": "다른 Ithaca가 쓰는 중",
+        "en": "Another Ithaca has it open"
+      }
+    },
+    {
+      "from": "default",
+      "to": "import",
+      "label": {
+        "ko": "파일 → 가져오기",
+        "en": "File → Import"
+      }
     }
   ]
 }

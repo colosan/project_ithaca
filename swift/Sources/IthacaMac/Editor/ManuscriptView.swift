@@ -173,6 +173,11 @@ struct ManuscriptView: NSViewRepresentable {
         /// Undo per word: after a space, punctuation or line break (outside composition) the next typing starts a new undo step.
         private var breakAfterChange = false
         func textView(_ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString: String?) -> Bool {
+            // Drops, services, dictation…: any insert carrying \r (or U+2028/9) goes in as \n instead.
+            if let s = replacementString, !textView.hasMarkedText(), s.normalizedNewlines != s {
+                textView.insertText(s.normalizedNewlines, replacementRange: range)
+                return false
+            }
             if let s = replacementString, !textView.hasMarkedText(),
                s.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.union(.punctuationCharacters).contains($0) }) {
                 breakAfterChange = true
@@ -330,7 +335,7 @@ final class ManuscriptTextView: NSTextView {
         var s = pb.string(forType: .string)
         if s == nil, let rtf = pb.data(forType: .rtf) { s = NSAttributedString(rtf: rtf, documentAttributes: nil)?.string }
         if s == nil, let html = pb.data(forType: .html) { s = NSAttributedString(html: html, documentAttributes: nil)?.string }
-        guard let text = s?.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\u{2028}", with: "\n") else { return super.paste(sender) }
+        guard let text = s?.normalizedNewlines else { return super.paste(sender) }
         breakUndoCoalescing()
         insertText(text, replacementRange: selectedRange())
         breakUndoCoalescing()

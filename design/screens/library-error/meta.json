@@ -1,0 +1,9 @@
+{
+  "title": {
+    "ko": "라이브러리 열기 실패 · 읽기 전용",
+    "en": "Library error · read-only"
+  },
+  "description": "라이브러리를 열지 못했거나 다른 Ithaca가 쓰는 중일 때 — 아무것도 다른 곳에 쓰지 않는다 (Mac 0.3.0 구현, 프로토타입 없음)",
+  "version": "0.0.0",
+  "planned": true
+}

@@ -90,6 +90,8 @@ fn create_sheet(&self, project: String, folder: String, text: String) -> Result<
 fn sheet_text(&self, project: String, sheet: String) -> Result<String, CoreError>;
 /// Records a new block only when the text changed. The app calls this on idle (~1.5 s), on sheet switch and on quit.
 /// On a branched sheet the block extends the winner (resolving branches has no API yet).
+/// (changed: qa4) `\r\n` and lone `\r` in `text` are stored as `\n` (also for create_sheet), so
+/// `sheet_text` may differ from what was passed; export / platform_body treat `\r` the same way.
 fn save_sheet(&self, project: String, sheet: String, text: String) -> Result<SheetSummary, CoreError>;
 /// Reorder or move a live sheet: before `before` (a live sheet of `folder`, else NotFound) or at the end.
 /// A trashed sheet can't be moved (InvalidInput).
@@ -168,6 +170,21 @@ fn set_mcp_settings(&self, enabled: bool, projects: Vec<String>) -> Result<McpSe
   for a library elsewhere; default `~/Library/Application Support/Ithaca/Library`.
 - Tools: `list_projects`, `get_outline`, `read_sheet`, `search`, `get_lore`, `get_episode_stats` — all
   read-only. No address or token: stdio only (the spec's 주소 · 토큰 rows are not needed yet).
+- (added: qa4) Library: `--library <folder>`, else `$ITHACA_LIBRARY_PATH`, else the default folder.
+  `serverInfo.version` / `--version` = the app version: `ITHACA_APP_VERSION` at build time
+  (tools/mac/build.sh passes VERSION), else the workspace version (now 0.3.0, also `core_version()`).
+- (changed: qa4) Protocol: stdin is read as bytes and split on `\n`; a line that is not UTF-8 gets
+  -32700 and the server keeps serving. A request whose `jsonrpc` isn't `"2.0"` gets -32600.
+- (changed: qa4) Output size: `read_sheet` takes `offset` / `limit` (characters; default 20,000, max
+  200,000; a cut prefers a line end) and has a `Page: {"offset","returned","totalChars","truncated",
+  "nextOffset"}` line in its header. `get_lore` takes `offset` (a sheet index) / `limit` (default
+  30,000, max 150,000) and pages by whole sheets (a single longer sheet is cut and points to
+  read_sheet); `Page: {…,"totalSheets","nextOffset"}`. `get_outline` / `get_episode_stats` take
+  `offset` and list at most 500 sheet rows (`page` object + `note`; totals still cover every row;
+  folders gain `sheetCount` in the outline). JSON over 8,000 bytes is sent once: text = a one-line
+  summary, a blank line, the compact JSON; no `structuredContent`. Smaller JSON as before.
+- (changed: qa4) `search`: queries over 1,000 characters → -32602; over 200 the result has
+  `queryChars` instead of echoing `query`.
 
 ## Backups (added round 2)
 
@@ -217,6 +234,9 @@ its blocks — no valid cache — each block's blake3 hash is checked. A sheet w
 read or verify, a block cut off by one, or no block at all is **damaged**:
 
 - `SheetSummary.damaged == true`; one line per damaged sheet in `info().problems` (from opening).
+  (changed: qa4) The line counts only the files that are broken themselves and mentions the blocks
+  built on them apart: `… is damaged (1 change file damaged; 1 later change depends on it). …`
+  (`its change files are missing` when the sheet has none left).
 - `sheet_text` is the **last good text**: the newer of the longest verifiable prefix of the chain and
   the newest snapshot after the damage that still verifies (with the deltas that follow it). Never a
   silent empty sheet unless nothing at all verifies.
@@ -310,6 +330,15 @@ fn import_web_backup_with_suffix(&self, json: String, suffix: String) -> Result<
 ///   their top-level subfolder. Subfolders with nothing importable are left out.
 /// - Ignored silently: hidden entries (name starts with ".", e.g. .DS_Store, .git/) and symlinks.
 ///   Reported in `skipped`: files > 5 MB, unreadable files, other extensions ("표지.jpg (not .txt or .md)").
+///   (changed: qa4) A subfolder that can't be read is skipped too ("잠긴 폴더 (can't read: …)"), not
+///   an Io error; all or nothing still applies to writing the project.
+/// - (added: qa4) File and folder names are NFC-normalized before sorting and when used as titles,
+///   folder names and the project title (a sheet's first line too). Paths in `skipped` are NFC.
+/// - (changed: qa4) Placement by file name, within each folder, before the natural sort: names
+///   containing 프롤로그 / 서장 / prologue first; then the rest; then 외전 / 번외 / 특별편 / 공지 /
+///   후기 / side story; then 에필로그 / epilogue last (a name with a side-story word is a side story
+///   even if it also says 프롤로그 or 에필로그). In the FIRST folder all but "the rest" get
+///   EpisodeInfo { number: None, excluded: true }; the rest are numbered 1..n.
 /// - Order: natural sort by name — ASCII digit runs compare by value ("2화" < "10화", "제2화" < "제10화",
 ///   "02" = "2", unpadded first on a tie), digits before text, text case-insensitively; nested files by
 ///   their path inside the subfolder. Folders are ordered the same way.
@@ -325,6 +354,18 @@ fn import_text_folder(&self, path: String, title: Option<String>, language: Opti
 fn export_text(&self, project: String, sheets: Vec<String>, options: ExportOptions) -> Result<String, CoreError>;
 // ExportOptions { blank_line = true, indent = false, strip_markdown = true, include_title = true, markdown = false }
 // — same rules as app-web Export: sheets joined by "\n\n\n"; `markdown` = bodies as written joined by "\n\n---\n\n".
+/// (added: docx) The same sheets (same `sheets` rule) as a Word .docx file's bytes; the app writes them
+/// where the user chose. A4 portrait. Each sheet's first non-empty line → Heading 1 (or left out);
+/// other `#` headings → Heading 1–3; scene breaks → a centred "* * *" (style "Scene Break"); list and
+/// quote marks dropped; `**bold**` / `*italic*` / `~~strike~~` → run formatting (nested emphasis kept);
+/// a typed leading indent is dropped when `first_line_indent` (the style indents one character).
+/// Fonts set for Latin, East Asian and complex scripts; `w:lang eastAsia="ko-KR"`, `w:val` from the
+/// project language (Ko → ko-KR, En → en-US). Project title → document title. NotFound as export_text.
+fn export_docx(&self, project: String, sheets: Vec<String>, options: DocxOptions) -> Result<Vec<u8>, CoreError>;  // Swift: Data
+// DocxOptions { font = "맑은 고딕", font_size: f32 = 10.0 /* pt */, line_spacing: u32 = 160 /* % */,
+//               first_line_indent = true, page_break = true /* each sheet after the first on a new page */,
+//               include_titles = true, margin_top_mm: f32 = 20.0, margin_bottom_mm = 15.0,
+//               margin_left_mm = 30.0, margin_right_mm = 30.0 }   // margins = Hangul Office's A4 defaults
 ```
 
 ## Types

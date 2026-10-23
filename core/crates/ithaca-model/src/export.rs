@@ -1,7 +1,8 @@
 //! Paste-ready text for serial platforms (app-web/src/Export.tsx, design/screens/export).
 
 use crate::text::{
-    is_heading, is_js_space, js_trim, js_trim_start, strip_emphasis, strip_heading_mark,
+    is_heading, is_js_space, js_trim, js_trim_start, normalize_newlines, strip_emphasis,
+    strip_heading_mark,
 };
 
 /// The plain spelling every scene break is normalized to.
@@ -34,7 +35,7 @@ impl Default for ExportOptions {
 }
 
 /// Export.tsx `SCENE_BREAK`: three or more of one mark family (`*＊`, `-－`, `_＿`), spaces allowed.
-fn is_export_scene_break(line: &str) -> bool {
+pub(crate) fn is_export_scene_break(line: &str) -> bool {
     let family = |c: char| match c {
         '*' | '＊' => Some(0),
         '-' | '－' => Some(1),
@@ -59,7 +60,7 @@ fn is_export_scene_break(line: &str) -> bool {
 }
 
 /// Removes `^[-*>]\s+` once.
-fn strip_list_mark(s: &str) -> &str {
+pub(crate) fn strip_list_mark(s: &str) -> &str {
     match s.strip_prefix(['-', '*', '>']) {
         Some(r) if r.starts_with(is_js_space) => r.trim_start_matches(is_js_space),
         _ => s,
@@ -68,6 +69,8 @@ fn strip_list_mark(s: &str) -> &str {
 
 /// One sheet with the paste rules.
 pub fn render_sheet(body: &str, o: &ExportOptions) -> String {
+    // (changed: qa4) `\r\n` / `\r` count as line breaks.
+    let body = normalize_newlines(body);
     let mut lines: Vec<&str> = body.split('\n').collect();
     if !o.include_title
         && let Some(i) = lines.iter().position(|l| !js_trim(l).is_empty())
@@ -103,7 +106,7 @@ pub fn export_sheets<'a>(bodies: impl IntoIterator<Item = &'a str>, o: &ExportOp
     if o.markdown {
         bodies
             .into_iter()
-            .map(|b| js_trim(b).to_string())
+            .map(|b| js_trim(&normalize_newlines(b)).to_string())
             .collect::<Vec<_>>()
             .join("\n\n---\n\n")
     } else {

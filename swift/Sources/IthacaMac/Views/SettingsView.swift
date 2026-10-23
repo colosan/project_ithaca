@@ -11,8 +11,28 @@ struct SettingsView: View {
     @Environment(AppModel.self) private var model
     @ObservedObject var updater: UpdaterViewModel
     @AppStorage("ithaca.settingsTab") private var tab = SettingsSection.general
+    /// Snapshots: one section without the TabView (offscreen it draws its toolbar tabs as an empty strip).
+    var only: SettingsSection? = nil
 
     var body: some View {
+        if let only {
+            Group {
+                switch only {
+                case .general: GeneralSettings()
+                case .editor: EditorSettings()
+                case .backup: BackupSettings()
+                case .claude: ClaudeSettings()
+                case .about: AboutSettings(updater: updater)
+                }
+            }
+            .frame(width: T.Layout.Pane.dialogDefault + T.Space.s800)
+            .textStyle(.body)
+        } else {
+            tabs
+        }
+    }
+
+    private var tabs: some View {
         TabView(selection: $tab) {
             GeneralSettings().tabItem { Label { Text(model.t(.prefsGeneral)) } icon: { Image(lucide: .settings) } }.tag(SettingsSection.general)
             EditorSettings().tabItem { Label { Text(model.t(.prefsEditor)) } icon: { Image(lucide: .editorText) } }.tag(SettingsSection.editor)
@@ -43,7 +63,7 @@ private struct GeneralSettings: View {
                 Text(model.t(.themeDark)).tag(ThemePref.dark)
             }
             .pickerStyle(.segmented)
-            Toggle(model.t(.prefsConfirmDelete), isOn: $m.confirmDelete)
+            Toggle(model.t(.prefsConfirmDelete), isOn: $m.confirmDelete).toggleStyle(KitSwitchStyle())
             LabeledContent(model.t(.prefsTrash)) { Text(model.t(.trashHint)).foregroundStyle(Color.inkSecondary) }
         }
         .formStyle(.grouped)
@@ -73,10 +93,11 @@ private struct EditorSettings: View {
                 Text(model.t(.prefsEditorFocusParagraph)).tag(FocusScope.paragraph)
             } label: { labeled(.prefsEditorFocusScope, .prefsEditorFocusScopeHint) }
             .pickerStyle(.segmented)
-            Toggle(isOn: $m.typewriter) { labeled(.prefsEditorTypewriter, .prefsEditorTypewriterHint) }
+            Toggle(isOn: $m.typewriter) { labeled(.prefsEditorTypewriter, .prefsEditorTypewriterHint) }.toggleStyle(KitSwitchStyle())
             Toggle(isOn: Binding(get: { model.spellCheckActive }, set: { model.spellCheck = $0 })) {
                 labeled(.prefsEditorSpell, .prefsEditorSpellAutoHint)
             }
+            .toggleStyle(KitSwitchStyle())
         }
         .formStyle(.grouped)
     }
@@ -145,7 +166,7 @@ private struct BackupSettings: View {
                         KitButton(model.t(.backupRestoreCopies), icon: .restore, variant: .ghost) { restore(b) }.disabled(model.readOnly || model.busy != nil)
                     } label: {
                         VStack(alignment: .leading, spacing: T.Space.s25) {
-                            Text(b.at.date.formatted(Date.FormatStyle(date: .abbreviated, time: .shortened).locale(Locale(identifier: model.locale.rawValue))))
+                            Text(model.dateTime(b.at.date, year: true))
                             Caption(kind(b.kind) + " · " + model.t(.backupMetaProjects, ["size": ByteCountFormatter.string(fromByteCount: Int64(b.bytes), countStyle: .file), "count": b.projects], count: b.projects))
                         }
                     }
@@ -215,6 +236,7 @@ private struct ClaudeSettings: View {
                         Caption(model.t(.mcpReadOnlyHint)).fixedSize(horizontal: false, vertical: true)
                     }
                 }
+                .toggleStyle(KitSwitchStyle())
                 .disabled(model.readOnly)
             }
             if settings.enabled {
@@ -265,7 +287,10 @@ private struct ClaudeSettings: View {
     static var serverPath: String { Bundle.main.bundleURL.appendingPathComponent("Contents/MacOS/ithaca-mcp").path }
 
     static var config: String {
-        let root: [String: Any] = ["mcpServers": ["ithaca": ["command": serverPath]]]
+        // A test library (--library / ITHACA_LIBRARY_PATH) is passed on, so Claude reads the same one; the real one needs no args.
+        var server: [String: Any] = ["command": serverPath]
+        if AppEnvironment.libraryOverride != nil { server["args"] = ["--library", { var p = AppEnvironment.libraryURL.path(percentEncoded: false); while p.count > 1 && p.hasSuffix("/") { p.removeLast() }; return p }()] }
+        let root: [String: Any] = ["mcpServers": ["ithaca": server]]
         guard let d = try? JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]) else { return "" }
         return String(decoding: d, as: UTF8.self)
     }
@@ -304,6 +329,7 @@ private struct AboutSettings: View {
             if updater.isAvailable {
                 Section {
                     Toggle(model.t(.updateAutoCheck), isOn: Binding(get: { updater.automaticallyChecksForUpdates }, set: { updater.automaticallyChecksForUpdates = $0 }))
+                        .toggleStyle(KitSwitchStyle())
                     LabeledContent(updater.lastCheckText(locale: model.locale)) {
                         KitButton(model.t(.aboutCheckUpdate), icon: .sync) { updater.checkForUpdates() }.disabled(!updater.canCheckForUpdates)
                     }

@@ -21,6 +21,14 @@
         "ko": "만들기",
         "en": "Create"
       }
+    },
+    {
+      "from": "first-run",
+      "to": "import",
+      "label": {
+        "ko": "쓰던 원고 가져오기",
+        "en": "Bring in existing writing"
+      }
     }
   ]
 }

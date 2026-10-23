@@ -25,7 +25,12 @@ pub const MODERN_VERSION: &str = "2026-07-28";
 pub const LEGACY_VERSIONS: [&str; 4] = ["2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05"];
 
 pub const SERVER_NAME: &str = "ithaca-mcp";
-pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
+/// The app's version (changed: qa4): `ITHACA_APP_VERSION` at build time (tools/mac/build.sh passes
+/// the repo's VERSION file), else the workspace version.
+pub const SERVER_VERSION: &str = match option_env!("ITHACA_APP_VERSION") {
+    Some(v) if !v.is_empty() => v,
+    _ => env!("CARGO_PKG_VERSION"),
+};
 
 const META_VERSION: &str = "io.modelcontextprotocol/protocolVersion";
 const META_CAPS: &str = "io.modelcontextprotocol/clientCapabilities";
@@ -127,6 +132,21 @@ impl Server {
         Ok(Ctx { settings, store })
     }
 
+    /// One line of raw stdin bytes (without its `\n`) → the line to write back, if any. Bytes that
+    /// are not UTF-8 get a parse error for that line only.
+    pub fn handle_bytes(&self, line: &[u8]) -> Option<String> {
+        match std::str::from_utf8(line) {
+            Ok(s) => self.handle_line(s),
+            Err(e) => Some(
+                error_reply(
+                    Value::Null,
+                    RpcError::new(PARSE_ERROR, format!("message is not valid UTF-8: {e}")),
+                )
+                .to_string(),
+            ),
+        }
+    }
+
     /// One line from stdin → the line to write back, if any.
     pub fn handle_line(&self, line: &str) -> Option<String> {
         let line = line.trim();
@@ -171,6 +191,17 @@ impl Server {
         };
         // Notifications (`notifications/initialized`, `notifications/cancelled`, …): no reply.
         let id = msg.get("id")?.clone();
+        if msg.get("jsonrpc").and_then(Value::as_str) != Some("2.0") {
+            let id = if id.is_string() || id.is_i64() || id.is_u64() {
+                id
+            } else {
+                Value::Null
+            };
+            return Some(error_reply(
+                id,
+                RpcError::new(INVALID_REQUEST, "jsonrpc must be \"2.0\""),
+            ));
+        }
         if !(id.is_string() || id.is_i64() || id.is_u64()) {
             return Some(error_reply(
                 Value::Null,
@@ -242,6 +273,7 @@ impl Server {
             Some(Value::Object(a)) => a,
             Some(_) => return Err(RpcError::new(INVALID_PARAMS, "arguments must be an object")),
         };
+        (tool.check)(args).map_err(|m| RpcError::new(INVALID_PARAMS, m))?;
         let out = self.context().and_then(|ctx| (tool.run)(&ctx, args));
         Ok(match out {
             Ok(out) => {
@@ -302,6 +334,10 @@ impl Server {
             .map_err(|ToolError(m)| RpcError::new(INTERNAL_ERROR, m))?;
         let mut args = Map::new();
         args.insert("project".into(), json!(project));
+        if what == "lore" {
+            // A resource has no way to ask for the next page: allow the largest one.
+            args.insert("limit".into(), json!(tools::MAX_LORE_CHARS));
+        }
         let (out, mime) = match what {
             "outline" => (tools::get_outline(&ctx, &args), "application/json"),
             "lore" => (tools::get_lore(&ctx, &args), "text/markdown"),
@@ -381,8 +417,12 @@ fn error_reply(id: Value, e: RpcError) -> Value {
     json!({ "jsonrpc": "2.0", "id": id, "error": err })
 }
 
+/// `$ITHACA_LIBRARY_PATH` when set (added: qa4), else
 /// `~/Library/Application Support/Ithaca/Library` (ADR-0008 §4).
 pub fn default_library() -> Option<PathBuf> {
+    if let Some(p) = std::env::var_os("ITHACA_LIBRARY_PATH").filter(|p| !p.is_empty()) {
+        return Some(PathBuf::from(p));
+    }
     let home = std::env::var_os("HOME")?;
     Some(
         PathBuf::from(home)

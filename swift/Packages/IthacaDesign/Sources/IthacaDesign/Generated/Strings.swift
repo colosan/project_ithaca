@@ -139,6 +139,19 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case exportFormatTxt = "export.format.txt"
     case exportFormatMd = "export.format.md"
     case exportFormatDocx = "export.format.docx"
+    case exportDocxFont = "export.docx.font"
+    case exportDocxSize = "export.docx.size"
+    case exportDocxLineSpacing = "export.docx.lineSpacing"
+    case exportDocxPageBreak = "export.docx.pageBreak"
+    case exportDocxTitles = "export.docx.titles"
+    case exportDocxPage = "export.docx.page"
+    case exportDocxPaper = "export.docx.paper"
+    case exportDocxMarginTop = "export.docx.marginTop"
+    case exportDocxMarginBottom = "export.docx.marginBottom"
+    case exportDocxMarginLeft = "export.docx.marginLeft"
+    case exportDocxMarginRight = "export.docx.marginRight"
+    case exportDocxReset = "export.docx.reset"
+    case exportDocxFailed = "export.docx.failed"
     case exportFormatEpub = "export.format.epub"
     case exportCopy = "export.copy"
     case exportCopied = "export.copied"
@@ -478,6 +491,10 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case mcpCopied = "mcp.copied"
     case mcpMoveHint = "mcp.moveHint"
     case mcpMissingBinary = "mcp.missingBinary"
+    case actionDetails = "action.details"
+    case actionHideDetails = "action.hideDetails"
+    case syncDamaged = "sync.damaged"
+    case libraryReadOnlyProblems = "library.readOnlyProblems"
 }
 
 enum L10nValue: Sendable {
@@ -631,6 +648,19 @@ public enum L10n {
             .exportFormatTxt: .text("텍스트 (.txt)"),
             .exportFormatMd: .text("Markdown (.md)"),
             .exportFormatDocx: .text("Word (.docx)"),
+            .exportDocxFont: .text("글꼴"),
+            .exportDocxSize: .text("글자 크기 (pt)"),
+            .exportDocxLineSpacing: .text("줄 간격 (%)"),
+            .exportDocxPageBreak: .text("시트마다 새 쪽에서 시작"),
+            .exportDocxTitles: .text("제목을 제목 스타일로 넣기"),
+            .exportDocxPage: .text("쪽 설정"),
+            .exportDocxPaper: .text("A4 세로 · 여백 (mm)"),
+            .exportDocxMarginTop: .text("위"),
+            .exportDocxMarginBottom: .text("아래"),
+            .exportDocxMarginLeft: .text("왼쪽"),
+            .exportDocxMarginRight: .text("오른쪽"),
+            .exportDocxReset: .text("기본값으로"),
+            .exportDocxFailed: .text("Word 파일을 만들지 못했어요: {reason}"),
             .exportFormatEpub: .text("EPUB (.epub) — 준비 중"),
             .exportCopy: .text("클립보드에 복사"),
             .exportCopied: .text("복사했어요"),
@@ -970,6 +1000,10 @@ public enum L10n {
             .mcpCopied: .text("복사했어요"),
             .mcpMoveHint: .text("앱을 다른 곳으로 옮기면 경로가 바뀌어요. 그때는 다시 복사해 붙여넣으세요."),
             .mcpMissingBinary: .text("이 빌드에는 ithaca-mcp가 들어 있지 않아요. 설정은 저장되지만 Claude가 연결할 수 없어요."),
+            .actionDetails: .text("자세히"),
+            .actionHideDetails: .text("접기"),
+            .syncDamaged: .text("저장할 수 없음 (손상)"),
+            .libraryReadOnlyProblems: .text("라이브러리에 문제가 있어서 읽기 전용으로 열었어요. 아무것도 덮어쓰지 않아요."),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -1102,6 +1136,19 @@ public enum L10n {
             .exportFormatTxt: .text("Plain text (.txt)"),
             .exportFormatMd: .text("Markdown (.md)"),
             .exportFormatDocx: .text("Word (.docx)"),
+            .exportDocxFont: .text("Font"),
+            .exportDocxSize: .text("Size (pt)"),
+            .exportDocxLineSpacing: .text("Line spacing (%)"),
+            .exportDocxPageBreak: .text("Start each sheet on a new page"),
+            .exportDocxTitles: .text("Include titles as headings"),
+            .exportDocxPage: .text("Page setup"),
+            .exportDocxPaper: .text("A4 portrait · margins (mm)"),
+            .exportDocxMarginTop: .text("Top"),
+            .exportDocxMarginBottom: .text("Bottom"),
+            .exportDocxMarginLeft: .text("Left"),
+            .exportDocxMarginRight: .text("Right"),
+            .exportDocxReset: .text("Reset to defaults"),
+            .exportDocxFailed: .text("Couldn't create the Word file: {reason}"),
             .exportFormatEpub: .text("EPUB (.epub) — coming soon"),
             .exportCopy: .text("Copy to clipboard"),
             .exportCopied: .text("Copied"),
@@ -1441,6 +1488,10 @@ public enum L10n {
             .mcpCopied: .text("Copied"),
             .mcpMoveHint: .text("If you move the app, the path changes: copy and paste it again."),
             .mcpMissingBinary: .text("This build doesn't include ithaca-mcp. Settings are saved, but Claude can't connect."),
+            .actionDetails: .text("Details"),
+            .actionHideDetails: .text("Hide details"),
+            .syncDamaged: .text("Can't save (damaged)"),
+            .libraryReadOnlyProblems: .text("Opened read-only because of problems in the library, so nothing gets overwritten."),
         ],
     ]
 }

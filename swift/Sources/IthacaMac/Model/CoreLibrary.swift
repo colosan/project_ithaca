@@ -114,6 +114,16 @@ final class CoreLibrary: LibraryAPI {
         }
     }
 
+    func exportDocx(project: String, sheets: [String], options o: DocxOptions) throws -> Data {
+        try call {
+            try lib.exportDocx(project: project, sheets: sheets, options: IthacaCore.DocxOptions(
+                font: o.font, fontSize: Float(o.fontSize), lineSpacing: UInt32(clamping: o.lineSpacing),
+                firstLineIndent: o.firstLineIndent, pageBreak: o.pageBreak, includeTitles: o.includeTitles,
+                marginTopMm: Float(o.marginTop), marginBottomMm: Float(o.marginBottom),
+                marginLeftMm: Float(o.marginLeft), marginRightMm: Float(o.marginRight)))
+        }
+    }
+
     // MARK: Episodes · backups · platform counts (round 2)
 
     func setEpisode(project: String, sheet: String, info: EpisodeInfo?) throws -> SheetSummary {

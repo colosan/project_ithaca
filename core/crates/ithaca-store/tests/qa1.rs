@@ -75,8 +75,12 @@ fn damaged_block_is_flagged_not_emptied_and_recovers_exactly() {
     assert!(sum.damaged);
     assert_eq!(s.sheet_text(&p, &sheet).unwrap(), V[1]);
     assert_eq!(sum.title, "1화");
+    // (qa4) Only the flipped file counts as damaged; the one built on it is mentioned apart.
     assert!(
-        s.info().problems.iter().any(|m| m.contains("damaged")),
+        s.info()
+            .problems
+            .iter()
+            .any(|m| m.contains("(1 change file damaged; 1 later change depends on it)")),
         "{:?}",
         s.info().problems
     );

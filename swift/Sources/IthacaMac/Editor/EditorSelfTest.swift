@@ -103,6 +103,19 @@ enum EditorSelfTest {
         check(model.saveStatus == .saved && ((try? lib.sheetText(project: pid, sheet: second)) ?? "") == "둘째 저장 안 됨", "automatic retry saved it")
         model.saveFailurePrompt = nil
 
+        // 9. Line endings: a sheet stored with CR/CRLF loads as \n (not dirty); a CR insert lands as \n and saves clean.
+        let crlf = (try? lib.createSheet(project: pid, folder: model.folders[0].id, text: "가\r\n나\r다"))!.id
+        model.reloadOutline()
+        model.openSheet(crlf)
+        pump(0.3)
+        check(model.text == "가\n나\n다" && tv.string == model.text && !model.dirty && model.saveStatus == .saved, "CRLF sheet loads as \\n, not dirty")
+        tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
+        tv.insertText("\r\n라\r마", replacementRange: tv.selectedRange())
+        pump(0.1)
+        check(!tv.string.contains("\r") && model.text == "가\n나\n다\n라\n마", "CR insert normalized ('\(model.text.debugDescription)')")
+        model.flushSave()
+        check(!model.dirty && model.saveStatus == .saved, "saved clean after CR insert")
+
         print(failures.isEmpty ? "✓ editor self-test passed" : "✗ \(failures.count) failed")
         exit(failures.isEmpty ? 0 : 1)
     }

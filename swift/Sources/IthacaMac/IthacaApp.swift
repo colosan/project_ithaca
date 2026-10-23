@@ -443,12 +443,12 @@ struct IthacaCommands: Commands {
             Button(t(.menuQuit)) { AppDelegate.quitClosingSheets() }.keyboardShortcut("q")
         }
         CommandGroup(replacing: .newItem) {
-            Button(t(.sheetNew), action: go { model in AppCommand.newSheet.run(model) }).keyboardShortcut("n").disabled(!menu.hasProject)
-            Button(t(.libraryNewProject) + "…", action: go { model in AppCommand.newProject.run(model) }).keyboardShortcut("n", modifiers: [.command, .shift])
+            Button(t(.sheetNew), action: go { model in AppCommand.newSheet.run(model) }).keyboardShortcut("n").disabled(!menu.hasProject || menu.readOnly)
+            Button(t(.libraryNewProject) + "…", action: go { model in AppCommand.newProject.run(model) }).keyboardShortcut("n", modifiers: [.command, .shift]).disabled(menu.readOnly)
             Divider()
             Button(t(.exportTitle) + "…", action: go { model in AppCommand.export.run(model) }).keyboardShortcut("e", modifiers: [.command, .shift]).disabled(!menu.hasProject)
-            Button(t(.importWeb) + "…", action: go { model in AppCommand.importWeb.run(model) })
-            Button(t(.importTextFolder) + "…", action: go { model in model.importTextFolder() })
+            Button(t(.importWeb) + "…", action: go { model in AppCommand.importWeb.run(model) }).disabled(menu.readOnly)
+            Button(t(.importTextFolder) + "…", action: go { model in model.importTextFolder() }).disabled(menu.readOnly)
         }
         CommandGroup(after: .textEditing) {
             Divider()
@@ -472,18 +472,18 @@ struct IthacaCommands: Commands {
             Divider()
         }
         CommandMenu(t(.shortcutsGroupSheet)) {
-            Button(t(.sheetMoveUp), action: go { model in AppCommand.moveUp.run(model) }).keyboardShortcut(.upArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet)
-            Button(t(.sheetMoveDown), action: go { model in AppCommand.moveDown.run(model) }).keyboardShortcut(.downArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet)
+            Button(t(.sheetMoveUp), action: go { model in AppCommand.moveUp.run(model) }).keyboardShortcut(.upArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet || menu.readOnly)
+            Button(t(.sheetMoveDown), action: go { model in AppCommand.moveDown.run(model) }).keyboardShortcut(.downArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet || menu.readOnly)
             Divider()
-            Button(t(.episodePublishedThrough), action: go { model in model.markPublishedThrough() }).disabled(!menu.hasSheet)
-            Button(t(.episodeRenumber), action: go { model in model.renumberEpisodes() }).disabled(!menu.hasProject)
+            Button(t(.episodePublishedThrough), action: go { model in model.markPublishedThrough() }).disabled(!menu.hasSheet || menu.readOnly)
+            Button(t(.episodeRenumber), action: go { model in model.renumberEpisodes() }).disabled(!menu.hasProject || menu.readOnly)
             Divider()
             Button(t(.historyTitle) + "…", action: go { model in AppCommand.history.run(model) }).keyboardShortcut("h", modifiers: [.command, .shift]).disabled(!menu.hasSheet)
             Button(t(.paletteSheetInfo), action: go { model in AppCommand.sheetInfo.run(model) }).disabled(!menu.hasSheet)
             Button(t(.projectSettingsTitle) + "…", action: go { model in AppCommand.projectSettings.run(model) }).disabled(!menu.hasProject)
             Divider()
             Button(t(.trashTitle), action: go { model in AppCommand.showTrash.run(model) }).disabled(!menu.hasProject)
-            Button(t(.sheetTrash), action: go { model in AppCommand.trashSheet.run(model) }).keyboardShortcut(.delete, modifiers: .command).disabled(!menu.hasSheet)
+            Button(t(.sheetTrash), action: go { model in AppCommand.trashSheet.run(model) }).keyboardShortcut(.delete, modifiers: .command).disabled(!menu.hasSheet || menu.readOnly)
         }
     }
 }

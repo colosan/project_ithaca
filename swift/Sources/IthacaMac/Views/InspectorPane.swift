@@ -11,18 +11,15 @@ struct InspectorPane: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: T.Space.s100) {
-                Picker("", selection: $tab) {
-                    Text(model.t(.inspectorReference)).tag(InspectorTab.reference)
-                    Text(model.t(.inspectorInfo)).tag(InspectorTab.info)
-                    Text(model.t(.inspectorOutline)).tag(InspectorTab.outline)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                // Fills the bar in every language (short Korean labels left a small, off-centre control).
+                FillSegmented(items: [(InspectorTab.reference, model.t(.inspectorReference)), (.info, model.t(.inspectorInfo)),
+                                      (.outline, model.t(.inspectorOutline))], selection: $tab)
+                    .frame(maxWidth: .infinity)
                 IconButton(.close, label: model.t(.actionClose)) { model.inspectorOpen = false }
             }
             .padding(.leading, T.Space.s200)
             .padding(.trailing, T.Space.s150)
-            .frame(minHeight: T.Size.barTop)
+            .frame(maxWidth: .infinity, minHeight: T.Size.barTop)
             .hairline(.bottom)
             ScrollView {
                 Group {
@@ -99,12 +96,9 @@ private struct InfoTab: View {
         let folderScope = model.inspectorScope == .folder || model.sheet == nil
         VStack(alignment: .leading, spacing: T.Space.s150) {
             if model.folder != nil && model.sheet != nil {
-                Picker("", selection: $m.inspectorScope) {
-                    Text(model.t(.inspectorScopeSheet)).tag(InspectorScope.sheet)
-                    Text(model.t(.inspectorScopeFolder)).tag(InspectorScope.folder)
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
+                FillSegmented(items: [(InspectorScope.sheet, model.t(.inspectorScopeSheet)), (.folder, model.t(.inspectorScopeFolder))],
+                              selection: $m.inspectorScope)
+                    .frame(maxWidth: .infinity)
             }
             if folderScope, let folder = model.folder {
                 FolderInfoView(folder: folder)
@@ -122,7 +116,6 @@ private struct SheetInfo: View {
         if let sheet = model.sheet {
             let c = model.liveCounts
             let lang = model.language
-            let date = Date.FormatStyle(date: .abbreviated, time: .shortened).locale(Locale(identifier: model.locale.rawValue))
             let rows: [(String, String)] = [
                 (model.t(.infoWithSpaces), model.number(c.chars)),
                 (model.t(.infoWithoutSpaces), model.number(c.charsNoSpace)),
@@ -130,8 +123,8 @@ private struct SheetInfo: View {
                             : (model.t(.infoWords), model.number(c.words)),
                 (model.t(.infoParagraphs), model.number(c.paragraphs)),
                 (model.t(.infoReadingTime), model.t(.infoMinutes, ["count": TextMetrics.readingMinutes(c, lang)], count: TextMetrics.readingMinutes(c, lang))),
-                (model.t(.infoCreated), sheet.created.date.formatted(date)),
-                (model.t(.infoModified), sheet.modified.date.formatted(date)),
+                (model.t(.infoCreated), model.dateTime(sheet.created.date)),
+                (model.t(.infoModified), model.dateTime(sheet.modified.date)),
             ]
             VStack(alignment: .leading, spacing: 0) {
                 Picker(model.t(.episodeStatus), selection: Binding(get: { sheet.episode?.status }, set: { model.setEpisodeStatus($0) })) {
@@ -145,7 +138,7 @@ private struct SheetInfo: View {
                         get: { (e.publishAt ?? .nowMillis).date },
                         set: { model.setPublishAt($0) }), displayedComponents: [.date, .hourAndMinute])
                         .datePickerStyle(.compact)
-                        .environment(\.locale, Locale(identifier: model.locale.rawValue))
+                        .environment(\.locale, model.dateLocale)
                         .disabled(model.readOnly)
                         .padding(.bottom, T.Space.s150)
                 }
@@ -156,9 +149,9 @@ private struct SheetInfo: View {
                 }
                 ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
                     HStack(alignment: .firstTextBaseline, spacing: T.Space.s150) {
-                        Text(row.0).foregroundStyle(Color.inkSecondary)
+                        Text(row.0).foregroundStyle(Color.inkSecondary).layoutPriority(1)
                         Spacer(minLength: 0)
-                        Text(row.1).fontWeight(.semibold)
+                        Text(row.1).fontWeight(.semibold).multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
                     }
                     .textStyle(.body)
                     .padding(.vertical, T.Space.s100)
@@ -307,9 +300,9 @@ private struct InfoRow: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: T.Space.s150) {
-            Text(key).foregroundStyle(Color.inkSecondary)
+            Text(key).foregroundStyle(Color.inkSecondary).layoutPriority(1)
             Spacer(minLength: 0)
-            Text(value).fontWeight(.semibold).multilineTextAlignment(.trailing)
+            Text(value).fontWeight(.semibold).multilineTextAlignment(.trailing).fixedSize(horizontal: false, vertical: true)
         }
         .textStyle(.body)
         .padding(.vertical, T.Space.s100)

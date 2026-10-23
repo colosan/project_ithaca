@@ -1,0 +1,9 @@
+{
+  "title": {
+    "ko": "회차 · 예약 · 비축",
+    "en": "Episodes · schedule · stock"
+  },
+  "description": "연재 폴더의 회차 번호 · 상태 · 예약일 · 비축분 · 폴더 통계 (Mac 0.3.0 구현, 프로토타입 없음)",
+  "version": "0.0.0",
+  "planned": true
+}

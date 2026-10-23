@@ -347,3 +347,248 @@ fn modern_requests_are_stateless_and_versions_are_checked() {
     m.stdin.flush().unwrap();
     assert_eq!(m.recv()["error"]["code"], -32700);
 }
+
+// ── qa4 ───────────────────────────────────────────────────────────────
+
+/// The JSON of a tool result: `structuredContent` when small, else the text after the summary.
+fn payload(result: &Value) -> Value {
+    if !result["structuredContent"].is_null() {
+        return result["structuredContent"].clone();
+    }
+    let (_summary, json) = text(result).split_once("\n\n").unwrap();
+    serde_json::from_str(json).unwrap()
+}
+
+/// The `Page: {…}` line of read_sheet / get_lore.
+fn page_of(result: &Value) -> Value {
+    let line = text(result)
+        .lines()
+        .find_map(|l| l.strip_prefix("Page: "))
+        .unwrap();
+    serde_json::from_str(line).unwrap()
+}
+
+#[test]
+fn bad_bytes_and_bad_envelopes_get_errors_and_the_server_goes_on() {
+    let dir = tempfile::tempdir().unwrap();
+    let (_writer, _, _) = library(dir.path());
+    let mut m = Mcp::spawn(dir.path());
+    // Not UTF-8: a parse error for that line only.
+    m.stdin
+        .write_all(b"{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\",\"x\":\"\xff\xfe\"}\n")
+        .unwrap();
+    m.stdin.flush().unwrap();
+    let r = m.recv();
+    assert_eq!(r["error"]["code"], -32700, "{r}");
+    assert_eq!(r["id"], Value::Null);
+    assert_eq!(m.request("ping", json!({}))["result"], json!({}));
+
+    // `jsonrpc` must be "2.0".
+    m.send(&json!({ "id": 7, "method": "ping" }));
+    let r = m.recv();
+    assert_eq!((&r["error"]["code"], &r["id"]), (&json!(-32600), &json!(7)));
+    m.send(&json!({ "jsonrpc": "1.0", "id": 8, "method": "ping" }));
+    assert_eq!(m.recv()["error"]["code"], -32600);
+    assert_eq!(m.request("ping", json!({}))["result"], json!({}));
+
+    // The app's version, not the core crate's old one.
+    let init = m.request(
+        "initialize",
+        json!({ "protocolVersion": "2025-11-25", "capabilities": {},
+                "clientInfo": { "name": "test", "version": "1" } }),
+    );
+    let v = init["result"]["serverInfo"]["version"].as_str().unwrap();
+    assert_eq!(v, ithaca_mcp::SERVER_VERSION);
+    assert_ne!(v, "0.1.0");
+}
+
+#[test]
+fn library_path_comes_from_the_environment_without_the_flag() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut writer, a, _) = library(dir.path());
+    writer
+        .set_mcp_settings(true, std::slice::from_ref(&a))
+        .unwrap();
+    let mut child = Command::new(env!("CARGO_BIN_EXE_ithaca-mcp"))
+        .env("ITHACA_LIBRARY_PATH", dir.path())
+        .env("HOME", "/nonexistent")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    let mut m = Mcp {
+        stdin: child.stdin.take().unwrap(),
+        stdout: BufReader::new(child.stdout.take().unwrap()),
+        child,
+        next: 1,
+    };
+    let r = m.call("list_projects", json!({}));
+    assert_eq!(r["isError"], false, "{r}");
+    assert_eq!(r["structuredContent"]["projects"][0]["id"], a.as_str());
+}
+
+#[test]
+fn long_sheets_lore_and_outlines_come_in_pages() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut writer, a, _) = library(dir.path());
+    let o = writer.outline(&a).unwrap();
+    let (serial, notes) = (o.folders[0].id.clone(), o.folders[1].id.clone());
+    // 50,000+ characters in lines of 100.
+    let line = format!("{}\n", "가".repeat(99));
+    let long = format!("# 긴 화\n{}", line.repeat(500));
+    let total = long.chars().count();
+    let sheet = writer.create_sheet(&a, &serial, &long).unwrap().id;
+    // Three setting notes of 12,000 characters after the short one: a default lore page (30,000)
+    // holds the short one and two of them.
+    for i in 0..3 {
+        writer
+            .create_sheet(&a, &notes, &format!("# 설정 {i}\n{}", "나".repeat(12_000)))
+            .unwrap();
+    }
+    // A project of 520 episodes and a note: more rows than one outline page.
+    let src = dir.path().join("src");
+    std::fs::create_dir_all(src.join("설정")).unwrap();
+    for i in 1..=520 {
+        std::fs::write(src.join(format!("{i}화.txt")), format!("{i}화")).unwrap();
+    }
+    std::fs::write(src.join("설정/인물.txt"), "인물").unwrap();
+    writer
+        .import_text_folder(&src, Some("긴 연재"), None)
+        .unwrap();
+    let big = writer.projects().last().unwrap().id.clone();
+    writer
+        .set_mcp_settings(true, &[a.clone(), big.clone()])
+        .unwrap();
+    let mut m = Mcp::spawn(dir.path());
+
+    // read_sheet: pages of at most 20,000 characters, cut at a line end, that add up to the text.
+    let mut got = String::new();
+    let mut offset = 0;
+    let mut pages = 0;
+    loop {
+        let r = m.call(
+            "read_sheet",
+            json!({ "project": a, "sheet": sheet, "offset": offset }),
+        );
+        assert_eq!(r["isError"], false, "{r}");
+        let pg = page_of(&r);
+        assert_eq!(pg["totalChars"], total);
+        assert!(pg["returned"].as_u64().unwrap() <= 20_000);
+        let (_, body) = text(&r).split_once("\n\n---\n\n").unwrap();
+        got.push_str(body);
+        pages += 1;
+        if pg["truncated"] == false {
+            assert!(pg["nextOffset"].is_null());
+            break;
+        }
+        assert!(body.ends_with('\n'), "cut at a line end");
+        offset = pg["nextOffset"].as_u64().unwrap();
+        assert!(text(&r).contains(&format!("offset {offset}")));
+    }
+    assert_eq!(got, long);
+    assert_eq!(pages, 3);
+    let r = m.call(
+        "read_sheet",
+        json!({ "project": a, "sheet": sheet, "offset": total + 1 }),
+    );
+    assert_eq!(r["isError"], true);
+    let r = m.call(
+        "read_sheet",
+        json!({ "project": a, "sheet": sheet, "limit": 10 }),
+    );
+    assert_eq!(
+        page_of(&r)["returned"],
+        6,
+        "\"# 긴 화\\n\": the line end within the page"
+    );
+
+    // get_lore: whole sheets, about 30,000 characters per page.
+    let l1 = m.call("get_lore", json!({ "project": a }));
+    let pg = page_of(&l1);
+    assert_eq!(
+        (
+            &pg["totalSheets"],
+            &pg["returned"],
+            &pg["truncated"],
+            &pg["nextOffset"]
+        ),
+        (&json!(4), &json!(3), &json!(true), &json!(3))
+    );
+    assert!(text(&l1).contains("## 설정 / 인물"));
+    assert!(text(&l1).contains("get_lore with offset 3"));
+    assert!(!text(&l1).contains("## 설정 / 설정 2"));
+    let l2 = m.call("get_lore", json!({ "project": a, "offset": 3 }));
+    let pg = page_of(&l2);
+    assert_eq!(
+        (&pg["returned"], &pg["truncated"]),
+        (&json!(1), &json!(false))
+    );
+    assert!(text(&l2).contains("## 설정 / 설정 2"));
+    // A sheet longer than the page is cut, and says where to read on.
+    let l3 = m.call(
+        "get_lore",
+        json!({ "project": a, "offset": 1, "limit": 100 }),
+    );
+    assert!(
+        text(&l3).contains("read the rest with read_sheet"),
+        "{}",
+        text(&l3)
+    );
+    assert_eq!(page_of(&l3)["nextOffset"], 2);
+
+    // get_outline: 500 rows per call; large output is sent once, as text after a summary.
+    let o1 = m.call("get_outline", json!({ "project": big }));
+    assert!(o1["structuredContent"].is_null(), "not sent twice");
+    assert!(text(&o1).starts_with("Outline of"));
+    let v = payload(&o1);
+    let rows = 521;
+    assert_eq!(
+        v["page"],
+        json!({ "offset": 0, "returned": 500, "total": rows, "truncated": true, "nextOffset": 500 })
+    );
+    assert_eq!(v["folders"][0]["sheets"].as_array().unwrap().len(), 500);
+    assert_eq!(v["folders"][0]["sheetCount"], 520);
+    assert_eq!(v["folders"][1]["sheets"], json!([]));
+    assert!(v["note"].as_str().unwrap().contains("offset 500"));
+    let v = payload(&m.call("get_outline", json!({ "project": big, "offset": 500 })));
+    assert_eq!(v["page"]["returned"], rows - 500);
+    assert_eq!(v["folders"][0]["sheets"].as_array().unwrap().len(), 20);
+    assert_eq!(v["folders"][1]["sheets"].as_array().unwrap().len(), 1);
+
+    let st = payload(&m.call("get_episode_stats", json!({ "project": big })));
+    assert_eq!(st["page"]["total"], 520);
+    assert_eq!(st["folders"][0]["rows"].as_array().unwrap().len(), 500);
+    assert_eq!(st["folders"][0]["sheets"], 520, "totals cover every row");
+    assert_eq!(st["folders"][0]["rows"][499]["number"], 500);
+    // Small results still come as structuredContent with the same JSON in the text.
+    let small = m.call("get_outline", json!({ "project": a }));
+    assert_eq!(
+        serde_json::from_str::<Value>(text(&small)).unwrap(),
+        small["structuredContent"]
+    );
+}
+
+#[test]
+fn long_queries_are_not_echoed_and_huge_ones_are_refused() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut writer, a, _) = library(dir.path());
+    writer
+        .set_mcp_settings(true, std::slice::from_ref(&a))
+        .unwrap();
+    let mut m = Mcp::spawn(dir.path());
+    let r = m.call("search", json!({ "query": "안개" }));
+    assert_eq!(r["structuredContent"]["query"], "안개");
+    let q = "안".repeat(201);
+    let r = m.call("search", json!({ "query": q }));
+    assert_eq!(r["isError"], false);
+    assert!(r["structuredContent"].get("query").is_none());
+    assert_eq!(r["structuredContent"]["queryChars"], 201);
+    assert!(!text(&r).contains(&q));
+    let r = m.request(
+        "tools/call",
+        json!({ "name": "search", "arguments": { "query": "안".repeat(1001) } }),
+    );
+    assert_eq!(r["error"]["code"], -32602, "{r}");
+    assert_eq!(m.request("ping", json!({}))["result"], json!({}));
+}
