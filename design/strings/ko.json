@@ -342,6 +342,7 @@
   "trash.deleteForeverConfirm": "이 시트를 영구히 지울까요? 되돌릴 수 없어요.",
   "sheet.trash": "휴지통으로",
   "sheet.move": "다른 폴더로 옮기기",
+  "sheet.duplicate": "복제",
   "backup.replaced": "백업 내용으로 바꿨어요",
   "editor.label": "원고",
   "sync.saving": "저장하는 중…",

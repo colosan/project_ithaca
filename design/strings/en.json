@@ -387,6 +387,7 @@
   "trash.deleteForeverConfirm": "Delete this sheet forever? This can't be undone.",
   "sheet.trash": "Move to trash",
   "sheet.move": "Move to folder",
+  "sheet.duplicate": "Duplicate",
   "backup.replaced": "Replaced with the backup",
   "editor.label": "Manuscript",
   "sync.saving": "Saving…",

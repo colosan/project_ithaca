@@ -27,6 +27,10 @@ enum Main {
             MainActor.assumeIsolated { PerfSelfTest.run() }
             return
         }
+        if args.contains("--selftest-nav") {
+            MainActor.assumeIsolated { NavSelfTest.run() }
+            return
+        }
         if args.contains("--selftest-editor") {
             MainActor.assumeIsolated { EditorSelfTest.run() }
             return

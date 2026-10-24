@@ -347,6 +347,7 @@ export type StringKey =
   | "trash.deleteForeverConfirm"
   | "sheet.trash"
   | "sheet.move"
+  | "sheet.duplicate"
   | "backup.replaced"
   | "editor.label"
   | "sync.saving"
@@ -938,6 +939,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "trash.deleteForeverConfirm": "이 시트를 영구히 지울까요? 되돌릴 수 없어요.",
     "sheet.trash": "휴지통으로",
     "sheet.move": "다른 폴더로 옮기기",
+    "sheet.duplicate": "복제",
     "backup.replaced": "백업 내용으로 바꿨어요",
     "editor.label": "원고",
     "sync.saving": "저장하는 중…",
@@ -1570,6 +1572,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "trash.deleteForeverConfirm": "Delete this sheet forever? This can't be undone.",
     "sheet.trash": "Move to trash",
     "sheet.move": "Move to folder",
+    "sheet.duplicate": "Duplicate",
     "backup.replaced": "Replaced with the backup",
     "editor.label": "Manuscript",
     "sync.saving": "Saving…",

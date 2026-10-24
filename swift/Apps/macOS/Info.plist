@@ -16,6 +16,15 @@
 	<key>NSHighResolutionCapable</key><true/>
 	<key>NSPrincipalClass</key><string>NSApplication</string>
 	<key>CFBundleIconFile</key><string>AppIcon</string>
+	<!-- In-app drag of a sheet (SheetDrag): its own type, so the manuscript and other apps don't take it as text. -->
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key><string>io.github.colosan.ithaca.sheet</string>
+			<key>UTTypeDescription</key><string>Ithaca sheet</string>
+			<key>UTTypeConformsTo</key><array><string>public.data</string></array>
+		</dict>
+	</array>
 	<!-- Sparkle 2 auto-update (ADR-0008). Private key: this Mac's keychain (account "ithaca"); see tools/mac/README.md. -->
 	<key>SUFeedURL</key><string>https://github.com/colosan/project_ithaca/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key><string>PkGFLOuTw1/ROV1/zqCIjTzslwRsPffmQA7jpx/9v1U=</string>

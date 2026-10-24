@@ -140,6 +140,10 @@ final class AppModel {
     /// Panes that are docked right now (set by the shell from the window width).
     var dockedLibrary = true
     var dockedList = true
+    /// The inspector would dock at this width if open (false: it opens as an overlay over the editor).
+    var inspectorDocks = true
+    /// Bumped to move keyboard focus into the sheet list (the list observes it).
+    var listFocusRequest = 0
 
     // MARK: Preferences (UserDefaults)
     var localePref: LocalePref { didSet { defaults.set(localePref.rawValue, forKey: "ithaca.locale"); menu.locale = locale } }
@@ -650,13 +654,17 @@ final class AppModel {
 
     /// Drag-and-drop reorder inside the list, or a move to another folder (`before == nil` → end).
     func move(sheet: String, to folder: String, before: String?) {
-        guard let projectId, sheet != before, !readOnly else { return }
+        guard let projectId, sheet != before, !readOnly, folders.contains(where: { $0.id == folder }),
+              folders.contains(where: { $0.sheets.contains { $0.id == sheet } }) else { return }
         flushSave()
         perform { try library.moveSheet(project: projectId, sheet: sheet, folder: folder, before: before) }
         if sheet == sheetId { folderId = folder }
     }
 
     func trashSheet(_ id: String? = nil) {
+        // ⌘⌫ is the menu shortcut, but in the manuscript or any text field it means "delete to the start of the line"
+        // (standard text editing): the menu's key equivalent fires before the text view sees the key, so hand it back.
+        if id == nil, textTakesCommandDelete(NSApp?.currentEvent) { return }
         guard let projectId, let id = id ?? sheetId, !readOnly else { return }
         let title = folders.flatMap(\.sheets).first { $0.id == id }?.title ?? ""
         if id == sheetId { guard ensureSaved() else { return } }
@@ -673,6 +681,39 @@ final class AppModel {
             perform { try self.library.restoreSheet(project: projectId, sheet: id) }
             if self.projectId == projectId { openSheet(id) }
         })
+    }
+
+    /// ⌘⌫ pressed while a text view (manuscript, a text field) has the keyboard: it deletes to the line start there.
+    func textTakesCommandDelete(_ event: NSEvent?) -> Bool {
+        guard let event, event.type == .keyDown, event.keyCode == 51, event.modifierFlags.contains(.command),
+              let tv = (event.window ?? NSApp?.keyWindow)?.firstResponder as? NSTextView, tv.isEditable else { return false }
+        tv.deleteToBeginningOfLine(nil)
+        return true
+    }
+
+    /// Context menu "Duplicate": a copy of the text right below the original, opened. An episode copy gets no number.
+    func duplicateSheet(_ id: String) {
+        guard let projectId, !readOnly, let f = folders.first(where: { $0.sheets.contains { $0.id == id } }),
+              let i = f.sheets.firstIndex(where: { $0.id == id }) else { return }
+        guard ensureSaved() else { return }
+        do {
+            let text = try library.sheetText(project: projectId, sheet: id)
+            let copy = try library.createSheet(project: projectId, folder: f.id, text: text)
+            if i + 1 < f.sheets.count { try library.moveSheet(project: projectId, sheet: copy.id, folder: f.id, before: f.sheets[i + 1].id) }
+            if let e = f.sheets[i].episode {
+                try library.setEpisode(project: projectId, sheet: copy.id, info: EpisodeInfo(status: .draft, excluded: e.excluded))
+            }
+            reloadOutline()
+            showingTrash = false
+            openSheet(copy.id)
+        } catch { fail(error); reloadOutline() }
+    }
+
+    /// Folder context menu / empty list: a new sheet at the end of `folder`.
+    func newSheet(in folder: String) {
+        guard folders.contains(where: { $0.id == folder }) else { return }
+        if folder != folderId { selectFolder(folder) }
+        newSheet()
     }
 
     func restoreSheet(_ id: String) {
@@ -701,7 +742,10 @@ final class AppModel {
 
     func createFolder(_ name: String) {
         guard let projectId, !name.isEmpty, !readOnly else { return }
-        perform { _ = try library.createFolder(project: projectId, name: name) }
+        var created: String?
+        perform { created = try library.createFolder(project: projectId, name: name).id }
+        // A new folder is where the next sheet goes: select it, like Finder selects a new folder.
+        if let created { selectFolder(created) }
     }
 
     func renameFolder(_ id: String, _ name: String) {
@@ -710,7 +754,8 @@ final class AppModel {
     }
 
     func deleteFolder(_ id: String) {
-        guard let projectId, !readOnly, let f = folders.first(where: { $0.id == id }) else { return }
+        // The core refuses to delete the last folder; the menu hides it, this keeps a stray call from a toast.
+        guard let projectId, !readOnly, folders.count > 1, let f = folders.first(where: { $0.id == id }) else { return }
         let ok = f.sheets.isEmpty ? confirm(t(.folderDeleteConfirmEmpty, ["name": f.name]))
                                   : confirm(t(.folderDeleteConfirm, ["name": f.name], count: f.sheets.count))
         guard ok else { return }
@@ -718,10 +763,18 @@ final class AppModel {
             guard ensureSaved() else { return }
             closeSheet()
         }
+        let closedOpenSheet = sheetId == nil
         perform { try library.deleteFolder(project: projectId, folder: id) }
-        if folderId == id { folderId = folders.first?.id }
+        if folderId == id || !folders.contains(where: { $0.id == folderId }) {
+            folderId = folders.first?.id
+            // The open sheet went with the folder: open the first sheet of the folder now shown, not an empty editor.
+            if closedOpenSheet, let s = folder?.sheets.first { openSheet(s.id) }
+            rememberSelection()
+        }
         showToast(Toast(message: t(.folderDeleted, ["name": f.name])) { [weak self] in
-            self?.perform { try self?.library.restoreFolder(project: projectId, folder: id) }
+            guard let self, self.projectId == projectId else { return }
+            self.perform { try self.library.restoreFolder(project: projectId, folder: id) }
+            self.selectFolder(id)
         })
     }
 
@@ -747,6 +800,15 @@ final class AppModel {
         L10n.string(key, locale: language == .ko ? .ko : .en)
     }
 
+    /// Library context menu "Rename": any project, in place.
+    func renameProject(_ id: String, _ title: String) {
+        let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty, !readOnly, projects.first(where: { $0.id == id })?.title != title else { return }
+        do { _ = try library.updateProject(id: id, patch: ProjectPatch(title: title)) } catch { fail(error) }
+        refreshProjects()
+        if id == projectId { reloadOutline() }
+    }
+
     func updateProject(_ patch: ProjectPatch) {
         guard let projectId, !readOnly else { return }
         perform { _ = try library.updateProject(id: projectId, patch: patch) }
@@ -754,13 +816,18 @@ final class AppModel {
     }
 
     /// Soft delete (kept 30 days) with an undo that stays until dismissed.
-    func deleteProject() {
-        guard let p = project, !readOnly, confirm(t(.projectSettingsDeleteConfirm, ["name": p.title])) else { return }
-        guard ensureSaved() else { return }
-        perform { try library.deleteProject(id: p.id) }
+    /// `id` nil = the open project (project settings); the library's context menu passes any project.
+    func deleteProject(_ id: String? = nil) {
+        guard let p = id.flatMap({ id in projects.first { $0.id == id } }) ?? project, !readOnly,
+              confirm(t(.projectSettingsDeleteConfirm, ["name": p.title])) else { return }
+        let open = p.id == projectId
+        if open { guard ensureSaved() else { return } }
+        do { try library.deleteProject(id: p.id) } catch { fail(error); return }
         overlay = nil
         refreshProjects()
-        if let next = projects.first { selectProject(next.id) } else { projectId = nil; outline = nil; closeSheet() }
+        if !open {
+            // Another project went: the open one stays as it is.
+        } else if let next = projects.first { selectProject(next.id) } else { projectId = nil; outline = nil; folderId = nil; closeSheet() }
         showToast(Toast(message: t(.projectSettingsDeleted, ["name": p.title]), undo: { [weak self] in
             guard let self else { return }
             perform { try self.library.restoreProject(id: p.id) }
@@ -980,8 +1047,9 @@ final class AppModel {
     }
 
     /// nil = not an episode (prologue, notice, notes).
-    func setEpisodeStatus(_ status: EpisodeStatus?) {
-        guard let projectId, let sheet, !readOnly else { return }
+    func setEpisodeStatus(_ status: EpisodeStatus?, sheet id: String? = nil) {
+        guard let projectId, !readOnly,
+              let sheet = id.flatMap({ id in folders.lazy.flatMap(\.sheets).first { $0.id == id } }) ?? sheet else { return }
         var info = sheet.episode ?? EpisodeInfo(status: .draft)
         if let status { info.status = status }
         // A new schedule starts tomorrow at the time of the last scheduled episode (else 18:00): serials keep one slot.
