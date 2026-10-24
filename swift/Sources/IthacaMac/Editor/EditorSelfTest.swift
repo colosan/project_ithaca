@@ -170,6 +170,26 @@ enum EditorSelfTest {
             check(tv.selectedRange().location == (tv.string as NSString).length, "click below the text moves the caret to the end (\(tv.selectedRange().location))")
         }
 
+        // 12. ⌘C / ⌘X / ⌘V through the text view (the writer's clipboard is put back afterwards).
+        let pb = NSPasteboard.general
+        let clip = pb.pasteboardItems?.map { item in item.types.compactMap { t in item.data(forType: t).map { (t, $0) } } } ?? []
+        tv.setSelectedRange(NSRange(location: 0, length: 2))
+        let picked = (tv.string as NSString).substring(with: tv.selectedRange())
+        tv.copy(nil)
+        check(pb.string(forType: .string) == picked, "⌘C puts the selection on the clipboard ('\(pb.string(forType: .string) ?? "nil")')")
+        tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
+        tv.paste(nil)
+        check(tv.string.hasSuffix(picked), "⌘V pastes it")
+        pump(0.1)  // separate undo groups: one per event, like real key presses
+        let before = tv.string
+        tv.setSelectedRange(NSRange(location: 0, length: 2))
+        tv.cut(nil)
+        check(pb.string(forType: .string) == picked && tv.string == String(before.dropFirst(2)), "⌘X moves the selection to the clipboard")
+        tv.undoManager?.undo()
+        check(tv.string == before, "undo brings the cut text back")
+        pb.clearContents()
+        pb.writeObjects(clip.map { pairs in let i = NSPasteboardItem(); pairs.forEach { i.setData($0.1, forType: $0.0) }; return i })
+
         print(failures.isEmpty ? "✓ editor self-test passed" : "✗ \(failures.count) failed")
         exit(failures.isEmpty ? 0 : 1)
     }

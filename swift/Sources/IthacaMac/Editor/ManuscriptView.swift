@@ -497,7 +497,27 @@ final class ManuscriptTextView: NSTextView {
     }
 
     // Plain text only, both ways: HTML/RTF on the clipboard doubles blank lines on serial platforms.
-    override var writablePasteboardTypes: [NSPasteboard.PasteboardType] { [.string] }
+    // Copy and cut write the string themselves: narrowing `writablePasteboardTypes` made the TextKit 2 view
+    // write an empty clipboard.
+    private var selectedPlainText: String {
+        let ns = string as NSString
+        return selectedRanges.map { ns.substring(with: $0.rangeValue) }.joined(separator: "\n")
+    }
+
+    override func copy(_ sender: Any?) {
+        guard selectedRange().length > 0 else { return }
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(selectedPlainText, forType: .string)
+    }
+
+    override func cut(_ sender: Any?) {
+        guard selectedRange().length > 0, isEditable else { return }
+        copy(sender)
+        breakUndoCoalescing()
+        insertText("", replacementRange: selectedRange())
+        breakUndoCoalescing()
+    }
 
     override func paste(_ sender: Any?) {
         let pb = NSPasteboard.general
