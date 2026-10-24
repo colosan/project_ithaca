@@ -18,7 +18,7 @@ struct ManuscriptView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> NSScrollView {
         let tv = ManuscriptTextView(usingTextLayoutManager: true)
-        let scroll = NSScrollView()
+        let scroll = ManuscriptScrollView()
         scroll.documentView = tv
         scroll.hasVerticalScroller = true
         scroll.autohidesScrollers = true
@@ -460,6 +460,16 @@ struct ManuscriptView: NSViewRepresentable {
         var sizeClass: T.Layout.SizeClass = .large
         var spell = false
         var readOnly = false
+    }
+}
+
+/// Clicks on the empty page below the text (short sheets, the scroll-past room at the end) land in the text view:
+/// the caret goes to the nearest position, and a drag from there selects.
+final class ManuscriptScrollView: NSScrollView {
+    override func mouseDown(with event: NSEvent) {
+        guard let tv = documentView as? NSTextView else { return super.mouseDown(with: event) }
+        window?.makeFirstResponder(tv)
+        tv.mouseDown(with: event)
     }
 }
 

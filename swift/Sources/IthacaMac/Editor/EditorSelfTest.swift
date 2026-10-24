@@ -157,6 +157,19 @@ enum EditorSelfTest {
         pump(0.1)
         check(model.text == tv.string && model.dirty, "formatting reaches the model for autosave")
 
+        // 11. A click on the empty page below a short text puts the caret at the end (not ignored).
+        tv.setSelectedRange(NSRange(location: 0, length: 0))
+        if let scroll = tv.enclosingScrollView {
+            let below = scroll.convert(NSPoint(x: scroll.bounds.midX, y: scroll.bounds.maxY - 20), to: nil)
+            func mouse(_ type: NSEvent.EventType) -> NSEvent {
+                NSEvent.mouseEvent(with: type, location: below, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                   windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
+            }
+            NSApp.postEvent(mouse(.leftMouseUp), atStart: false)
+            scroll.mouseDown(with: mouse(.leftMouseDown))
+            check(tv.selectedRange().location == (tv.string as NSString).length, "click below the text moves the caret to the end (\(tv.selectedRange().location))")
+        }
+
         print(failures.isEmpty ? "✓ editor self-test passed" : "✗ \(failures.count) failed")
         exit(failures.isEmpty ? 0 : 1)
     }
