@@ -384,6 +384,14 @@ export type StringKey =
   | "count.withoutSpacesHint"
   | "history.empty"
   | "history.integrityFailed"
+  | "history.today"
+  | "history.yesterday"
+  | "history.saves"
+  | "history.wholeSession"
+  | "history.savedAt"
+  | "history.expand"
+  | "history.collapse"
+  | "history.sessionHint"
   | "import.web"
   | "import.webHint"
   | "import.webDone"
@@ -927,6 +935,14 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "count.withoutSpacesHint": "공백과 줄바꿈을 뺀 글자",
     "history.empty": "아직 기록이 없어요.",
     "history.integrityFailed": "해시 검증에서 문제를 찾았어요 — {message}",
+    "history.today": "오늘",
+    "history.yesterday": "어제",
+    "history.saves": "저장 {count}번",
+    "history.wholeSession": "작업 전체 · {range}",
+    "history.savedAt": "{time}에 저장된 시점",
+    "history.expand": "저장 시점 펼치기",
+    "history.collapse": "저장 시점 접기",
+    "history.sessionHint": "10분 넘게 쉬지 않고 이어 쓴 저장을 한 작업으로 묶었어요.",
     "import.web": "웹 버전에서 가져오기",
     "import.webHint": "웹 버전의 백업 파일(JSON)을 새 작품으로 추가해요. 지금 있는 작품은 그대로예요.",
     "import.webDone": "웹 버전에서 작품 {projects}개, 시트 {sheets}개를 가져왔어요 — {names}",
@@ -1520,6 +1536,17 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "count.withoutSpacesHint": "Characters without spaces and line breaks",
     "history.empty": "No records yet.",
     "history.integrityFailed": "Hash check found a problem — {message}",
+    "history.today": "Today",
+    "history.yesterday": "Yesterday",
+    "history.saves": {
+      "one": "{count} save",
+      "other": "{count} saves"
+    },
+    "history.wholeSession": "Whole session · {range}",
+    "history.savedAt": "Saved at {time}",
+    "history.expand": "Show saves",
+    "history.collapse": "Hide saves",
+    "history.sessionHint": "Saves without a break of 10 minutes or more are grouped into one session.",
     "import.web": "Import from the web version",
     "import.webHint": "Adds the web version's backup file (JSON) as new projects. Nothing here is replaced.",
     "import.webDone": "Imported {projects} projects and {sheets} sheets from the web version — {names}",

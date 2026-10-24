@@ -158,6 +158,39 @@ final class MockLibrary: LibraryAPI {
         try find(sheet).versions.reversed().map { HistoryEntry(hash: $0.hash, at: $0.at, device: $0.device, actor: $0.actor, kind: $0.kind, added: $0.added, removed: $0.removed) }
     }
 
+    /// Same rule as the core (`history_sessions`): same device and actor, edits only, pause < 10 min. Mock versions are linear.
+    func historySessions(project: String, sheet: String) throws -> [HistorySession] {
+        let versions = try find(sheet).versions
+        var groups: [[Int]] = []
+        for (i, v) in versions.enumerated() {
+            if let last = groups.last?.last.map({ versions[$0] }), v.kind == .edit, last.kind == .edit,
+               v.device == last.device, v.actor == last.actor, v.at - last.at < 10 * 60 * 1000 {
+                groups[groups.count - 1].append(i)
+            } else {
+                groups.append([i])
+            }
+        }
+        return groups.reversed().map { g in
+            let first = versions[g[0]], last = versions[g[g.count - 1]]
+            let before = g[0] > 0 ? versions[g[0] - 1].text : ""
+            var added = last.added, removed = last.removed
+            if g.count > 1 {
+                let d = Array(last.text).difference(from: Array(before))
+                added = d.insertions.count; removed = d.removals.count
+            }
+            return HistorySession(start: first.at, end: last.at, device: last.device, actor: last.actor, kind: last.kind,
+                                  added: added, removed: removed, base: g[0] > 0 ? versions[g[0] - 1].hash : nil,
+                                  entries: g.reversed().map { let v = versions[$0]; return HistoryEntry(hash: v.hash, at: v.at, device: v.device, actor: v.actor, kind: v.kind, added: v.added, removed: v.removed) })
+        }
+    }
+
+    /// Snapshots: a save at a given time (autosave runs), as if typed then.
+    func debugAppendVersion(sheet: String, text: String, at: Int64) {
+        guard let i = try? index(sheet) else { return }
+        sheets[i].versions.append(version(text, previous: sheets[i].text, at: at))
+        sheets[i].modified = at
+    }
+
     func textAt(project: String, sheet: String, hash: String) throws -> String {
         guard let v = try find(sheet).versions.first(where: { $0.hash == hash }) else { throw LibraryError.notFound }
         return v.text

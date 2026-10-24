@@ -6,7 +6,9 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use ithaca_ledger::block::is_hash_name;
-use ithaca_ledger::{Block, Heads, LedgerError, Meta, rebuild, reconstruct, salvage};
+use ithaca_ledger::{
+    Block, Heads, LedgerError, Meta, rebuild, reconstruct, reconstruct_known, salvage,
+};
 use ithaca_model::{Counts, Toc, counts};
 use serde::{Deserialize, Serialize};
 
@@ -394,6 +396,19 @@ impl Project {
     /// Text after any block of a chain.
     pub fn text_at(&self, hash: &str) -> std::result::Result<String, LedgerError> {
         reconstruct(hash, |h| read_block(&self.dir, h))
+    }
+
+    /// [`Project::text_at`], starting from texts the caller already has where it can.
+    pub fn text_at_known(
+        &self,
+        hash: &str,
+        known: &HashMap<String, String>,
+    ) -> std::result::Result<String, LedgerError> {
+        reconstruct_known(
+            hash,
+            |h| known.get(h).cloned(),
+            |h| read_block(&self.dir, h),
+        )
     }
 
     /// Removes a chain's block files and cache (permanent delete; the toc tombstone is written first).

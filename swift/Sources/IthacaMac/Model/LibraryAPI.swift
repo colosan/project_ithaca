@@ -119,6 +119,23 @@ struct HistoryEntry: Identifiable, Equatable, Sendable {
     var id: String { hash }
 }
 
+/// One writing session of a sheet (core `history_sessions`): consecutive saves from one device and actor with
+/// no pause of 10 minutes or more. `entries` newest first; `entries[0]` is the text after the session, the text
+/// before it is `base` (nil = the sheet's first record). `added` / `removed` are the session's net change.
+struct HistorySession: Identifiable, Equatable, Sendable {
+    var start: Int64
+    var end: Int64
+    var device: String
+    var actor: Actor
+    var kind: BlockKind
+    var added: Int
+    var removed: Int
+    var base: String?
+    var entries: [HistoryEntry]
+    /// The oldest entry: stays put when a new save joins the session.
+    var id: String { entries.last?.hash ?? "\(start)" }
+}
+
 struct IntegrityReport: Equatable, Sendable {
     var ok: Bool
     var blocks: Int
@@ -241,6 +258,7 @@ protocol LibraryAPI: AnyObject {
     func emptyTrash(project: String) throws
 
     func history(project: String, sheet: String) throws -> [HistoryEntry]
+    func historySessions(project: String, sheet: String) throws -> [HistorySession]
     func textAt(project: String, sheet: String, hash: String) throws -> String
     @discardableResult func restoreVersion(project: String, sheet: String, hash: String) throws -> SheetSummary
     func verify(project: String) throws -> IntegrityReport

@@ -292,6 +292,15 @@ fn goal_count(text: String, basis: GoalBasis) -> u32;
 fn history(&self, project: String, sheet: String) -> Result<Vec<HistoryEntry>, CoreError>;
 // HistoryEntry { hash, at, device, actor: Actor, kind: BlockKind, added: u32, removed: u32 }
 // newest first (by `at`); every block of the sheet, branch copies included. added/removed are graphemes.
+/// (added: history-sessions) The same blocks grouped into writing sessions, newest first. Display only:
+/// nothing is written. A block joins the session before it when both are `edit`, same device and actor,
+/// it builds directly on that session's newest block (first parent), and the gap is < 10 min
+/// (`SESSION_GAP_MS`). Lease / merge blocks are sessions of their own. Every block is in exactly one session.
+fn history_sessions(&self, project: String, sheet: String) -> Result<Vec<HistorySession>, CoreError>;
+// HistorySession { start, end /* at of oldest / newest block */, device, actor, kind, added: u32, removed: u32
+//                  /* NET graphemes from the text before the session to the text after it */,
+//                  base: Option<String> /* text before = first parent of the oldest block; None = chain start */,
+//                  entries: Vec<HistoryEntry> /* newest first; each builds on the next, the last on `base` */ }
 fn text_at(&self, project: String, sheet: String, hash: String) -> Result<String, CoreError>;
 fn restore_version(&self, project: String, sheet: String, hash: String) -> Result<SheetSummary, CoreError>; // new block, nothing erased
 fn verify(&self, project: String) -> Result<IntegrityReport, CoreError>; // re-reads every block file

@@ -10,7 +10,8 @@ pub mod delta;
 
 pub use block::{Actor, BLOCK_VERSION, Block, Body, Kind};
 pub use chain::{
-    Heads, Meta, Rebuilt, Salvaged, fork_order, rebuild, reconstruct, salvage, select_heads,
+    Heads, Meta, Rebuilt, Salvaged, fork_order, rebuild, reconstruct, reconstruct_known, salvage,
+    select_heads,
 };
 pub use delta::Op;
 pub use delta::Stats;

@@ -57,13 +57,26 @@ final class CoreLibrary: LibraryAPI {
     func emptyTrash(project: String) throws { try call { try lib.emptyTrash(project: project) } }
 
     func history(project: String, sheet: String) throws -> [HistoryEntry] {
+        try call { try lib.history(project: project, sheet: sheet).map(Self.entry) }
+    }
+
+    func historySessions(project: String, sheet: String) throws -> [HistorySession] {
         try call {
-            try lib.history(project: project, sheet: sheet).map {
-                HistoryEntry(hash: $0.hash, at: $0.at, device: $0.device, actor: $0.actor == .claude ? .claude : .me,
-                             kind: { switch $0 { case .edit: .edit; case .lease: .lease; case .merge: .merge; case .meta: .meta } }($0.kind),
-                             added: Int($0.added), removed: Int($0.removed))
+            try lib.historySessions(project: project, sheet: sheet).map {
+                HistorySession(start: $0.start, end: $0.end, device: $0.device, actor: $0.actor == .claude ? .claude : .me,
+                               kind: Self.kind($0.kind), added: Int($0.added), removed: Int($0.removed), base: $0.base,
+                               entries: $0.entries.map(Self.entry))
             }
         }
+    }
+
+    private static func kind(_ k: IthacaCore.BlockKind) -> BlockKind {
+        switch k { case .edit: .edit; case .lease: .lease; case .merge: .merge; case .meta: .meta }
+    }
+
+    private static func entry(_ e: IthacaCore.HistoryEntry) -> HistoryEntry {
+        HistoryEntry(hash: e.hash, at: e.at, device: e.device, actor: e.actor == .claude ? .claude : .me,
+                     kind: kind(e.kind), added: Int(e.added), removed: Int(e.removed))
     }
 
     func textAt(project: String, sheet: String, hash: String) throws -> String { try call { try lib.textAt(project: project, sheet: sheet, hash: hash) } }

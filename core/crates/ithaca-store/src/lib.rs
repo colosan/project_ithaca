@@ -1090,6 +1090,89 @@ impl Store {
         Ok(v)
     }
 
+    /// (added: history-sessions) [`Store::history`] grouped into writing sessions, newest first. Every
+    /// block is in exactly one session, so nothing the plain list shows is hidden.
+    pub fn history_sessions(&self, project: &str, sheet: &str) -> Result<Vec<HistorySession>> {
+        let p = self.check_sheet(project, sheet)?;
+        let Some(chain) = p.chains.get(sheet) else {
+            return Ok(Vec::new());
+        };
+        let mut metas: Vec<&Meta> = chain.metas.values().collect();
+        metas.sort_by(|a, b| a.at.cmp(&b.at).then_with(|| a.hash.cmp(&b.hash)));
+        // Oldest first while grouping.
+        let mut groups: Vec<Vec<&Meta>> = Vec::new();
+        for m in metas {
+            let joins = groups.last().and_then(|g| g.last()).is_some_and(|last| {
+                m.kind == Kind::Edit
+                    && last.kind == Kind::Edit
+                    && m.device == last.device
+                    && m.actor == last.actor
+                    && m.parents.first() == Some(&last.hash)
+                    && m.at - last.at < SESSION_GAP_MS
+            });
+            if joins {
+                groups.last_mut().expect("checked").push(m);
+            } else {
+                groups.push(vec![m]);
+            }
+        }
+        let entry = |m: &Meta| HistoryEntry {
+            hash: m.hash.clone(),
+            at: m.at,
+            device: m.device.clone(),
+            actor: m.actor,
+            kind: m.kind,
+            added: m.added,
+            removed: m.removed,
+        };
+        // The previous session's end text: the next session usually starts from it, so each block
+        // file is read about once.
+        let mut known: std::collections::HashMap<String, String> = Default::default();
+        let mut out = Vec::with_capacity(groups.len());
+        for g in groups {
+            let (first, last) = (g[0], g[g.len() - 1]);
+            let base = first.parents.first().cloned();
+            let sum = || {
+                g.iter().fold((0u32, 0u32), |(a, r), m| {
+                    (a.saturating_add(m.added), r.saturating_add(m.removed))
+                })
+            };
+            let (added, removed) = if g.len() == 1 {
+                (last.added, last.removed)
+            } else {
+                let before = match &base {
+                    Some(b) => p.text_at_known(b, &known),
+                    None => Ok(String::new()),
+                };
+                let after = p.text_at_known(&last.hash, &known);
+                match (before, after) {
+                    (Ok(b), Ok(a)) => {
+                        let stats = delta::apply(&b, &delta::diff(&b, &a))
+                            .map(|(_, st)| (st.added, st.removed))
+                            .unwrap_or_else(|_| sum());
+                        known.clear();
+                        known.insert(last.hash.clone(), a);
+                        stats
+                    }
+                    _ => sum(),
+                }
+            };
+            out.push(HistorySession {
+                start: first.at,
+                end: last.at,
+                device: last.device.clone(),
+                actor: last.actor,
+                kind: last.kind,
+                added,
+                removed,
+                base,
+                entries: g.iter().rev().map(|m| entry(m)).collect(),
+            });
+        }
+        out.reverse();
+        Ok(out)
+    }
+
     pub fn text_at(&self, project: &str, sheet: &str, hash: &str) -> Result<String> {
         let p = self.check_sheet(project, sheet)?;
         if !p

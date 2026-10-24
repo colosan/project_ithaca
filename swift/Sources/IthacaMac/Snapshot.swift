@@ -85,6 +85,11 @@ enum Snapshot {
             Scene(name: "export", size: CGSize(width: 940, height: 560), view: { _ in AnyView(ExportView()) }),
             Scene(name: "history", size: CGSize(width: 1040, height: 640), view: { _ in AnyView(HistoryView()) }),
             Scene(name: "history-en-dark", size: CGSize(width: 1040, height: 640), dark: true, locale: .en, view: { _ in AnyView(HistoryView()) }),
+            // 0.5.3: dozens of autosaves today and yesterday, grouped into sessions; the newest one expanded.
+            Scene(name: "history-sessions", size: CGSize(width: 1040, height: 640), setup: { m, _ in Self.autosaves(m) },
+                  view: { _ in AnyView(HistoryView(expandNewest: true)) }),
+            Scene(name: "history-sessions-en-dark", size: CGSize(width: 1040, height: 640), dark: true, locale: .en,
+                  setup: { m, _ in Self.autosaves(m) }, view: { _ in AnyView(HistoryView()) }),
             Scene(name: "new-project-first-run", size: CGSize(width: 560, height: 640), view: { _ in AnyView(NewProjectView(firstRun: true)) }),
             Scene(name: "new-project-en", size: CGSize(width: 560, height: 480), locale: .en, view: { _ in AnyView(NewProjectView(firstRun: false)) }),
             Scene(name: "project-settings", size: CGSize(width: 560, height: 560), view: { _ in AnyView(ProjectSettingsView()) }),
@@ -118,6 +123,25 @@ enum Snapshot {
             Scene(name: "shell-problems-only", size: wide, info: { var i = Self.roInfo(locked: false, problems: ["Project y could not be read."]); i.readOnly = false; return i }()),
             Scene(name: "icons", size: CGSize(width: 720, height: 300), view: { _ in AnyView(IconSheet()) }),
         ]
+    }
+
+    /// Autosave runs like a real writing day: saves every ~2 min yesterday evening, this morning, and just now.
+    static func autosaves(_ m: AppModel) {
+        guard let mock = m.library as? MockLibrary, let id = m.sheetId, var text = try? mock.sheetText(project: m.projectId ?? "", sheet: id) else { return }
+        let now = Int64(Date().timeIntervalSince1970 * 1000), minute: Int64 = 60_000
+        let cal = Calendar.current
+        let yesterday = Int64((cal.date(byAdding: .day, value: -1, to: cal.startOfDay(for: Date()))!.timeIntervalSince1970 + 21 * 3600) * 1000)
+        let words = ["바람이 ", "다시 ", "불었다. ", "서윤은 ", "등대 ", "계단을 ", "올랐다. ", "열한 ", "번째 ", "불빛이 "]
+        func run(from start: Int64, saves: Int, every: Int64, trimEvery: Int = 0) {
+            for i in 0..<saves {
+                if trimEvery > 0, i % trimEvery == trimEvery - 1, text.count > 20 { text.removeLast(6) } else { text += words[i % words.count] }
+                mock.debugAppendVersion(sheet: id, text: text, at: start + Int64(i) * every)
+            }
+        }
+        run(from: yesterday, saves: 18, every: 2 * minute)
+        run(from: yesterday + 75 * minute, saves: 6, every: 3 * minute)
+        run(from: now - 4 * 60 * minute, saves: 24, every: 2 * minute, trimEvery: 5)
+        run(from: now - 40 * minute, saves: 9, every: 4 * minute, trimEvery: 4)
     }
 
     static func roInfo(locked: Bool, problems: [String]) -> LibraryInfo {

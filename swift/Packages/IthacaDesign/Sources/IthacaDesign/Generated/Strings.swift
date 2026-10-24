@@ -389,6 +389,14 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case countWithoutSpacesHint = "count.withoutSpacesHint"
     case historyEmpty = "history.empty"
     case historyIntegrityFailed = "history.integrityFailed"
+    case historyToday = "history.today"
+    case historyYesterday = "history.yesterday"
+    case historySaves = "history.saves"
+    case historyWholeSession = "history.wholeSession"
+    case historySavedAt = "history.savedAt"
+    case historyExpand = "history.expand"
+    case historyCollapse = "history.collapse"
+    case historySessionHint = "history.sessionHint"
     case importWeb = "import.web"
     case importWebHint = "import.webHint"
     case importWebDone = "import.webDone"
@@ -949,6 +957,14 @@ public enum L10n {
             .countWithoutSpacesHint: .text("공백과 줄바꿈을 뺀 글자"),
             .historyEmpty: .text("아직 기록이 없어요."),
             .historyIntegrityFailed: .text("해시 검증에서 문제를 찾았어요 — {message}"),
+            .historyToday: .text("오늘"),
+            .historyYesterday: .text("어제"),
+            .historySaves: .text("저장 {count}번"),
+            .historyWholeSession: .text("작업 전체 · {range}"),
+            .historySavedAt: .text("{time}에 저장된 시점"),
+            .historyExpand: .text("저장 시점 펼치기"),
+            .historyCollapse: .text("저장 시점 접기"),
+            .historySessionHint: .text("10분 넘게 쉬지 않고 이어 쓴 저장을 한 작업으로 묶었어요."),
             .importWeb: .text("웹 버전에서 가져오기"),
             .importWebHint: .text("웹 버전의 백업 파일(JSON)을 새 작품으로 추가해요. 지금 있는 작품은 그대로예요."),
             .importWebDone: .text("웹 버전에서 작품 {projects}개, 시트 {sheets}개를 가져왔어요 — {names}"),
@@ -1488,6 +1504,14 @@ public enum L10n {
             .countWithoutSpacesHint: .text("Characters without spaces and line breaks"),
             .historyEmpty: .text("No records yet."),
             .historyIntegrityFailed: .text("Hash check found a problem — {message}"),
+            .historyToday: .text("Today"),
+            .historyYesterday: .text("Yesterday"),
+            .historySaves: .plural(one: "{count} save", other: "{count} saves"),
+            .historyWholeSession: .text("Whole session · {range}"),
+            .historySavedAt: .text("Saved at {time}"),
+            .historyExpand: .text("Show saves"),
+            .historyCollapse: .text("Hide saves"),
+            .historySessionHint: .text("Saves without a break of 10 minutes or more are grouped into one session."),
             .importWeb: .text("Import from the web version"),
             .importWebHint: .text("Adds the web version's backup file (JSON) as new projects. Nothing here is replaced."),
             .importWebDone: .text("Imported {projects} projects and {sheets} sheets from the web version — {names}"),
