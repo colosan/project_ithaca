@@ -5,6 +5,15 @@
     <link>https://github.com/colosan/project_ithaca</link>
     <language>ko</language>
     <item>
+      <title>0.5.3</title>
+      <pubDate>Sat, 24 Oct 2026 11:25:59 GMT</pubDate>
+      <sparkle:version>34</sparkle:version>
+      <sparkle:shortVersionString>0.5.3</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+      <description><![CDATA[<ul><li>Markdown formatting shortcuts, symbol menu for web-novel punctuation, standard shortcuts</li></ul>]]></description>
+      <enclosure url="https://github.com/colosan/project_ithaca/releases/download/v0.5.3/Ithaca-0.5.3.zip" length="8860402" type="application/octet-stream" sparkle:edSignature="U/yCuh1zSR7l0VwhqezS4OJ7RH/PsLM5tS8U3IHFHt+Gqqc3u5ROpDgo7eq7ayqk91ig8beS5BFxGePchmkSBA=="/>
+    </item>
+    <item>
       <title>0.5.2</title>
       <pubDate>Sat, 24 Oct 2026 11:21:03 GMT</pubDate>
       <sparkle:version>32</sparkle:version>
