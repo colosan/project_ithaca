@@ -38,7 +38,7 @@ public enum Tokens {
         public static let inkPrimary = ColorPair(light: 0x1F1D1AFF, dark: 0xECE8E1FF)
         public static let inkSecondary = ColorPair(light: 0x45413BFF, dark: 0xCBC5BCFF)
         public static let inkTertiary = ColorPair(light: 0x646058FF, dark: 0xA6A29CFF)
-        public static let inkMarkup = ColorPair(light: 0xB9B2A6FF, dark: 0x5E5A54FF)
+        public static let inkMarkup = ColorPair(light: 0xB9B2A6FF, dark: 0x747069FF)
         public static let inkOnAccent = ColorPair(light: 0xFFFFFFFF, dark: 0x1C1B19FF)
         public static let lineSubtle = ColorPair(light: 0xE4DFD6FF, dark: 0x33312EFF)
         public static let lineStrong = ColorPair(light: 0xCFC8BCFF, dark: 0x46433FFF)

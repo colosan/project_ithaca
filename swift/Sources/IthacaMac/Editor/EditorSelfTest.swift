@@ -2,6 +2,7 @@
 // checks the IME rules: composition is never disturbed by styling/autosave, modeless replace-style input works,
 // autosave lands after the pause, and one ⌘Z undoes a word, not a jamo. In-memory library; nothing on disk.
 import AppKit
+import IthacaDesign
 import SwiftUI
 
 @MainActor
@@ -187,6 +188,161 @@ enum EditorSelfTest {
         check(pb.string(forType: .string) == picked && tv.string == String(before.dropFirst(2)), "⌘X moves the selection to the clipboard")
         tv.undoManager?.undo()
         check(tv.string == before, "undo brings the cut text back")
+        // 13. Select all; rich text on the clipboard pastes as plain text in the manuscript's own style.
+        tv.selectAll(nil)
+        check(tv.selectedRange() == NSRange(location: 0, length: (tv.string as NSString).length), "⌘A selects the whole sheet")
+        let rich = NSAttributedString(string: "리치\r\n텍스트", attributes: [.font: NSFont.boldSystemFont(ofSize: 30), .foregroundColor: NSColor.red])
+        let rtfData = try! rich.data(from: NSRange(location: 0, length: rich.length), documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf])
+        pb.clearContents()
+        pb.setData(rtfData, forType: .rtf)
+        tv.setSelectedRange(NSRange(location: 0, length: 0))
+        tv.paste(nil)
+        let pastedFont = tv.textStorage?.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        check(tv.string.hasPrefix("리치\n텍스트") && pastedFont?.pointSize == (Styles.base(model.textSize)[.font] as? NSFont)?.pointSize,
+              "RTF-only clipboard pastes as plain text, \\n, body font (\(pastedFont?.pointSize ?? 0) pt)")
+
+        // 14. Drag and drop: text drops are normalized; non-text drags (colors, fonts) aren't accepted.
+        let dpb = NSPasteboard(name: NSPasteboard.Name("io.github.colosan.ithaca.selftest.drag"))
+        dpb.clearContents()
+        dpb.setString("드롭\r\n글", forType: .string)
+        tv.setSelectedRange(NSRange(location: 0, length: 0))
+        check(tv.readSelection(from: dpb, type: .string) && tv.string.hasPrefix("드롭\n글"), "dropped text lands with \\n line endings")
+        let drag = Set(tv.acceptableDragTypes.map(\.rawValue))
+        check(drag.contains(NSPasteboard.PasteboardType.string.rawValue) || drag.contains("NSStringPboardType"), "text drags accepted")
+        check(!drag.contains(NSPasteboard.PasteboardType.color.rawValue) && !drag.contains(NSPasteboard.PasteboardType.font.rawValue), "color / font drags refused")
+        // Dragging a selection out writes its text (the TextKit 2 empty-clipboard trap, drag side).
+        tv.setSelectedRange(NSRange(location: 0, length: 2))
+        dpb.clearContents()
+        check(tv.writeSelection(to: dpb, types: tv.writablePasteboardTypes) && dpb.string(forType: .string) == "드롭", "dragging a selection out carries its text")
+        dpb.releaseGlobally()
+
+        // 15. Double-click selects a Korean word (eojeol); Services see the selection.
+        check(tv.selectionRange(forProposedRange: NSRange(location: 1, length: 0), granularity: .selectByWord) == NSRange(location: 0, length: 2),
+              "double-click selects '드롭'")
+        tv.setSelectedRange(NSRange(location: 0, length: 2))
+        let legacy = NSPasteboard.PasteboardType("NSStringPboardType")
+        check(tv.validRequestor(forSendType: legacy, returnType: legacy) != nil, "Services can take and replace the selection")
+
+        // 16. Context menu: cut/copy/paste/look up stay; Font and Layout Orientation (vertical text) are gone.
+        let right = NSEvent.mouseEvent(with: .rightMouseDown, location: tv.convert(NSPoint(x: tv.textContainerInset.width + 4, y: tv.textContainerInset.height + 4), to: nil),
+                                       modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
+        let menuActions = (tv.menu(for: right)?.items ?? []).flatMap { [$0] + ($0.submenu?.items ?? []) }.compactMap { $0.action.map(NSStringFromSelector) }
+        check(["cut:", "copy:", "paste:"].allSatisfy(menuActions.contains), "context menu has cut / copy / paste")
+        check(!menuActions.contains("orderFrontFontPanel:") && !menuActions.contains("changeLayoutOrientation:"), "context menu has no Font / Layout Orientation")
+
+        // 17. Read-only (locked) view: cut / paste / delete change nothing, copy still works.
+        tv.isEditable = false
+        let locked = tv.string
+        tv.setSelectedRange(NSRange(location: 0, length: 2))
+        tv.cut(nil); tv.paste(nil); tv.delete(nil)
+        check(tv.string == locked, "read-only: cut / paste / delete leave the text alone")
+        tv.copy(nil)
+        check(pb.string(forType: .string) == "드롭", "read-only: copy still works")
+        tv.isEditable = true
+
+        // 18. Cut with a multi-range selection removes every range, one undo step.
+        let multi = (try? lib.createSheet(project: pid, folder: model.folders[0].id, text: "가나다라마바"))!.id
+        model.reloadOutline()
+        model.openSheet(multi)
+        pump(0.3)
+        tv.selectedRanges = [NSValue(range: NSRange(location: 0, length: 1)), NSValue(range: NSRange(location: 3, length: 1))]
+        tv.cut(nil)
+        check(tv.string == "나다마바" && pb.string(forType: .string) == "가\n라", "multi-range cut ('\(tv.string)')")
+        tv.undoManager?.undo()
+        check(tv.string == "가나다라마바", "one undo restores a multi-range cut")
+
+        // 19. Preferences apply live: text size, line spacing, markup modes, typewriter room below the last line.
+        let prefs = (try? lib.createSheet(project: pid, folder: model.folders[0].id, text: "- 대사 한 줄\n본문"))!.id
+        model.reloadOutline()
+        model.openSheet(prefs)
+        pump(0.3)
+        func fontSize(at i: Int) -> CGFloat { (tv.textStorage?.attribute(.font, at: i, effectiveRange: nil) as? NSFont)?.pointSize ?? 0 }
+        // Dynamic token colors are compared as resolved for the view's appearance.
+        func resolved(_ c: NSColor?) -> [CGFloat] {
+            var out: [CGFloat] = []
+            tv.effectiveAppearance.performAsCurrentDrawingAppearance {
+                if let s = c?.usingColorSpace(.sRGB) { out = [s.redComponent, s.greenComponent, s.blueComponent, s.alphaComponent].map { ($0 * 255).rounded() } }
+            }
+            return out
+        }
+        func color(at i: Int) -> [CGFloat] { resolved(tv.textStorage?.attribute(.foregroundColor, at: i, effectiveRange: nil) as? NSColor) }
+        let normal = fontSize(at: 3)
+        model.textSize = .large
+        pump(0.2)
+        check(fontSize(at: 3) > normal && (tv.typingAttributes[.font] as? NSFont)?.pointSize == fontSize(at: 3), "text size applies live (\(normal) → \(fontSize(at: 3)) pt)")
+        model.textSize = .normal
+        pump(0.2)
+        let lh = (tv.textStorage?.attribute(.paragraphStyle, at: 3, effectiveRange: nil) as? NSParagraphStyle)?.minimumLineHeight ?? 0
+        model.lineSpacing = .wide
+        pump(0.2)
+        let lh2 = (tv.textStorage?.attribute(.paragraphStyle, at: 3, effectiveRange: nil) as? NSParagraphStyle)?.minimumLineHeight ?? 0
+        check(lh2 > lh, "line spacing applies live (\(lh) → \(lh2))")
+        model.lineSpacing = .normal
+        pump(0.2)
+        check(color(at: 0) == resolved(.token(T.Color.inkMarkup)) && color(at: 2) == resolved(.token(T.Color.inkPrimary)), "dim: line-start '-' drawn in ink.markup, text in ink.primary")
+        model.markup = .hide
+        pump(0.2)
+        check(color(at: 0).last == 0, "hide: marks hidden live")
+        model.markup = .show
+        pump(0.2)
+        check(color(at: 0) == resolved(.token(T.Color.inkSecondary)), "show: marks in ink.secondary")
+        model.markup = .dim
+        let scroll = tv.enclosingScrollView!
+        model.typewriter = true
+        pump(0.2)
+        check(abs(scroll.contentInsets.bottom - (scroll.contentSize.height * 0.5).rounded()) < 1, "typewriter room below the last line applies live (\(scroll.contentInsets.bottom))")
+        model.typewriter = false
+        pump(0.2)
+        check(abs(scroll.contentInsets.bottom - (scroll.contentSize.height * 0.4).rounded()) < 1, "and goes back when it's off")
+
+        // 20. Typing at the bottom of a long sheet keeps the caret in view, blank last lines included.
+        let long = (try? lib.createSheet(project: pid, folder: model.folders[0].id, text: (1...200).map { "줄 \($0) 가나다라마바사" }.joined(separator: "\n")))!.id
+        model.reloadOutline()
+        model.openSheet(long)
+        pump(0.4)
+        tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
+        pump(0.1)
+        func caretVisible() -> Bool {
+            let r = tv.convert(window.convertFromScreen(tv.firstRect(forCharacterRange: tv.selectedRange(), actualRange: nil)), from: nil)
+            return scroll.documentVisibleRect.contains(NSPoint(x: scroll.documentVisibleRect.midX, y: r.maxY))
+        }
+        for i in 0..<20 { tv.insertText(i == 10 ? "끝" : "\n", replacementRange: tv.selectedRange()); pump(0.02) }
+        pump(0.1)
+        check(caretVisible(), "caret stays in view while typing new lines at the bottom")
+        pump(0.5)
+        check(model.liveCounts.chars == TextMetrics.counts(tv.string).chars && model.saveStatus == .pending, "footer counts follow the typing (\(model.liveCounts.chars)), status 저장 중")
+
+        // 21. Focus mode dims everything but the caret's paragraph, and clears when it ends.
+        func dimRuns() -> Int {
+            var n = 0
+            tv.textLayoutManager!.enumerateRenderingAttributes(from: tv.textLayoutManager!.documentRange.location, reverse: false) { _, a, _ in
+                if a[.foregroundColor] != nil { n += 1 }
+                return true
+            }
+            return n
+        }
+        model.focusMode = true
+        pump(0.2)
+        check(dimRuns() > 0, "focus mode dims the other paragraphs")
+        tv.cancelOperation(nil)
+        check(!model.focusMode, "Esc leaves focus mode")
+        pump(0.2)
+        check(dimRuns() == 0, "dimming cleared when focus mode ends")
+
+        // 22. ⌘F shows the find bar above the manuscript; the replace field is available on an editable sheet.
+        ed.showFindBar()
+        pump(0.2)
+        check(scroll.isFindBarVisible, "⌘F shows the find bar")
+        let replaceItem = NSMenuItem(title: "", action: #selector(NSTextView.performTextFinderAction(_:)), keyEquivalent: "")
+        replaceItem.tag = NSTextFinder.Action.showReplaceInterface.rawValue
+        check(tv.validateMenuItem(replaceItem), "find and replace available")
+        let hide = NSMenuItem()
+        hide.tag = NSTextFinder.Action.hideFindInterface.rawValue
+        tv.performTextFinderAction(hide)
+        pump(0.2)
+        check(!scroll.isFindBarVisible, "the find bar closes")
+        model.flushSave()
+
         pb.clearContents()
         pb.writeObjects(clip.map { pairs in let i = NSPasteboardItem(); pairs.forEach { i.setData($0.1, forType: $0.0) }; return i })
 
