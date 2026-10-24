@@ -74,7 +74,7 @@ struct EditorPane: View {
     private var noSheet: some View {
         VStack(spacing: T.Space.s200) {
             Icon(.sheet, size: T.Size.iconLg, color: .inkTertiary)
-            Text(model.t(.editorNoSheet)).foregroundStyle(Color.inkTertiary)
+            Text(model.t(.editorNoSheet)).textStyle(.body).foregroundStyle(Color.inkTertiary)
             if model.folder != nil && !model.showingTrash && !model.readOnly {
                 KitButton(model.t(.sheetNew), icon: .add, variant: .primary) { model.newSheet() }
             }

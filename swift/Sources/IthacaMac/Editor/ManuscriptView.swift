@@ -48,6 +48,11 @@ struct ManuscriptView: NSViewRepresentable {
         tv.delegate = context.coordinator
         tv.textStorage?.delegate = context.coordinator
         context.coordinator.textView = tv
+        tv.onEscape = { [weak model] in
+            guard let model, model.focusMode else { return false }
+            model.focusMode = false
+            return true
+        }
         model.editor = context.coordinator
         #if DEBUG
         NotificationCenter.default.addObserver(forName: NSTextView.willSwitchToNSLayoutManagerNotification, object: tv, queue: nil) { _ in
@@ -283,10 +288,11 @@ struct ManuscriptView: NSViewRepresentable {
             tv.padX = T.Layout.Editor.paddingX(sizeClass)
             tv.typewriter = model.typewriter
             tv.measure = (T.Layout.Editor.measure * model.lineWidth.scale).rounded()
+            // Cheap and guarded: typewriter scrolling changes the room below the last line without a restyle.
+            tv.updateInsets()
             guard force || key != style else { return }
             style = key
             tv.isContinuousSpellCheckingEnabled = key.spell
-            tv.updateInsets()
             tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing)
             tv.setValue(NSAttributedString(string: "\(model.t(.sheetPlaceholderTitle))\n\(model.t(.sheetPlaceholderBody))",
                                            attributes: Styles.base(model.textSize, model.lineSpacing).merging([.foregroundColor: NSColor.token(T.Color.inkTertiary)]) { $1 }),
@@ -330,7 +336,11 @@ struct ManuscriptView: NSViewRepresentable {
             guard let tv = textView, !loading, !tv.hasMarkedText() else { return }
             model.rememberCaret(tv.selectedRange().location)
             updateFocusDim()
-            if model.typewriter { DispatchQueue.main.async { [weak self] in self?.reveal(center: false) } }
+            // Typewriter centering follows the caret only: recentering under a mouse drag or a growing selection
+            // would move the text away from the pointer / the end being extended.
+            if model.typewriter, tv.selectedRange().length == 0, NSEvent.pressedMouseButtons == 0 {
+                DispatchQueue.main.async { [weak self] in self?.reveal(center: false) }
+            }
         }
 
         private func schedulePauseBreak() {
@@ -471,6 +481,13 @@ final class ManuscriptScrollView: NSScrollView {
         window?.makeFirstResponder(tv)
         tv.mouseDown(with: event)
     }
+
+    /// The text view's context menu there too, not nothing.
+    override func rightMouseDown(with event: NSEvent) {
+        guard let tv = documentView as? NSTextView else { return super.rightMouseDown(with: event) }
+        window?.makeFirstResponder(tv)
+        tv.rightMouseDown(with: event)
+    }
 }
 
 /// The text view itself: centered measure, room below the last line, plain-text pasteboard.
@@ -515,7 +532,8 @@ final class ManuscriptTextView: NSTextView {
         guard selectedRange().length > 0, isEditable else { return }
         copy(sender)
         breakUndoCoalescing()
-        insertText("", replacementRange: selectedRange())
+        // `delete` removes every selected range (⌥-drag column selections too), as one undo step.
+        delete(sender)
         breakUndoCoalescing()
     }
 
@@ -530,8 +548,42 @@ final class ManuscriptTextView: NSTextView {
         breakUndoCoalescing()
     }
 
+    /// Esc first leaves focus mode (returns true when it did); otherwise the standard behavior (word completion).
+    var onEscape: (() -> Bool)?
+    override func cancelOperation(_ sender: Any?) {
+        if !hasMarkedText(), onEscape?() == true { return }
+        super.cancelOperation(sender)
+    }
+
     override func pasteAsRichText(_ sender: Any?) { paste(sender) }
     override func pasteAsPlainText(_ sender: Any?) { paste(sender) }
+
+    /// Drops are text: colors, fonts, rulers and images would only put stray attributes on a plain-text manuscript
+    /// (a dropped color painted the selection until the next restyle).
+    override var acceptableDragTypes: [NSPasteboard.PasteboardType] {
+        let text: Set<String> = [NSPasteboard.PasteboardType.string.rawValue, "NSStringPboardType", NSPasteboard.PasteboardType.rtf.rawValue,
+                                 NSPasteboard.PasteboardType.rtfd.rawValue, NSPasteboard.PasteboardType.html.rawValue,
+                                 NSPasteboard.PasteboardType.URL.rawValue, NSPasteboard.PasteboardType.fileURL.rawValue,
+                                 "NSFilenamesPboardType", "Apple URL pasteboard type", "WebURLsWithTitlesPboardType"]
+        return super.acceptableDragTypes.filter { text.contains($0.rawValue) }
+    }
+
+    /// The standard menu minus what breaks or means nothing in a plain-text manuscript:
+    /// Font (font and color panels) and Layout Orientation (vertical text isn't supported).
+    override func menu(for event: NSEvent) -> NSMenu? {
+        guard let menu = super.menu(for: event) else { return nil }
+        let drop: Set<String> = ["orderFrontFontPanel:", "changeLayoutOrientation:"]
+        for item in menu.items.reversed() {
+            if let sub = item.submenu, sub.items.contains(where: { $0.action.map { drop.contains(NSStringFromSelector($0)) } ?? false }) {
+                menu.removeItem(item)
+            }
+        }
+        // No doubled or trailing separators left behind.
+        while let last = menu.items.last, last.isSeparatorItem { menu.removeItem(last) }
+        var i = menu.items.count - 1
+        while i > 0 { if menu.items[i].isSeparatorItem && menu.items[i - 1].isSeparatorItem { menu.removeItem(at: i) }; i -= 1 }
+        return menu
+    }
 }
 
 /// Manuscript attributes from the editor tokens.

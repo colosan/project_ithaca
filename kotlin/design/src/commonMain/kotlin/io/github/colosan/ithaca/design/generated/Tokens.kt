@@ -22,7 +22,7 @@ object Tokens {
         val inkPrimary = ColorPair(light = 0xFF1F1D1AL, dark = 0xFFECE8E1L)
         val inkSecondary = ColorPair(light = 0xFF45413BL, dark = 0xFFCBC5BCL)
         val inkTertiary = ColorPair(light = 0xFF646058L, dark = 0xFFA6A29CL)
-        val inkMarkup = ColorPair(light = 0xFFB9B2A6L, dark = 0xFF5E5A54L)
+        val inkMarkup = ColorPair(light = 0xFFB9B2A6L, dark = 0xFF747069L)
         val inkOnAccent = ColorPair(light = 0xFFFFFFFFL, dark = 0xFF1C1B19L)
         val lineSubtle = ColorPair(light = 0xFFE4DFD6L, dark = 0xFF33312EL)
         val lineStrong = ColorPair(light = 0xFFCFC8BCL, dark = 0xFF46433FL)

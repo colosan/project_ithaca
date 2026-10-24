@@ -52,8 +52,8 @@
     },
     "ink.markup": {
       "light": "#B9B2A6",
-      "dark": "#5E5A54",
-      "description": "Markdown 기호(#, *, >) 흐리게 — Ulysses 감성의 핵심"
+      "dark": "#747069",
+      "description": "Markdown 기호(#, *, >, -) 흐리게 — Ulysses 감성의 핵심. 흐려도 쓴 글자로 보여야 한다: dark 는 캔버스 위 약 3.5:1 (2026-10-24, #5E5A54 2.5:1 에서 줄 머리 \"- \"가 안 써진 것처럼 보였다)"
     },
     "ink.onAccent": {
       "light": "#FFFFFF",
