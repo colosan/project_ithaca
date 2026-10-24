@@ -61,6 +61,9 @@ enum Snapshot {
             Scene(name: "shell-1240-inspector-reference-dark", size: wide, dark: true, setup: { m, d in m.inspectorOpen = true; d.set("reference", forKey: "ithaca.inspectorTab") }),
             Scene(name: "shell-inspector-outline-1000", size: CGSize(width: 1000, height: 700), setup: { m, d in m.inspectorOpen = true; d.set("outline", forKey: "ithaca.inspectorTab") }),
             Scene(name: "shell-focus", size: wide, setup: { m, _ in m.focusMode = true }),
+            // Empty folder: the list offers "new sheet" (navigation spec).
+            Scene(name: "shell-empty-folder", size: wide, setup: { m, _ in m.createFolder("빈 폴더") }),
+            Scene(name: "shell-list-focused", size: wide, setup: { m, _ in m.listFocusRequest += 1 }),
             Scene(name: "shell-trash", size: wide, setup: { m, _ in
                 if let s = m.folder?.sheets.last { m.trashSheet(s.id) }
                 m.toast = nil

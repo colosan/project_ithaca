@@ -2,6 +2,7 @@
 // Pane rule validated in the web app (App.tsx panesFor): a pane docks only while the editor keeps ≥ 600 pt;
 // priority editor → (open) inspector → sheet list → library; the inspector may squeeze the editor to 580.
 // Panes that can't dock open as overlays that close when you click outside.
+import AppKit
 import IthacaDesign
 import SwiftUI
 
@@ -23,6 +24,7 @@ struct Panes: Equatable {
 
 struct ShellView: View {
     @Environment(AppModel.self) private var model
+    @State private var escape: EscapeMonitor?
 
     var body: some View {
         GeometryReader { geo in
@@ -68,9 +70,16 @@ struct ShellView: View {
                 }
                 if let busy = model.busy { BusyHUD(message: busy) }
             }
-            .onAppear { sync(panes) }
+            .onAppear { sync(panes); model.inspectorDocks = Panes.forWidth(geo.size.width, inspectorOpen: true).inspector }
             .onChange(of: panes) { _, p in sync(p) }
+            .onChange(of: Panes.forWidth(geo.size.width, inspectorOpen: true).inspector) { _, d in model.inspectorDocks = d }
         }
+        .background(WindowReader { w in
+            let m = escape ?? EscapeMonitor()
+            if escape == nil { escape = m }
+            m.window = w
+            if w != nil { m.install(model) } else { m.remove() }
+        })
         .background(Color.surfaceCanvas)
         .foregroundStyle(Color.inkPrimary)
         .frame(minWidth: T.Layout.Window.minWidth, minHeight: T.Layout.Window.minHeight)
@@ -101,6 +110,56 @@ struct ShellView: View {
             get: { if case .palette = model.overlay { return nil }; return model.overlay },
             set: { model.overlay = $0 }
         )
+    }
+}
+
+/// Esc closes a pane shown as an overlay (library / list, then the inspector), like clicking the scrim.
+/// A key monitor, not a keyboard shortcut: the manuscript text view takes Esc for itself (completion) before
+/// SwiftUI shortcuts see it. Left alone: dialogs, the palette, IME composition, a text field being edited.
+@MainActor
+final class EscapeMonitor {
+    weak var window: NSWindow?
+    private var token: Any?
+
+    func install(_ model: AppModel) {
+        guard token == nil else { return }
+        token = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self, weak model] event in
+            nonisolated(unsafe) let e = event
+            let swallow = MainActor.assumeIsolated { () -> Bool in
+                guard let self, let model else { return false }
+                return Self.handle(e, model: model, window: self.window)
+            }
+            return swallow ? nil : event
+        }
+    }
+
+    func remove() {
+        if let token { NSEvent.removeMonitor(token) }
+        token = nil
+    }
+
+    /// True when Esc closed an overlay pane (the event is then swallowed).
+    static func handle(_ event: NSEvent, model: AppModel, window: NSWindow?) -> Bool {
+        guard event.keyCode == 53, event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock).isEmpty,
+              let window, event.window === window, window.attachedSheet == nil,
+              model.overlay == nil, !model.focusMode, model.editor?.isComposing != true else { return false }
+        if let tv = window.firstResponder as? NSTextView, tv.isFieldEditor { return false }
+        if model.libraryOverlay && !(model.dockedLibrary && model.dockedList) { model.libraryOverlay = false; return true }
+        if model.inspectorOpen && !model.inspectorDocks { model.inspectorOpen = false; return true }
+        return false
+    }
+}
+
+/// Hands over the window a SwiftUI view lives in.
+struct WindowReader: NSViewRepresentable {
+    let found: (NSWindow?) -> Void
+    func makeNSView(context: Context) -> NSView { Probe(found) }
+    func updateNSView(_ view: NSView, context: Context) {}
+    final class Probe: NSView {
+        let found: (NSWindow?) -> Void
+        init(_ found: @escaping (NSWindow?) -> Void) { self.found = found; super.init(frame: .zero) }
+        required init?(coder: NSCoder) { nil }
+        override func viewDidMoveToWindow() { super.viewDidMoveToWindow(); found(window) }
     }
 }
 

@@ -352,6 +352,7 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case trashDeleteForeverConfirm = "trash.deleteForeverConfirm"
     case sheetTrash = "sheet.trash"
     case sheetMove = "sheet.move"
+    case sheetDuplicate = "sheet.duplicate"
     case backupReplaced = "backup.replaced"
     case editorLabel = "editor.label"
     case syncSaving = "sync.saving"
@@ -962,6 +963,7 @@ public enum L10n {
             .trashDeleteForeverConfirm: .text("이 시트를 영구히 지울까요? 되돌릴 수 없어요."),
             .sheetTrash: .text("휴지통으로"),
             .sheetMove: .text("다른 폴더로 옮기기"),
+            .sheetDuplicate: .text("복제"),
             .backupReplaced: .text("백업 내용으로 바꿨어요"),
             .editorLabel: .text("원고"),
             .syncSaving: .text("저장하는 중…"),
@@ -1551,6 +1553,7 @@ public enum L10n {
             .trashDeleteForeverConfirm: .text("Delete this sheet forever? This can't be undone."),
             .sheetTrash: .text("Move to trash"),
             .sheetMove: .text("Move to folder"),
+            .sheetDuplicate: .text("Duplicate"),
             .backupReplaced: .text("Replaced with the backup"),
             .editorLabel: .text("Manuscript"),
             .syncSaving: .text("Saving…"),
