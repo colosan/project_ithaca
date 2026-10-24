@@ -281,11 +281,24 @@ fn rebuild_texts(blocks: &HashMap<String, Block>) -> (Rebuilt, HashMap<String, S
 /// The text after block `hash`, loading blocks back along the first-parent line to the nearest snapshot.
 pub fn reconstruct(
     hash: &str,
+    load: impl FnMut(&str) -> Result<Block, LedgerError>,
+) -> Result<String, LedgerError> {
+    reconstruct_known(hash, |_| None, load)
+}
+
+/// [`reconstruct`] that stops early at a block whose text the caller already has (`known`), so
+/// walking a chain forward version by version reads each block file about once.
+pub fn reconstruct_known(
+    hash: &str,
+    known: impl Fn(&str) -> Option<String>,
     mut load: impl FnMut(&str) -> Result<Block, LedgerError>,
 ) -> Result<String, LedgerError> {
     let mut stack = Vec::new();
     let mut cur = hash.to_string();
     let base = loop {
+        if let Some(t) = known(&cur) {
+            break t;
+        }
         let b = load(&cur)?;
         match &b.body {
             Body::Snapshot(t) => break t.clone(),

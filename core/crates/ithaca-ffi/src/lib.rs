@@ -327,6 +327,20 @@ pub struct HistoryEntry {
     pub removed: u32,
 }
 
+/// (added: history-sessions) core/API.md §History.
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct HistorySession {
+    pub start: i64,
+    pub end: i64,
+    pub device: String,
+    pub actor: Actor,
+    pub kind: BlockKind,
+    pub added: u32,
+    pub removed: u32,
+    pub base: Option<String>,
+    pub entries: Vec<HistoryEntry>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
 pub struct IntegrityIssue {
     pub file: String,
@@ -562,6 +576,29 @@ impl From<store::FolderInfo> for FolderInfo {
             name: f.name,
             order: f.order,
             sheets: f.sheets.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<store::HistorySession> for HistorySession {
+    fn from(g: store::HistorySession) -> Self {
+        // Actor and kind come from the newest entry (the session shares them).
+        let head: HistoryEntry = g
+            .entries
+            .first()
+            .cloned()
+            .map(Into::into)
+            .expect("a session has at least one entry");
+        HistorySession {
+            start: g.start,
+            end: g.end,
+            device: g.device,
+            actor: head.actor,
+            kind: head.kind,
+            added: g.added,
+            removed: g.removed,
+            base: g.base,
+            entries: vec(g.entries),
         }
     }
 }
@@ -853,6 +890,10 @@ impl Library {
 
     pub fn history(&self, project: String, sheet: String) -> R<Vec<HistoryEntry>> {
         Ok(vec(self.lock().history(&project, &sheet)?))
+    }
+
+    pub fn history_sessions(&self, project: String, sheet: String) -> R<Vec<HistorySession>> {
+        Ok(vec(self.lock().history_sessions(&project, &sheet)?))
     }
 
     pub fn text_at(&self, project: String, sheet: String, hash: String) -> R<String> {

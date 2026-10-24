@@ -86,6 +86,32 @@ pub struct HistoryEntry {
     pub removed: u32,
 }
 
+/// (added: history-sessions) Consecutive blocks that read as one sitting: same device and actor, edits
+/// only, each built directly on the one before, with no gap of [`SESSION_GAP_MS`] or more. Lease and
+/// merge blocks are sessions of their own. Display grouping only; nothing is stored.
+#[derive(Debug, Clone, PartialEq)]
+pub struct HistorySession {
+    /// `at` of the oldest and the newest block.
+    pub start: i64,
+    pub end: i64,
+    pub device: String,
+    pub actor: Actor,
+    pub kind: Kind,
+    /// Net change, in graphemes, from the text before the session to the text after it (typing a
+    /// sentence and deleting it again nets to +0 −0). Falls back to the sum of the blocks' own
+    /// counts when a text can't be rebuilt.
+    pub added: u32,
+    pub removed: u32,
+    /// First parent of the oldest block: the text before the session. `None` at the chain's start.
+    pub base: Option<String>,
+    /// The session's blocks, newest first; `entries[0]` is the text after the session. Within a
+    /// session each entry's parent is the next one (the last one's is `base`).
+    pub entries: Vec<HistoryEntry>,
+}
+
+/// (added: history-sessions) A pause this long (10 min) starts a new session.
+pub const SESSION_GAP_MS: i64 = 10 * 60 * 1000;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IssueKind {
     /// Not a block (bad JSON, unknown version) or not readable.

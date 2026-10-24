@@ -433,6 +433,17 @@
   "count.withoutSpacesHint": "Characters without spaces and line breaks",
   "history.empty": "No records yet.",
   "history.integrityFailed": "Hash check found a problem — {message}",
+  "history.today": "Today",
+  "history.yesterday": "Yesterday",
+  "history.saves": {
+    "one": "{count} save",
+    "other": "{count} saves"
+  },
+  "history.wholeSession": "Whole session · {range}",
+  "history.savedAt": "Saved at {time}",
+  "history.expand": "Show saves",
+  "history.collapse": "Hide saves",
+  "history.sessionHint": "Saves without a break of 10 minutes or more are grouped into one session.",
   "import.web": "Import from the web version",
   "import.webHint": "Adds the web version's backup file (JSON) as new projects. Nothing here is replaced.",
   "import.webDone": "Imported {projects} projects and {sheets} sheets from the web version — {names}",
