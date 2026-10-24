@@ -8,96 +8,71 @@ struct NewProjectView: View {
     let firstRun: Bool
 
     @State private var title = ""
-    @State private var language: ManuscriptLanguage = .ko
-    @State private var goalOn = false
-    @State private var goalCount = 5000
-    @State private var goalBasis = GoalBasis.withSpaces
-    @State private var folders: [(on: Bool, name: String)] = []
+    @State private var goal: Goal?
     @FocusState private var titleFocused: Bool
+
+    /// Manuscript language follows the app language (Settings); folders are the defaults, changed later in the sidebar.
+    private var language: ManuscriptLanguage { model.locale == .ko ? .ko : .en }
 
     var body: some View {
         VStack(alignment: .leading, spacing: T.Space.s200) {
             if firstRun {
                 VStack(alignment: .leading, spacing: T.Space.s50) {
-                    Text(model.t(.welcomeTitle)).textStyle(.display)
-                    Text(model.t(.welcomeSubtitle)).textStyle(.body).foregroundStyle(Color.inkSecondary)
+                    Text(model.t(.welcomeTitle)).textStyle(.title)
+                    Text(model.t(.welcomeSubtitle)).foregroundStyle(Color.inkSecondary)
                 }
-                // Coming from the web version: bring its JSON backup in as new projects.
-                HStack(alignment: .top, spacing: T.Space.s150) {
-                    Icon(.backup, size: T.Size.iconMd, color: .accentPrimary)
-                    VStack(alignment: .leading, spacing: T.Space.s50) {
-                        Text(model.t(.welcomeImportWeb)).textStyle(.heading)
+                // Coming from the web version or a folder of text files: bring it in as a new project.
+                HStack(alignment: .center, spacing: T.Space.s150) {
+                    VStack(alignment: .leading, spacing: T.Space.s25) {
+                        Text(model.t(.welcomeImportWeb)).textStyle(.label)
                         Text(model.t(.importWebHint)).textStyle(.caption).foregroundStyle(Color.inkSecondary).fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 0)
-                    VStack(alignment: .trailing, spacing: T.Space.s100) {
-                        KitButton(model.t(.importWeb) + "…", icon: .restore) { model.importWebBackup() }.disabled(model.busy != nil)
+                    VStack(alignment: .trailing, spacing: T.Space.s50) {
+                        KitButton(model.t(.importWeb) + "…", icon: .restore) { model.importWebBackup() }
                         KitButton(model.t(.importTextFolder) + "…", icon: .folderOpen) { model.importTextFolder() }
-                            .disabled(model.busy != nil)
                             .help(model.t(.importTextFolderHint))
                     }
+                    .disabled(model.busy != nil)
                     .fixedSize()
                 }
-                .padding(T.Space.s200)
+                .padding(T.Space.s150)
                 .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.surfaceRaised))
                 .overlay(RoundedRectangle(cornerRadius: T.Radius.panel).strokeBorder(Color.lineSubtle))
-                Text(model.t(.welcomeStartFresh)).textStyle(.heading).padding(.top, T.Space.s100)
+                Text(model.t(.welcomeStartFresh)).textStyle(.label).padding(.top, T.Space.s50)
             } else {
                 Text(model.t(.newProjectTitle)).textStyle(.title)
             }
             Form {
                 TextField(model.t(.projectSettingsName), text: $title, prompt: Text(model.t(.newProjectTitlePlaceholder)))
                     .focused($titleFocused)
-                Picker(model.t(.projectSettingsLanguage), selection: $language) {
-                    Text(model.t(.languageKo)).tag(ManuscriptLanguage.ko)
-                    Text(model.t(.languageEn)).tag(ManuscriptLanguage.en)
-                }
-                .onChange(of: language) { _, l in resetFolders(l) }
-                GoalField(on: $goalOn, count: $goalCount, basis: $goalBasis, language: language)
-                LabeledContent(model.t(.newProjectFolders)) {
-                    VStack(alignment: .leading, spacing: T.Space.s50) {
-                        ForEach(folders.indices, id: \.self) { i in
-                            HStack {
-                                Toggle("", isOn: $folders[i].on).labelsHidden().toggleStyle(.checkbox)
-                                TextField("", text: $folders[i].name).labelsHidden()
-                            }
-                        }
-                        Caption(model.t(.newProjectFoldersHint)).fixedSize(horizontal: false, vertical: true)
-                    }
-                }
+                GoalField(goal: $goal, language: language)
             }
             .formStyle(.columns)
             HStack {
                 Spacer()
-                if !firstRun { KitButton(model.t(.actionCancel), variant: .ghost) { dismiss() }.keyboardShortcut(.cancelAction) }
+                KitButton(model.t(firstRun ? .welcomeLater : .actionCancel), variant: .ghost) { dismiss() }.keyboardShortcut(.cancelAction)
                 KitButton(model.t(.newProjectCreate), variant: .primary, action: create)
                     .keyboardShortcut(.defaultAction)
-                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || !folders.contains { $0.on && !$0.name.isEmpty })
+                    .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
-        .textStyle(.body)
+        .textStyle(.label, weight: 400)
         .padding(T.Space.s300)
         .frame(width: T.Layout.Pane.dialogDefault)
-        .background(firstRun ? Color.surfaceSidebar : .surfaceCanvas)
-        .interactiveDismissDisabled(firstRun)
+        .fixedSize(horizontal: false, vertical: true)
+        .background(Color.surfaceCanvas)
         .overlay { if let busy = model.busy { BusyHUD(message: busy) } }
-        .onAppear {
-            language = model.locale == .ko ? .ko : .en
-            resetFolders(language)
-            titleFocused = true
-        }
-    }
-
-    private func resetFolders(_ l: ManuscriptLanguage) {
-        folders = [L10nKey.folderDefaultSerial, .folderDefaultLore, .folderDefaultMaterial].map { (true, model.defaultFolderName($0, l)) }
+        .onAppear { titleFocused = true }
     }
 
     private func create() {
-        let names = folders.filter { $0.on }.map { $0.name.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        model.createProject(title: title, language: language, folders: names, goal: goalOn ? Goal(count: goalCount, basis: goalBasis) : nil)
+        let folders = [L10nKey.folderDefaultSerial, .folderDefaultLore, .folderDefaultMaterial].map { model.defaultFolderName($0, language) }
+        model.createProject(title: title, language: language, folders: folders, goal: goal)
     }
 }
 
+/// Sheet goal: one popup (none, or a basis) and the count beside it once a basis is chosen.
 struct GoalField: View {
     static func key(_ b: GoalBasis) -> L10nKey {
         switch b {
@@ -110,26 +85,36 @@ struct GoalField: View {
     }
 
     @Environment(AppModel.self) private var model
-    @Binding var on: Bool
-    @Binding var count: Int
-    @Binding var basis: GoalBasis
+    @Binding var goal: Goal?
     let language: ManuscriptLanguage
+
+    private var bases: [GoalBasis] {
+        // Platform bases for Korean manuscripts (research P1); a saved one stays listed either way.
+        GoalBasis.allCases.filter { language == .ko || $0 == goal?.basis || ($0 != .munpia && $0 != .novelpia) }
+    }
 
     var body: some View {
         LabeledContent(model.t(.projectSettingsGoal)) {
             VStack(alignment: .leading, spacing: T.Space.s50) {
                 HStack {
-                    Toggle("", isOn: $on).labelsHidden().toggleStyle(.checkbox)
-                    TextField("", value: $count, format: .number).labelsHidden().frame(width: 90).disabled(!on)
-                    Picker("", selection: $basis) {
-                        // Platform bases for Korean manuscripts (research P1); a saved one stays listed either way.
-                        ForEach(GoalBasis.allCases.filter { language == .ko || $0 == basis || ($0 != .munpia && $0 != .novelpia) }, id: \.self) { b in
-                            Text(model.t(Self.key(b))).tag(b)
+                    Picker("", selection: Binding(
+                        get: { goal?.basis },
+                        set: { b in
+                            guard let b else { goal = nil; return }
+                            goal = Goal(count: goal?.count ?? (b == .words ? 2000 : 5000), basis: b)
                         }
+                    )) {
+                        Text(model.t(.projectSettingsGoalNone)).tag(GoalBasis?.none)
+                        Divider()
+                        ForEach(bases, id: \.self) { b in Text(model.t(Self.key(b))).tag(GoalBasis?.some(b)) }
                     }
                     .labelsHidden()
                     .fixedSize()
-                    .disabled(!on)
+                    if let g = goal {
+                        TextField("", value: Binding(get: { g.count }, set: { goal = Goal(count: max(0, $0), basis: g.basis) }), format: .number)
+                            .labelsHidden()
+                            .frame(width: 90)
+                    }
                 }
                 Caption(model.t(.projectSettingsGoalHint))
             }
@@ -141,35 +126,14 @@ struct ProjectSettingsView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var title = ""
-    @State private var language = ManuscriptLanguage.ko
-    @State private var goalOn = false
-    @State private var goalCount = 5000
-    @State private var goalBasis = GoalBasis.withSpaces
-    @State private var newFolder = ""
+    @State private var goal: Goal?
 
     var body: some View {
         VStack(alignment: .leading, spacing: T.Space.s200) {
             Text(model.t(.projectSettingsTitle)).textStyle(.title)
             Form {
                 TextField(model.t(.projectSettingsName), text: $title)
-                Picker(model.t(.projectSettingsLanguage), selection: $language) {
-                    Text(model.t(.languageKo)).tag(ManuscriptLanguage.ko)
-                    Text(model.t(.languageEn)).tag(ManuscriptLanguage.en)
-                }
-                Caption(model.t(.projectSettingsLanguageHint))
-                GoalField(on: $goalOn, count: $goalCount, basis: $goalBasis, language: language)
-                LabeledContent(model.t(.projectSettingsFolders)) {
-                    VStack(alignment: .leading, spacing: T.Space.s50) {
-                        ForEach(model.folders) { f in FolderEditRow(folder: f) }
-                        HStack {
-                            TextField("", text: $newFolder, prompt: Text(model.t(.folderNamePlaceholder))).labelsHidden()
-                                .onSubmit(addFolder)
-                            KitButton(model.t(.folderNew), icon: .add, variant: .ghost, action: addFolder)
-                                .disabled(newFolder.trimmingCharacters(in: .whitespaces).isEmpty)
-                        }
-                        Caption(model.t(.projectSettingsFolderHint))
-                    }
-                }
+                GoalField(goal: $goal, language: model.project?.language ?? .ko)
             }
             .formStyle(.columns)
             .disabled(model.readOnly)
@@ -183,7 +147,7 @@ struct ProjectSettingsView: View {
                     .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty || model.readOnly)
             }
         }
-        .textStyle(.body)
+        .textStyle(.label, weight: 400)
         .padding(T.Space.s300)
         .frame(width: T.Layout.Pane.dialogDefault)
         // Hug the content: the sheet otherwise grew taller than the form and centred it under empty space.
@@ -192,41 +156,14 @@ struct ProjectSettingsView: View {
         .onAppear {
             guard let p = model.project else { return }
             title = p.title
-            language = p.language
-            goalOn = p.goal != nil
-            goalCount = p.goal?.count ?? (p.language == .ko ? 5000 : 2000)
-            goalBasis = p.goal?.basis ?? (p.language == .ko ? .withSpaces : .words)
+            goal = p.goal
         }
-    }
-
-    private func addFolder() {
-        let n = newFolder.trimmingCharacters(in: .whitespaces)
-        guard !n.isEmpty else { return }
-        model.createFolder(n)
-        newFolder = ""
     }
 
     private func save() {
-        model.updateProject(ProjectPatch(title: title.trimmingCharacters(in: .whitespaces), language: language,
-                                         goal: .some(goalOn && goalCount > 0 ? Goal(count: goalCount, basis: goalBasis) : nil)))
+        model.updateProject(ProjectPatch(title: title.trimmingCharacters(in: .whitespaces),
+                                         goal: .some(goal.flatMap { $0.count > 0 ? $0 : nil })))
         model.reloadOutline()
         dismiss()
-    }
-}
-
-private struct FolderEditRow: View {
-    @Environment(AppModel.self) private var model
-    let folder: FolderInfo
-    @State private var name = ""
-
-    var body: some View {
-        HStack {
-            TextField("", text: $name).labelsHidden()
-                .onSubmit { model.renameFolder(folder.id, name.trimmingCharacters(in: .whitespaces)) }
-            Caption(model.t(.sheetListCount, ["count": folder.sheets.count], count: folder.sheets.count))
-            IconButton(.delete, label: model.t(.folderDelete)) { model.deleteFolder(folder.id) }
-        }
-        .onAppear { name = folder.name }
-        .onDisappear { if name != folder.name, !name.isEmpty { model.renameFolder(folder.id, name) } }
     }
 }

@@ -616,5 +616,8 @@
   "problem.sheetDamaged": "Sheet “{name}” in “{title}” is damaged. It shows its last good text and can't be edited until it's recovered from a backup.",
   "problem.unattributed": "“{title}” has change files that can't be read and belong to no known sheet.",
   "problem.backupPrune": "Old automatic backups couldn't be removed.",
-  "problem.other": "A problem was found while opening the library. Hover to see the original message."
+  "problem.other": "A problem was found while opening the library. Hover to see the original message.",
+  "welcome.later": "Later",
+  "editor.noProject": "No projects yet.",
+  "editor.noProjectHint": "Create a project, or bring in work from elsewhere."
 }

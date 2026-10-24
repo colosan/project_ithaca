@@ -427,8 +427,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let from = model.info.migratedFrom {
             model.showToast(Toast(message: model.t(.libraryMigrated, ["from": from, "path": model.info.backupPath ?? ""]), sticky: true))
         }
-        // First run: an empty, writable library with nothing skipped → the welcome dialog (start fresh, or import).
-        if model.projects.isEmpty && !model.readOnly && model.info.problems.isEmpty { model.overlay = .newProject(firstRun: true) }
+        // First launch only: an empty, writable library with nothing skipped → the welcome dialog (start fresh, or import).
+        // It can be closed; afterwards the empty editor offers the same actions.
+        if model.projects.isEmpty && !model.readOnly && model.info.problems.isEmpty,
+           !AppEnvironment.defaults.bool(forKey: "ithaca.welcomeShown") {
+            AppEnvironment.defaults.set(true, forKey: "ithaca.welcomeShown")
+            model.overlay = .newProject(firstRun: true)
+        }
         // Sparkle can't replace an app running from a translocated (quarantined, unmoved) copy.
         if Bundle.main.bundlePath.contains("/AppTranslocation/"), !AppEnvironment.defaults.bool(forKey: "ithaca.translocationNoticeShown") {
             AppEnvironment.defaults.set(true, forKey: "ithaca.translocationNoticeShown")

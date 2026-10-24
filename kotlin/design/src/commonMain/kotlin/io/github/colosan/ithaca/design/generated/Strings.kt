@@ -539,6 +539,9 @@ enum class L10nKey(val key: String) {
     PROBLEM_UNATTRIBUTED("problem.unattributed"),
     PROBLEM_BACKUP_PRUNE("problem.backupPrune"),
     PROBLEM_OTHER("problem.other"),
+    WELCOME_LATER("welcome.later"),
+    EDITOR_NO_PROJECT("editor.noProject"),
+    EDITOR_NO_PROJECT_HINT("editor.noProjectHint"),
 }
 
 sealed interface L10nValue {
@@ -1094,6 +1097,9 @@ object L10n {
             L10nKey.PROBLEM_UNATTRIBUTED to L10nValue.Text("‘{title}’에 읽을 수 없고 어느 시트에도 속하지 않는 변경 파일이 있어요."),
             L10nKey.PROBLEM_BACKUP_PRUNE to L10nValue.Text("오래된 자동 백업을 지우지 못했어요."),
             L10nKey.PROBLEM_OTHER to L10nValue.Text("라이브러리를 열면서 문제를 찾았어요. 원문은 마우스를 올리면 보여요."),
+            L10nKey.WELCOME_LATER to L10nValue.Text("나중에"),
+            L10nKey.EDITOR_NO_PROJECT to L10nValue.Text("아직 작품이 없어요."),
+            L10nKey.EDITOR_NO_PROJECT_HINT to L10nValue.Text("새 작품을 만들거나, 쓰던 원고를 가져오세요."),
         ),
         L10nLocale.en to mapOf(
             L10nKey.APP_NAME to L10nValue.Text("Ithaca"),
@@ -1630,6 +1636,9 @@ object L10n {
             L10nKey.PROBLEM_UNATTRIBUTED to L10nValue.Text("“{title}” has change files that can't be read and belong to no known sheet."),
             L10nKey.PROBLEM_BACKUP_PRUNE to L10nValue.Text("Old automatic backups couldn't be removed."),
             L10nKey.PROBLEM_OTHER to L10nValue.Text("A problem was found while opening the library. Hover to see the original message."),
+            L10nKey.WELCOME_LATER to L10nValue.Text("Later"),
+            L10nKey.EDITOR_NO_PROJECT to L10nValue.Text("No projects yet."),
+            L10nKey.EDITOR_NO_PROJECT_HINT to L10nValue.Text("Create a project, or bring in work from elsewhere."),
         ),
     )
 }

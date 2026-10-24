@@ -543,6 +543,9 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case problemUnattributed = "problem.unattributed"
     case problemBackupPrune = "problem.backupPrune"
     case problemOther = "problem.other"
+    case welcomeLater = "welcome.later"
+    case editorNoProject = "editor.noProject"
+    case editorNoProjectHint = "editor.noProjectHint"
 }
 
 enum L10nValue: Sendable {
@@ -1100,6 +1103,9 @@ public enum L10n {
             .problemUnattributed: .text("‘{title}’에 읽을 수 없고 어느 시트에도 속하지 않는 변경 파일이 있어요."),
             .problemBackupPrune: .text("오래된 자동 백업을 지우지 못했어요."),
             .problemOther: .text("라이브러리를 열면서 문제를 찾았어요. 원문은 마우스를 올리면 보여요."),
+            .welcomeLater: .text("나중에"),
+            .editorNoProject: .text("아직 작품이 없어요."),
+            .editorNoProjectHint: .text("새 작품을 만들거나, 쓰던 원고를 가져오세요."),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -1636,6 +1642,9 @@ public enum L10n {
             .problemUnattributed: .text("“{title}” has change files that can't be read and belong to no known sheet."),
             .problemBackupPrune: .text("Old automatic backups couldn't be removed."),
             .problemOther: .text("A problem was found while opening the library. Hover to see the original message."),
+            .welcomeLater: .text("Later"),
+            .editorNoProject: .text("No projects yet."),
+            .editorNoProjectHint: .text("Create a project, or bring in work from elsewhere."),
         ],
     ]
 }

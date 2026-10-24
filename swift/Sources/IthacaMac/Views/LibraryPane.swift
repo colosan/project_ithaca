@@ -7,6 +7,8 @@ struct LibraryPane: View {
     @State private var editing: String?  // folder id being renamed, or "new"
     @State private var draft = ""
     @FocusState private var fieldFocused: Bool
+    /// The open project's folders folded away (clicking the open project toggles it).
+    @AppStorage("ithaca.libraryFolded") private var folded = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -62,18 +64,19 @@ struct LibraryPane: View {
     @ViewBuilder
     private func projectRows(_ p: ProjectSummary) -> some View {
         let open = p.id == model.projectId
+        let expanded = open && !folded
         VStack(alignment: .leading, spacing: 0) {
             LibraryRow(active: false, muted: !open) {
-                if !open { model.selectProject(p.id) }
+                if open { folded.toggle() } else { folded = false; model.selectProject(p.id) }
             } content: {
-                Icon(open ? .expanded : .collapsed, size: T.Size.iconSm, color: .inkTertiary)
+                Icon(expanded ? .expanded : .collapsed, size: T.Size.iconSm, color: .inkTertiary)
                 Text(p.title).textStyle(.label, weight: T.Typography.heading.weight).lineLimit(1)
                 Spacer(minLength: 0)
             }
             .contextMenu {
                 Button(model.t(.projectSettingsTitle)) { if !open { model.selectProject(p.id) }; model.show(.projectSettings) }
             }
-            if open {
+            if expanded {
                 ForEach(model.folders) { f in
                     if editing == f.id { field } else { folderRow(f) }
                 }

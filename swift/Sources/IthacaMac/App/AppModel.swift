@@ -738,12 +738,11 @@ final class AppModel {
         perform { try library.deleteProject(id: p.id) }
         overlay = nil
         refreshProjects()
-        if let next = projects.first { selectProject(next.id) } else { projectId = nil; outline = nil; closeSheet(); overlay = .newProject(firstRun: true) }
+        if let next = projects.first { selectProject(next.id) } else { projectId = nil; outline = nil; closeSheet() }
         showToast(Toast(message: t(.projectSettingsDeleted, ["name": p.title]), undo: { [weak self] in
             guard let self else { return }
             perform { try self.library.restoreProject(id: p.id) }
             refreshProjects()
-            if overlay == .newProject(firstRun: true) { overlay = nil }
             selectProject(p.id)
         }, sticky: true))
     }

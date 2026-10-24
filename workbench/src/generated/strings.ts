@@ -538,6 +538,9 @@ export type StringKey =
   | "problem.unattributed"
   | "problem.backupPrune"
   | "problem.other"
+  | "welcome.later"
+  | "editor.noProject"
+  | "editor.noProjectHint"
   ;
 
 type Value = string | { one: string; other: string };
@@ -1077,7 +1080,10 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "problem.sheetDamaged": "‘{title}’의 시트 ‘{name}’이 손상됐어요. 마지막 온전한 글을 보여 주고, 백업에서 되살릴 때까지 고칠 수 없어요.",
     "problem.unattributed": "‘{title}’에 읽을 수 없고 어느 시트에도 속하지 않는 변경 파일이 있어요.",
     "problem.backupPrune": "오래된 자동 백업을 지우지 못했어요.",
-    "problem.other": "라이브러리를 열면서 문제를 찾았어요. 원문은 마우스를 올리면 보여요."
+    "problem.other": "라이브러리를 열면서 문제를 찾았어요. 원문은 마우스를 올리면 보여요.",
+    "welcome.later": "나중에",
+    "editor.noProject": "아직 작품이 없어요.",
+    "editor.noProjectHint": "새 작품을 만들거나, 쓰던 원고를 가져오세요."
   },
   "en": {
     "app.name": "Ithaca",
@@ -1697,7 +1703,10 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "problem.sheetDamaged": "Sheet “{name}” in “{title}” is damaged. It shows its last good text and can't be edited until it's recovered from a backup.",
     "problem.unattributed": "“{title}” has change files that can't be read and belong to no known sheet.",
     "problem.backupPrune": "Old automatic backups couldn't be removed.",
-    "problem.other": "A problem was found while opening the library. Hover to see the original message."
+    "problem.other": "A problem was found while opening the library. Hover to see the original message.",
+    "welcome.later": "Later",
+    "editor.noProject": "No projects yet.",
+    "editor.noProjectHint": "Create a project, or bring in work from elsewhere."
   }
 };
 

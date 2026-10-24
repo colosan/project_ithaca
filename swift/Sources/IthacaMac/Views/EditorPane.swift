@@ -46,7 +46,32 @@ struct EditorPane: View {
         .frame(minHeight: T.Size.barTop)
     }
 
-    private var empty: some View {
+    @ViewBuilder private var empty: some View {
+        if model.projects.isEmpty { noProject } else { noSheet }
+    }
+
+    /// No project at all (first run after closing the welcome, or the last one deleted): the welcome's actions.
+    private var noProject: some View {
+        VStack(spacing: T.Space.s200) {
+            Icon(.sheet, size: T.Size.iconLg, color: .inkTertiary)
+            VStack(spacing: T.Space.s50) {
+                Text(model.t(.editorNoProject)).textStyle(.heading)
+                Text(model.t(.editorNoProjectHint)).textStyle(.body).foregroundStyle(Color.inkSecondary)
+            }
+            if !model.readOnly {
+                KitButton(model.t(.libraryNewProject) + "…", icon: .add, variant: .primary) { model.show(.newProject(firstRun: false)) }
+                HStack(spacing: T.Space.s100) {
+                    KitButton(model.t(.importWeb) + "…", icon: .restore) { model.importWebBackup() }
+                    KitButton(model.t(.importTextFolder) + "…", icon: .folderOpen) { model.importTextFolder() }
+                        .help(model.t(.importTextFolderHint))
+                }
+                .disabled(model.busy != nil)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var noSheet: some View {
         VStack(spacing: T.Space.s200) {
             Icon(.sheet, size: T.Size.iconLg, color: .inkTertiary)
             Text(model.t(.editorNoSheet)).foregroundStyle(Color.inkTertiary)
