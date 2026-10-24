@@ -541,6 +541,46 @@ export type StringKey =
   | "welcome.later"
   | "editor.noProject"
   | "editor.noProjectHint"
+  | "format.strike"
+  | "format.heading1"
+  | "format.heading2"
+  | "format.heading3"
+  | "format.body"
+  | "format.quote"
+  | "format.sceneBreak"
+  | "format.symbols"
+  | "menu.saveNow"
+  | "menu.textBigger"
+  | "menu.textSmaller"
+  | "menu.textReset"
+  | "menu.findNext"
+  | "menu.findPrevious"
+  | "sheet.previous"
+  | "sheet.next"
+  | "symbol.ellipsis"
+  | "symbol.cornerBracket"
+  | "symbol.doubleCornerBracket"
+  | "symbol.doubleQuote"
+  | "symbol.singleQuote"
+  | "symbol.dash"
+  | "symbol.middleDot"
+  | "symbol.reference"
+  | "symbol.heart"
+  | "symbol.star"
+  | "symbol.doubleAngle"
+  | "symbol.angle"
+  | "symbol.lenticular"
+  | "symbol.heartFilled"
+  | "symbol.starOutline"
+  | "symbol.note"
+  | "symbol.tilde"
+  | "symbol.arrow"
+  | "symbol.times"
+  | "symbol.circle"
+  | "symbol.circleFilled"
+  | "symbol.diamond"
+  | "symbol.square"
+  | "symbol.triangle"
   ;
 
 type Value = string | { one: string; other: string };
@@ -1083,7 +1123,47 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "problem.other": "라이브러리를 열면서 문제를 찾았어요. 원문은 마우스를 올리면 보여요.",
     "welcome.later": "나중에",
     "editor.noProject": "아직 작품이 없어요.",
-    "editor.noProjectHint": "새 작품을 만들거나, 쓰던 원고를 가져오세요."
+    "editor.noProjectHint": "새 작품을 만들거나, 쓰던 원고를 가져오세요.",
+    "format.strike": "취소선",
+    "format.heading1": "제목 1",
+    "format.heading2": "제목 2",
+    "format.heading3": "제목 3",
+    "format.body": "본문",
+    "format.quote": "인용",
+    "format.sceneBreak": "장면 전환 넣기",
+    "format.symbols": "특수문자…",
+    "menu.saveNow": "지금 저장",
+    "menu.textBigger": "글자 크게",
+    "menu.textSmaller": "글자 작게",
+    "menu.textReset": "글자 기본 크기",
+    "menu.findNext": "다음 찾기",
+    "menu.findPrevious": "이전 찾기",
+    "sheet.previous": "이전 시트",
+    "sheet.next": "다음 시트",
+    "symbol.ellipsis": "말줄임표",
+    "symbol.cornerBracket": "낫표",
+    "symbol.doubleCornerBracket": "겹낫표",
+    "symbol.doubleQuote": "큰따옴표",
+    "symbol.singleQuote": "작은따옴표",
+    "symbol.dash": "줄표",
+    "symbol.middleDot": "가운뎃점",
+    "symbol.reference": "참고표",
+    "symbol.heart": "하트",
+    "symbol.star": "별",
+    "symbol.doubleAngle": "겹화살괄호",
+    "symbol.angle": "홑화살괄호",
+    "symbol.lenticular": "대괄호(볼록)",
+    "symbol.heartFilled": "하트(채움)",
+    "symbol.starOutline": "별(빈)",
+    "symbol.note": "음표",
+    "symbol.tilde": "물결표",
+    "symbol.arrow": "화살표",
+    "symbol.times": "곱셈표",
+    "symbol.circle": "동그라미",
+    "symbol.circleFilled": "동그라미(채움)",
+    "symbol.diamond": "마름모",
+    "symbol.square": "네모",
+    "symbol.triangle": "세모"
   },
   "en": {
     "app.name": "Ithaca",
@@ -1706,7 +1786,47 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "problem.other": "A problem was found while opening the library. Hover to see the original message.",
     "welcome.later": "Later",
     "editor.noProject": "No projects yet.",
-    "editor.noProjectHint": "Create a project, or bring in work from elsewhere."
+    "editor.noProjectHint": "Create a project, or bring in work from elsewhere.",
+    "format.strike": "Strikethrough",
+    "format.heading1": "Heading 1",
+    "format.heading2": "Heading 2",
+    "format.heading3": "Heading 3",
+    "format.body": "Body",
+    "format.quote": "Quote",
+    "format.sceneBreak": "Insert Scene Break",
+    "format.symbols": "Symbols…",
+    "menu.saveNow": "Save Now",
+    "menu.textBigger": "Bigger Text",
+    "menu.textSmaller": "Smaller Text",
+    "menu.textReset": "Default Text Size",
+    "menu.findNext": "Find Next",
+    "menu.findPrevious": "Find Previous",
+    "sheet.previous": "Previous Sheet",
+    "sheet.next": "Next Sheet",
+    "symbol.ellipsis": "Ellipsis",
+    "symbol.cornerBracket": "Corner brackets",
+    "symbol.doubleCornerBracket": "Double corner brackets",
+    "symbol.doubleQuote": "Double quotes",
+    "symbol.singleQuote": "Single quotes",
+    "symbol.dash": "Dash",
+    "symbol.middleDot": "Middle dot",
+    "symbol.reference": "Reference mark",
+    "symbol.heart": "Heart",
+    "symbol.star": "Star",
+    "symbol.doubleAngle": "Double angle brackets",
+    "symbol.angle": "Angle brackets",
+    "symbol.lenticular": "Lenticular brackets",
+    "symbol.heartFilled": "Heart (filled)",
+    "symbol.starOutline": "Star (outline)",
+    "symbol.note": "Note",
+    "symbol.tilde": "Wave dash",
+    "symbol.arrow": "Arrow",
+    "symbol.times": "Times",
+    "symbol.circle": "Circle",
+    "symbol.circleFilled": "Circle (filled)",
+    "symbol.diamond": "Diamond",
+    "symbol.square": "Square",
+    "symbol.triangle": "Triangle"
   }
 };
 

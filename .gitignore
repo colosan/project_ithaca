@@ -26,3 +26,4 @@ design/snapshots/
 swift/.build/
 swift/Sources/IthacaCoreFFI/include/
 swift/Sources/IthacaCore/Generated_*.swift
+.claude/worktrees/

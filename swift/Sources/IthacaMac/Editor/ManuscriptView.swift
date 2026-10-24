@@ -112,6 +112,145 @@ struct ManuscriptView: NSViewRepresentable {
 
         var caretLocation: Int { textView?.selectedRange().location ?? 0 }
 
+        // MARK: Formatting (Markdown kept as typed: these only insert or remove marks)
+
+        /// The text view, focused, with any composition committed — or nil when there's nothing to edit.
+        private var editable: ManuscriptTextView? {
+            guard let tv = textView, tv.isEditable else { return nil }
+            tv.window?.makeFirstResponder(tv)
+            commitComposition()
+            return tv
+        }
+
+        /// One undoable replacement, then the selection.
+        private func replace(_ tv: NSTextView, _ range: NSRange, with text: String, select: NSRange) {
+            tv.breakUndoCoalescing()
+            tv.insertText(text, replacementRange: range)
+            tv.breakUndoCoalescing()
+            tv.setSelectedRange(select)
+        }
+
+        func format(_ f: TextFormat) {
+            guard let tv = editable else { return }
+            switch f {
+            case .bold: toggleWrap(tv, "**")
+            case .italic: toggleWrap(tv, "*")
+            case .strike: toggleWrap(tv, "~~")
+            case .heading(let n): setLinePrefix(tv, String(repeating: "#", count: n) + " ")
+            case .body: setLinePrefix(tv, "")
+            case .quote: toggleQuote(tv)
+            case .sceneBreak:
+                let ns = tv.string as NSString
+                let sel = tv.selectedRange()
+                let atLineStart = sel.location == 0 || ns.character(at: sel.location - 1) == 0x0A
+                let text = (atLineStart ? "" : "\n") + "\n* * *\n\n"
+                replace(tv, sel, with: text, select: NSRange(location: sel.location + (text as NSString).length, length: 0))
+            }
+        }
+
+        /// `**word**` ↔ `word`: unwraps when the selection (or the marks just around it) is already wrapped.
+        private func toggleWrap(_ tv: NSTextView, _ mark: String) {
+            let ns = tv.string as NSString
+            let sel = tv.selectedRange()
+            let m = (mark as NSString).length
+            let inner = ns.substring(with: sel)
+            // Marks inside the selection: "**word**" selected.
+            if sel.length >= 2 * m, inner.hasPrefix(mark), inner.hasSuffix(mark), !(mark == "*" && inner.hasPrefix("**") && !inner.hasPrefix("***")) {
+                let bare = String(inner.dropFirst(mark.count).dropLast(mark.count))
+                replace(tv, sel, with: bare, select: NSRange(location: sel.location, length: (bare as NSString).length))
+                return
+            }
+            // Marks just outside it: "word" selected inside "**word**".
+            if sel.location >= m, NSMaxRange(sel) + m <= ns.length,
+               ns.substring(with: NSRange(location: sel.location - m, length: m)) == mark,
+               ns.substring(with: NSRange(location: NSMaxRange(sel), length: m)) == mark {
+                let outer = NSRange(location: sel.location - m, length: sel.length + 2 * m)
+                replace(tv, outer, with: inner, select: NSRange(location: outer.location, length: sel.length))
+                return
+            }
+            replace(tv, sel, with: mark + inner + mark, select: NSRange(location: sel.location + m, length: sel.length))
+        }
+
+        /// Heading level or body for every line the selection touches; the same heading again turns it back to body.
+        private func setLinePrefix(_ tv: NSTextView, _ prefix: String) {
+            let ns = tv.string as NSString
+            let sel = tv.selectedRange()
+            let lines = ns.lineRange(for: sel)
+            let block = ns.substring(with: lines)
+            var parts = block.components(separatedBy: "\n")
+            let trailing = parts.last == "" && parts.count > 1
+            if trailing { parts.removeLast() }
+            let strip = { (l: String) in l.replacingOccurrences(of: #"^#{1,6}[ \t]+"#, with: "", options: .regularExpression) }
+            let same = !prefix.isEmpty && parts.allSatisfy { $0.hasPrefix(prefix) && !$0.hasPrefix(prefix.dropLast() + "#") }
+            let out = parts.map { l in l.isEmpty && parts.count > 1 ? l : (same ? "" : prefix) + strip(l) }.joined(separator: "\n") + (trailing ? "\n" : "")
+            let delta = (out as NSString).length - (block as NSString).length
+            let caret = sel.length == 0 ? NSRange(location: max(lines.location, sel.location + delta), length: 0)
+                                        : NSRange(location: lines.location, length: (out as NSString).length - (trailing ? 1 : 0))
+            replace(tv, lines, with: out, select: caret)
+        }
+
+        private func toggleQuote(_ tv: NSTextView) {
+            let ns = tv.string as NSString
+            let sel = tv.selectedRange()
+            let lines = ns.lineRange(for: sel)
+            let block = ns.substring(with: lines)
+            var parts = block.components(separatedBy: "\n")
+            let trailing = parts.last == "" && parts.count > 1
+            if trailing { parts.removeLast() }
+            let quoted = parts.filter { !$0.isEmpty }.allSatisfy { $0.hasPrefix("> ") }
+            let out = parts.map { l in l.isEmpty ? l : quoted ? String(l.dropFirst(2)) : "> " + l }.joined(separator: "\n") + (trailing ? "\n" : "")
+            let delta = (out as NSString).length - (block as NSString).length
+            let caret = sel.length == 0 ? NSRange(location: max(lines.location, sel.location + delta), length: 0)
+                                        : NSRange(location: lines.location, length: (out as NSString).length - (trailing ? 1 : 0))
+            replace(tv, lines, with: out, select: caret)
+        }
+
+        /// A symbol at the caret; a pair (「」) wraps the selection, or leaves the caret between the two.
+        func insert(_ text: String, wrapping close: String?) {
+            guard let tv = editable else { return }
+            let sel = tv.selectedRange()
+            let inner = (tv.string as NSString).substring(with: sel)
+            let open = (text as NSString).length
+            if let close {
+                replace(tv, sel, with: text + inner + close, select: NSRange(location: sel.location + open, length: sel.length))
+            } else {
+                replace(tv, sel, with: text, select: NSRange(location: sel.location + open, length: 0))
+            }
+        }
+
+        /// The symbol menu at the caret: 1–9 · 0 pick the first ten, arrows and Return the rest.
+        func showSymbols() {
+            guard let tv = editable else { return }
+            let menu = NSMenu()
+            for (i, s) in Symbols.all.enumerated() {
+                let item = NSMenuItem(title: s.menuTitle(model.t(s.name)), action: #selector(pickSymbol(_:)), keyEquivalent: i < 10 ? String((i + 1) % 10) : "")
+                item.keyEquivalentModifierMask = []
+                item.target = self
+                item.tag = i
+                if i == 10 { menu.addItem(.separator()) }
+                menu.addItem(item)
+            }
+            var at = NSPoint(x: tv.textContainerInset.width, y: tv.textContainerInset.height)
+            if let rect = tv.firstRect(forCharacterRange: tv.selectedRange(), actualRange: nil) as NSRect?, let w = tv.window, rect != .zero {
+                let inView = tv.convert(w.convertFromScreen(rect), from: nil)
+                at = NSPoint(x: inView.minX, y: inView.maxY + 4)
+            }
+            menu.popUp(positioning: nil, at: at, in: tv)
+        }
+
+        @objc private func pickSymbol(_ item: NSMenuItem) {
+            let s = Symbols.all[item.tag]
+            insert(s.text, wrapping: s.close)
+        }
+
+        func findNext(_ forward: Bool) {
+            guard let tv = textView else { return }
+            tv.window?.makeFirstResponder(tv)
+            let item = NSMenuItem()
+            item.tag = (forward ? NSTextFinder.Action.nextMatch : .previousMatch).rawValue
+            tv.performTextFinderAction(item)
+        }
+
         // MARK: Loading
 
         func load() {
@@ -435,9 +574,52 @@ enum Styles {
             }
             for m in emphasisRe.matches(in: storage.string, range: line) {
                 let mark = m.range(at: 1).length
+                switch ns.substring(with: m.range(at: 1)) {
+                case "**", "__": storage.addAttribute(.font, value: Fonts.ns(token(size), weight: 700), range: m.range)
+                case "*", "_": storage.addAttribute(.obliqueness, value: 0.18, range: m.range)
+                case "~~": storage.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: m.range(at: 2))
+                default: break
+                }
                 storage.addAttribute(.foregroundColor, value: markColor, range: NSRange(location: m.range.location, length: mark))
                 storage.addAttribute(.foregroundColor, value: markColor, range: NSRange(location: NSMaxRange(m.range) - mark, length: mark))
             }
         }
     }
+}
+
+/// Symbols web-novel writers type often: the first ten are on 1–9 · 0 in the symbol menu (⌘/).
+struct Symbol {
+    let text: String
+    var close: String? = nil
+    let name: L10nKey
+    func menuTitle(_ label: String) -> String { "\(text)\(close ?? "")    \(label)" }
+}
+
+enum Symbols {
+    static let all: [Symbol] = [
+        Symbol(text: "…", name: .symbolEllipsis),
+        Symbol(text: "「", close: "」", name: .symbolCornerBracket),
+        Symbol(text: "『", close: "』", name: .symbolDoubleCornerBracket),
+        Symbol(text: "\u{201C}", close: "\u{201D}", name: .symbolDoubleQuote),
+        Symbol(text: "\u{2018}", close: "\u{2019}", name: .symbolSingleQuote),
+        Symbol(text: "―", name: .symbolDash),
+        Symbol(text: "·", name: .symbolMiddleDot),
+        Symbol(text: "※", name: .symbolReference),
+        Symbol(text: "♡", name: .symbolHeart),
+        Symbol(text: "★", name: .symbolStar),
+        Symbol(text: "《", close: "》", name: .symbolDoubleAngle),
+        Symbol(text: "〈", close: "〉", name: .symbolAngle),
+        Symbol(text: "【", close: "】", name: .symbolLenticular),
+        Symbol(text: "♥", name: .symbolHeartFilled),
+        Symbol(text: "☆", name: .symbolStarOutline),
+        Symbol(text: "♪", name: .symbolNote),
+        Symbol(text: "～", name: .symbolTilde),
+        Symbol(text: "→", name: .symbolArrow),
+        Symbol(text: "×", name: .symbolTimes),
+        Symbol(text: "○", name: .symbolCircle),
+        Symbol(text: "●", name: .symbolCircleFilled),
+        Symbol(text: "◆", name: .symbolDiamond),
+        Symbol(text: "■", name: .symbolSquare),
+        Symbol(text: "▶", name: .symbolTriangle),
+    ]
 }

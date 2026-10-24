@@ -65,7 +65,14 @@ protocol EditorBridge: AnyObject {
     func focus()
     func showFindBar()
     var caretLocation: Int { get }
+    /// Markdown formatting and symbol insertion on the selection, as one undo step each.
+    func format(_ f: TextFormat)
+    func insert(_ text: String, wrapping close: String?)
+    func showSymbols()
+    func findNext(_ forward: Bool)
 }
+
+enum TextFormat { case bold, italic, strike, heading(Int), body, quote, sceneBreak }
 
 @MainActor
 @Observable
@@ -300,6 +307,21 @@ final class AppModel {
         let s = last["sheet"].flatMap { s in folders.flatMap(\.sheets).first { $0.id == s }?.id } ?? folder?.sheets.first?.id
         if let s { openSheet(s) } else { closeSheet() }
         if remember { rememberSelection() }
+    }
+
+    /// ⌘[ / ⌘]: the sheet above or below in the current folder's list.
+    func openAdjacentSheet(_ offset: Int) {
+        guard let sheets = folder?.sheets, let i = sheets.firstIndex(where: { $0.id == sheetId }),
+              sheets.indices.contains(i + offset) else { return }
+        openSheet(sheets[i + offset].id)
+    }
+
+    /// ⌘+ / ⌘− / ⌘0 step through the editor text sizes (Settings, Editor).
+    func stepTextSize(_ step: Int) {
+        let all = TextSize.allCases
+        guard step != 0 else { textSize = .normal; return }
+        let i = all.firstIndex(of: textSize) ?? 1
+        textSize = all[max(0, min(all.count - 1, i + step))]
     }
 
     func selectFolder(_ id: String) {

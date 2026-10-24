@@ -546,6 +546,46 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case welcomeLater = "welcome.later"
     case editorNoProject = "editor.noProject"
     case editorNoProjectHint = "editor.noProjectHint"
+    case formatStrike = "format.strike"
+    case formatHeading1 = "format.heading1"
+    case formatHeading2 = "format.heading2"
+    case formatHeading3 = "format.heading3"
+    case formatBody = "format.body"
+    case formatQuote = "format.quote"
+    case formatSceneBreak = "format.sceneBreak"
+    case formatSymbols = "format.symbols"
+    case menuSaveNow = "menu.saveNow"
+    case menuTextBigger = "menu.textBigger"
+    case menuTextSmaller = "menu.textSmaller"
+    case menuTextReset = "menu.textReset"
+    case menuFindNext = "menu.findNext"
+    case menuFindPrevious = "menu.findPrevious"
+    case sheetPrevious = "sheet.previous"
+    case sheetNext = "sheet.next"
+    case symbolEllipsis = "symbol.ellipsis"
+    case symbolCornerBracket = "symbol.cornerBracket"
+    case symbolDoubleCornerBracket = "symbol.doubleCornerBracket"
+    case symbolDoubleQuote = "symbol.doubleQuote"
+    case symbolSingleQuote = "symbol.singleQuote"
+    case symbolDash = "symbol.dash"
+    case symbolMiddleDot = "symbol.middleDot"
+    case symbolReference = "symbol.reference"
+    case symbolHeart = "symbol.heart"
+    case symbolStar = "symbol.star"
+    case symbolDoubleAngle = "symbol.doubleAngle"
+    case symbolAngle = "symbol.angle"
+    case symbolLenticular = "symbol.lenticular"
+    case symbolHeartFilled = "symbol.heartFilled"
+    case symbolStarOutline = "symbol.starOutline"
+    case symbolNote = "symbol.note"
+    case symbolTilde = "symbol.tilde"
+    case symbolArrow = "symbol.arrow"
+    case symbolTimes = "symbol.times"
+    case symbolCircle = "symbol.circle"
+    case symbolCircleFilled = "symbol.circleFilled"
+    case symbolDiamond = "symbol.diamond"
+    case symbolSquare = "symbol.square"
+    case symbolTriangle = "symbol.triangle"
 }
 
 enum L10nValue: Sendable {
@@ -1106,6 +1146,46 @@ public enum L10n {
             .welcomeLater: .text("나중에"),
             .editorNoProject: .text("아직 작품이 없어요."),
             .editorNoProjectHint: .text("새 작품을 만들거나, 쓰던 원고를 가져오세요."),
+            .formatStrike: .text("취소선"),
+            .formatHeading1: .text("제목 1"),
+            .formatHeading2: .text("제목 2"),
+            .formatHeading3: .text("제목 3"),
+            .formatBody: .text("본문"),
+            .formatQuote: .text("인용"),
+            .formatSceneBreak: .text("장면 전환 넣기"),
+            .formatSymbols: .text("특수문자…"),
+            .menuSaveNow: .text("지금 저장"),
+            .menuTextBigger: .text("글자 크게"),
+            .menuTextSmaller: .text("글자 작게"),
+            .menuTextReset: .text("글자 기본 크기"),
+            .menuFindNext: .text("다음 찾기"),
+            .menuFindPrevious: .text("이전 찾기"),
+            .sheetPrevious: .text("이전 시트"),
+            .sheetNext: .text("다음 시트"),
+            .symbolEllipsis: .text("말줄임표"),
+            .symbolCornerBracket: .text("낫표"),
+            .symbolDoubleCornerBracket: .text("겹낫표"),
+            .symbolDoubleQuote: .text("큰따옴표"),
+            .symbolSingleQuote: .text("작은따옴표"),
+            .symbolDash: .text("줄표"),
+            .symbolMiddleDot: .text("가운뎃점"),
+            .symbolReference: .text("참고표"),
+            .symbolHeart: .text("하트"),
+            .symbolStar: .text("별"),
+            .symbolDoubleAngle: .text("겹화살괄호"),
+            .symbolAngle: .text("홑화살괄호"),
+            .symbolLenticular: .text("대괄호(볼록)"),
+            .symbolHeartFilled: .text("하트(채움)"),
+            .symbolStarOutline: .text("별(빈)"),
+            .symbolNote: .text("음표"),
+            .symbolTilde: .text("물결표"),
+            .symbolArrow: .text("화살표"),
+            .symbolTimes: .text("곱셈표"),
+            .symbolCircle: .text("동그라미"),
+            .symbolCircleFilled: .text("동그라미(채움)"),
+            .symbolDiamond: .text("마름모"),
+            .symbolSquare: .text("네모"),
+            .symbolTriangle: .text("세모"),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -1645,6 +1725,46 @@ public enum L10n {
             .welcomeLater: .text("Later"),
             .editorNoProject: .text("No projects yet."),
             .editorNoProjectHint: .text("Create a project, or bring in work from elsewhere."),
+            .formatStrike: .text("Strikethrough"),
+            .formatHeading1: .text("Heading 1"),
+            .formatHeading2: .text("Heading 2"),
+            .formatHeading3: .text("Heading 3"),
+            .formatBody: .text("Body"),
+            .formatQuote: .text("Quote"),
+            .formatSceneBreak: .text("Insert Scene Break"),
+            .formatSymbols: .text("Symbols…"),
+            .menuSaveNow: .text("Save Now"),
+            .menuTextBigger: .text("Bigger Text"),
+            .menuTextSmaller: .text("Smaller Text"),
+            .menuTextReset: .text("Default Text Size"),
+            .menuFindNext: .text("Find Next"),
+            .menuFindPrevious: .text("Find Previous"),
+            .sheetPrevious: .text("Previous Sheet"),
+            .sheetNext: .text("Next Sheet"),
+            .symbolEllipsis: .text("Ellipsis"),
+            .symbolCornerBracket: .text("Corner brackets"),
+            .symbolDoubleCornerBracket: .text("Double corner brackets"),
+            .symbolDoubleQuote: .text("Double quotes"),
+            .symbolSingleQuote: .text("Single quotes"),
+            .symbolDash: .text("Dash"),
+            .symbolMiddleDot: .text("Middle dot"),
+            .symbolReference: .text("Reference mark"),
+            .symbolHeart: .text("Heart"),
+            .symbolStar: .text("Star"),
+            .symbolDoubleAngle: .text("Double angle brackets"),
+            .symbolAngle: .text("Angle brackets"),
+            .symbolLenticular: .text("Lenticular brackets"),
+            .symbolHeartFilled: .text("Heart (filled)"),
+            .symbolStarOutline: .text("Star (outline)"),
+            .symbolNote: .text("Note"),
+            .symbolTilde: .text("Wave dash"),
+            .symbolArrow: .text("Arrow"),
+            .symbolTimes: .text("Times"),
+            .symbolCircle: .text("Circle"),
+            .symbolCircleFilled: .text("Circle (filled)"),
+            .symbolDiamond: .text("Diamond"),
+            .symbolSquare: .text("Square"),
+            .symbolTriangle: .text("Triangle"),
         ],
     ]
 }

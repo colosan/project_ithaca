@@ -501,10 +501,43 @@ struct IthacaCommands: Commands {
             Button(t(.importWeb) + "…", action: go { model in AppCommand.importWeb.run(model) }).disabled(menu.readOnly)
             Button(t(.importTextFolder) + "…", action: go { model in model.importTextFolder() }).disabled(menu.readOnly)
         }
+        CommandGroup(after: .saveItem) {
+            // Saving is automatic; ⌘S saves right away instead of beeping.
+            Button(t(.menuSaveNow), action: go { model in model.flushSave() }).keyboardShortcut("s").disabled(!menu.hasSheet || menu.readOnly)
+        }
         CommandGroup(after: .textEditing) {
             Divider()
             Button(t(.menuFindInSheet), action: go { model in model.editor?.showFindBar() }).keyboardShortcut("f").disabled(!menu.hasSheet)
+            Button(t(.menuFindNext), action: go { model in model.editor?.findNext(true) }).keyboardShortcut("g").disabled(!menu.hasSheet)
+            Button(t(.menuFindPrevious), action: go { model in model.editor?.findNext(false) }).keyboardShortcut("g", modifiers: [.command, .shift]).disabled(!menu.hasSheet)
             Button(t(.searchTitle) + "…", action: go { model in AppCommand.search.run(model) }).keyboardShortcut("f", modifiers: [.command, .shift])
+        }
+        // The system Format menu (fonts, rich-text bold) does nothing in a plain-text manuscript: Markdown marks instead.
+        CommandGroup(replacing: .textFormatting) {
+            let off = !menu.hasSheet || menu.readOnly
+            Button(t(.shortcutsBold), action: go { model in model.editor?.format(.bold) }).keyboardShortcut("b").disabled(off)
+            Button(t(.shortcutsItalic), action: go { model in model.editor?.format(.italic) }).keyboardShortcut("i").disabled(off)
+            Button(t(.formatStrike), action: go { model in model.editor?.format(.strike) }).keyboardShortcut("x", modifiers: [.command, .shift]).disabled(off)
+            Divider()
+            Button(t(.formatHeading1), action: go { model in model.editor?.format(.heading(1)) }).keyboardShortcut("1", modifiers: [.command, .option]).disabled(off)
+            Button(t(.formatHeading2), action: go { model in model.editor?.format(.heading(2)) }).keyboardShortcut("2", modifiers: [.command, .option]).disabled(off)
+            Button(t(.formatHeading3), action: go { model in model.editor?.format(.heading(3)) }).keyboardShortcut("3", modifiers: [.command, .option]).disabled(off)
+            Button(t(.formatBody), action: go { model in model.editor?.format(.body) }).keyboardShortcut("0", modifiers: [.command, .option]).disabled(off)
+            Button(t(.formatQuote), action: go { model in model.editor?.format(.quote) }).keyboardShortcut("'", modifiers: [.command, .option]).disabled(off)
+            Divider()
+            Button(t(.formatSceneBreak), action: go { model in model.editor?.format(.sceneBreak) }).keyboardShortcut(.return, modifiers: [.command, .shift]).disabled(off)
+            Button(t(.formatSymbols), action: go { model in model.editor?.showSymbols() }).keyboardShortcut("/").disabled(off)
+            Menu(t(.formatSymbols).replacingOccurrences(of: "…", with: "")) {
+                ForEach(Symbols.all.indices, id: \.self) { i in
+                    let s = Symbols.all[i]
+                    Button(s.menuTitle(t(s.name)), action: go { model in model.editor?.insert(s.text, wrapping: s.close) })
+                }
+            }
+            .disabled(off)
+            Divider()
+            Button(t(.menuTextBigger), action: go { model in model.stepTextSize(1) }).keyboardShortcut("+")
+            Button(t(.menuTextSmaller), action: go { model in model.stepTextSize(-1) }).keyboardShortcut("-")
+            Button(t(.menuTextReset), action: go { model in model.stepTextSize(0) }).keyboardShortcut("0")
         }
         CommandGroup(before: .toolbar) {
             Button(t(.shortcutsShowLibrary), action: go { model in
@@ -523,6 +556,9 @@ struct IthacaCommands: Commands {
             Divider()
         }
         CommandMenu(t(.shortcutsGroupSheet)) {
+            Button(t(.sheetPrevious), action: go { model in model.openAdjacentSheet(-1) }).keyboardShortcut("[").disabled(!menu.hasSheet)
+            Button(t(.sheetNext), action: go { model in model.openAdjacentSheet(1) }).keyboardShortcut("]").disabled(!menu.hasSheet)
+            Divider()
             Button(t(.sheetMoveUp), action: go { model in AppCommand.moveUp.run(model) }).keyboardShortcut(.upArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet || menu.readOnly)
             Button(t(.sheetMoveDown), action: go { model in AppCommand.moveDown.run(model) }).keyboardShortcut(.downArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet || menu.readOnly)
             Divider()
