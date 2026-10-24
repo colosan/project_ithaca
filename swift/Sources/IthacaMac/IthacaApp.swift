@@ -175,6 +175,13 @@ enum SelfTest {
         }
         _ = cfgDir
 
+        // Every key equivalent is used once, and the shortcut list shows each command that has one.
+        let labels = AppCommand.allCases.compactMap(\.keysLabel)
+        check(Set(labels).count == labels.count, "no shortcut used twice (\(labels.count))")
+        let listed = Set(AppCommand.shortcutGroups.flatMap(\.1).map { "\($0)" })
+        let keyed = Set(AppCommand.allCases.filter { $0.keys != nil }.map { "\($0)" })
+        check(listed == keyed, "shortcut list = commands with keys (missing \(keyed.subtracting(listed).sorted()))")
+
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ithaca-selftest-\(stamp)")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         try? "1화\n\n첫 글".write(to: dir.appendingPathComponent("1화.txt"), atomically: true, encoding: .utf8)
@@ -229,6 +236,8 @@ enum AppEnvironment {
     }()
 
     static let deviceName = Host.current().localizedName ?? "Mac"
+    /// Help menu: the writer's guide (docs/mac-app.md) on GitHub.
+    static let helpURL = URL(string: "https://github.com/colosan/project_ithaca/blob/main/docs/mac-app.md")!
     static let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "dev"
     static let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "dev"
 
@@ -377,12 +386,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // ⌘Q while a sheet (the first-run welcome dialog…) is up: AppKit routes the key to the sheet, which can't quit.
         // Close the sheet and quit; applicationShouldTerminate still guards unsaved text.
         quitMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-            guard flags == .command, event.charactersIgnoringModifiers?.lowercased() == "q",
-                  NSApp.windows.contains(where: { $0.attachedSheet != nil }) else { return event }
-            MainActor.assumeIsolated { Self.quitClosingSheets() }
-            return nil
+            let flags = event.modifierFlags.intersection([.command, .shift, .option, .control])
+            guard flags == .command else { return event }
+            let key = event.charactersIgnoringModifiers?.lowercased(), code = event.keyCode
+            return MainActor.assumeIsolated { Self.commandKey(key, code) } ? nil : event
         }
+    }
+
+    /// ⌘-keys handled before the menu bar sees them. True = consumed.
+    private static func commandKey(_ key: String?, _ keyCode: UInt16) -> Bool {
+        if key == "q", NSApp.windows.contains(where: { $0.attachedSheet != nil }) {
+            quitClosingSheets()
+            return true
+        }
+        // ⌘⌫ is "Move to Trash" in the Sheet menu, but in a text it deletes to the line start (every Mac text view):
+        // the menu's key equivalent would otherwise win and trash the sheet mid-sentence.
+        if keyCode == 51, let tv = NSApp.keyWindow?.firstResponder as? NSTextView, tv.isEditable {
+            tv.doCommand(by: #selector(NSResponder.deleteToBeginningOfLine(_:)))
+            return true
+        }
+        // The menu shows ⌘+ (⇧⌘= on most layouts); ⌘= does the same, as in Safari or Pages.
+        if key == "=", let m = model {
+            m.stepTextSize(1)
+            return true
+        }
+        return false
     }
 
     private var quitMonitor: Any?
@@ -488,45 +516,51 @@ struct IthacaCommands: Commands {
     /// Menu actions do nothing while the library isn't open (LibraryErrorView) — no stand-in library to write into.
     private func go(_ f: @escaping (AppModel) -> Void) -> () -> Void { { if let m = host.model { f(m) } } }
 
+    /// One menu item from the shared command list: its label, its key equivalent, and when it's dimmed.
+    private func item(_ c: AppCommand, _ title: String? = nil, off: Bool = false) -> some View {
+        Button(title ?? t(c.label), action: go { c.run($0) }).keyboardShortcut(c.keys).disabled(off)
+    }
+
     var body: some Commands {
+        let noSheet = !menu.hasSheet, noProject = !menu.hasProject, ro = menu.readOnly
         // Our own Quit: SwiftUI cancels a quit while a sheet that can't be dismissed (the first-run welcome) is up.
         CommandGroup(replacing: .appTermination) {
             Button(t(.menuQuit)) { AppDelegate.quitClosingSheets() }.keyboardShortcut("q")
         }
         CommandGroup(replacing: .newItem) {
-            Button(t(.sheetNew), action: go { model in AppCommand.newSheet.run(model) }).keyboardShortcut("n").disabled(!menu.hasProject || menu.readOnly)
-            Button(t(.libraryNewProject) + "…", action: go { model in AppCommand.newProject.run(model) }).keyboardShortcut("n", modifiers: [.command, .shift]).disabled(menu.readOnly)
+            item(.newSheet, off: noProject || ro)
+            item(.newProject, t(.libraryNewProject) + "…", off: ro)
             Divider()
-            Button(t(.exportTitle) + "…", action: go { model in AppCommand.export.run(model) }).keyboardShortcut("e", modifiers: [.command, .shift]).disabled(!menu.hasProject)
-            Button(t(.importWeb) + "…", action: go { model in AppCommand.importWeb.run(model) }).disabled(menu.readOnly)
-            Button(t(.importTextFolder) + "…", action: go { model in model.importTextFolder() }).disabled(menu.readOnly)
+            item(.export, t(.exportTitle) + "…", off: noProject)
+            item(.importWeb, t(.importWeb) + "…", off: ro)
+            item(.importTextFolder, t(.importTextFolder) + "…", off: ro)
         }
         CommandGroup(after: .saveItem) {
             // Saving is automatic; ⌘S saves right away instead of beeping.
-            Button(t(.menuSaveNow), action: go { model in model.flushSave() }).keyboardShortcut("s").disabled(!menu.hasSheet || menu.readOnly)
+            item(.saveNow, off: noSheet || ro)
         }
         CommandGroup(after: .textEditing) {
             Divider()
-            Button(t(.menuFindInSheet), action: go { model in model.editor?.showFindBar() }).keyboardShortcut("f").disabled(!menu.hasSheet)
-            Button(t(.menuFindNext), action: go { model in model.editor?.findNext(true) }).keyboardShortcut("g").disabled(!menu.hasSheet)
-            Button(t(.menuFindPrevious), action: go { model in model.editor?.findNext(false) }).keyboardShortcut("g", modifiers: [.command, .shift]).disabled(!menu.hasSheet)
-            Button(t(.searchTitle) + "…", action: go { model in AppCommand.search.run(model) }).keyboardShortcut("f", modifiers: [.command, .shift])
+            item(.findInSheet, off: noSheet)
+            item(.findNext, off: noSheet)
+            item(.findPrevious, off: noSheet)
+            item(.search, t(.searchTitle) + "…")
         }
         // The system Format menu (fonts, rich-text bold) does nothing in a plain-text manuscript: Markdown marks instead.
         CommandGroup(replacing: .textFormatting) {
-            let off = !menu.hasSheet || menu.readOnly
-            Button(t(.shortcutsBold), action: go { model in model.editor?.format(.bold) }).keyboardShortcut("b").disabled(off)
-            Button(t(.shortcutsItalic), action: go { model in model.editor?.format(.italic) }).keyboardShortcut("i").disabled(off)
-            Button(t(.formatStrike), action: go { model in model.editor?.format(.strike) }).keyboardShortcut("x", modifiers: [.command, .shift]).disabled(off)
+            let off = noSheet || ro
+            item(.bold, off: off)
+            item(.italic, off: off)
+            item(.strike, off: off)
             Divider()
-            Button(t(.formatHeading1), action: go { model in model.editor?.format(.heading(1)) }).keyboardShortcut("1", modifiers: [.command, .option]).disabled(off)
-            Button(t(.formatHeading2), action: go { model in model.editor?.format(.heading(2)) }).keyboardShortcut("2", modifiers: [.command, .option]).disabled(off)
-            Button(t(.formatHeading3), action: go { model in model.editor?.format(.heading(3)) }).keyboardShortcut("3", modifiers: [.command, .option]).disabled(off)
-            Button(t(.formatBody), action: go { model in model.editor?.format(.body) }).keyboardShortcut("0", modifiers: [.command, .option]).disabled(off)
-            Button(t(.formatQuote), action: go { model in model.editor?.format(.quote) }).keyboardShortcut("'", modifiers: [.command, .option]).disabled(off)
+            item(.heading1, off: off)
+            item(.heading2, off: off)
+            item(.heading3, off: off)
+            item(.body, off: off)
+            item(.quote, off: off)
             Divider()
-            Button(t(.formatSceneBreak), action: go { model in model.editor?.format(.sceneBreak) }).keyboardShortcut(.return, modifiers: [.command, .shift]).disabled(off)
-            Button(t(.formatSymbols), action: go { model in model.editor?.showSymbols() }).keyboardShortcut("/").disabled(off)
+            item(.sceneBreak, off: off)
+            item(.symbols, off: off)
             Menu(t(.formatSymbols).replacingOccurrences(of: "…", with: "")) {
                 ForEach(Symbols.all.indices, id: \.self) { i in
                     let s = Symbols.all[i]
@@ -535,44 +569,46 @@ struct IthacaCommands: Commands {
             }
             .disabled(off)
             Divider()
-            Button(t(.menuTextBigger), action: go { model in model.stepTextSize(1) }).keyboardShortcut("+")
-            Button(t(.menuTextSmaller), action: go { model in model.stepTextSize(-1) }).keyboardShortcut("-")
-            Button(t(.menuTextReset), action: go { model in model.stepTextSize(0) }).keyboardShortcut("0")
+            item(.textBigger)
+            item(.textSmaller)
+            item(.textReset)
         }
         CommandGroup(before: .toolbar) {
-            Button(t(.shortcutsShowLibrary), action: go { model in
-                model.focusMode = false
-                if !model.dockedLibrary { model.libraryOverlay.toggle() }
-            }).keyboardShortcut("1")
-            Button(t(.shortcutsShowList), action: go { model in
-                model.focusMode = false
-                if !model.dockedList { model.libraryOverlay.toggle() }
-            }).keyboardShortcut("2")
-            Button(t(.shortcutsEditorOnly), action: go { model in model.toggleFocus() }).keyboardShortcut("3")
+            item(.showLibrary)
+            item(.showList)
+            item(.editorOnly)
             Divider()
-            Button(t(.inspectorTitle), action: go { model in model.toggleInspector() }).keyboardShortcut("i", modifiers: [.command, .option])
-            Button(t(.focusTitle), action: go { model in model.toggleFocus() }).keyboardShortcut("d", modifiers: [.command, .shift])
-            Button(t(.paletteTitle), action: go { model in model.show(.palette(search: false)) }).keyboardShortcut("k")
+            item(.inspector)
+            item(.focus)
+            item(.palette)
             Divider()
         }
         CommandMenu(t(.shortcutsGroupSheet)) {
-            Button(t(.sheetPrevious), action: go { model in model.openAdjacentSheet(-1) }).keyboardShortcut("[").disabled(!menu.hasSheet)
-            Button(t(.sheetNext), action: go { model in model.openAdjacentSheet(1) }).keyboardShortcut("]").disabled(!menu.hasSheet)
+            item(.previousSheet, off: noSheet)
+            item(.nextSheet, off: noSheet)
             Divider()
-            Button(t(.sheetMoveUp), action: go { model in AppCommand.moveUp.run(model) }).keyboardShortcut(.upArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet || menu.readOnly)
-            Button(t(.sheetMoveDown), action: go { model in AppCommand.moveDown.run(model) }).keyboardShortcut(.downArrow, modifiers: [.command, .option]).disabled(!menu.hasSheet || menu.readOnly)
+            item(.moveUp, off: noSheet || ro)
+            item(.moveDown, off: noSheet || ro)
             Divider()
-            Button(t(.sheetCopyForPaste), action: go { model in AppCommand.copyForPaste.run(model) }).keyboardShortcut("c", modifiers: [.command, .option]).disabled(!menu.hasSheet)
+            item(.copyForPaste, off: noSheet)
             Divider()
-            Button(t(.episodePublishedThrough), action: go { model in model.markPublishedThrough() }).disabled(!menu.hasSheet || menu.readOnly)
-            Button(t(.episodeRenumber), action: go { model in model.renumberEpisodes() }).disabled(!menu.hasProject || menu.readOnly)
+            item(.publishedThrough, off: noSheet || ro)
+            item(.renumber, off: noProject || ro)
             Divider()
-            Button(t(.historyTitle) + "…", action: go { model in AppCommand.history.run(model) }).keyboardShortcut("h", modifiers: [.command, .shift]).disabled(!menu.hasSheet)
-            Button(t(.paletteSheetInfo), action: go { model in AppCommand.sheetInfo.run(model) }).disabled(!menu.hasSheet)
-            Button(t(.projectSettingsTitle) + "…", action: go { model in AppCommand.projectSettings.run(model) }).disabled(!menu.hasProject)
+            item(.history, t(.historyTitle) + "…", off: noSheet)
+            item(.sheetInfo, off: noSheet)
+            item(.projectSettings, t(.projectSettingsTitle) + "…", off: noProject)
             Divider()
-            Button(t(.trashTitle), action: go { model in AppCommand.showTrash.run(model) }).disabled(!menu.hasProject)
-            Button(t(.sheetTrash), action: go { model in AppCommand.trashSheet.run(model) }).keyboardShortcut(.delete, modifiers: .command).disabled(!menu.hasSheet || menu.readOnly)
+            item(.showTrash, off: noProject)
+            item(.trashSheet, off: noSheet || ro)
+        }
+        // The default Help item only says "Help isn't available"; point at the writer's guide and the shortcut list instead.
+        CommandGroup(replacing: .help) {
+            Button(t(.menuHelp)) { NSWorkspace.shared.open(AppEnvironment.helpURL) }
+            Button(t(.menuShortcuts)) {
+                AppEnvironment.defaults.set(SettingsSection.shortcuts.rawValue, forKey: "ithaca.settingsTab")
+                openSettingsWindow()
+            }
         }
     }
 }

@@ -44,6 +44,7 @@ struct ExportView: View {
                 Text(model.t(.exportTitle)).textStyle(.title)
                 Spacer()
                 IconButton(.close, label: model.t(.actionClose)) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
             }
             .padding(.horizontal, T.Space.s300)
             .padding(.vertical, T.Space.s150)
@@ -54,12 +55,14 @@ struct ExportView: View {
                         options.frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .scrollBounceBehavior(.basedOnSize)
+                    // Return copies; not for a file, where Return in a margin field would pop up the save panel.
                     KitButton(primaryLabel, icon: done ? .check : saved.target == .paste ? .copy : .save, variant: .primary, action: go)
+                        .keyboardShortcut(saved.target == .paste ? .defaultAction : nil)
                         .disabled(text.isEmpty)
                 }
                 // Wide enough for the English scope segments ("This sheet · Whole folder · Whole project").
                 .frame(width: T.Layout.Pane.sheetListDefault, alignment: .leading)
-                .textStyle(.body)
+                .textStyle(.label, weight: 400)
                 VStack(alignment: .leading, spacing: T.Space.s100) {
                     Caption("\(model.t(.exportPreview)) · \(model.t(.exportCount, ["count": textCount], count: textCount))")
                     ScrollView {
@@ -89,19 +92,11 @@ struct ExportView: View {
     /// Scope, target, format and the format's options; scrolls when Word's options don't fit.
     private var options: some View {
         VStack(alignment: .leading, spacing: T.Space.s200) {
-            Picker(model.t(.exportScope), selection: $saved.scope) {
-                Text(model.t(.exportScopeSheet)).tag(Scope.sheet)
-                Text(model.t(.exportScopeFolder)).tag(Scope.folder)
-                Text(model.t(.exportScopeProject)).tag(Scope.project)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            Picker("", selection: $saved.target) {
-                Text(model.t(.exportTargetPaste)).tag(Target.paste)
-                Text(model.t(.exportTargetFile)).tag(Target.file)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            // Both fill the column (a SwiftUI segmented picker hugs its labels: two bars of different widths).
+            FillSegmented(items: [(Scope.sheet, model.t(.exportScopeSheet)), (.folder, model.t(.exportScopeFolder)), (.project, model.t(.exportScopeProject))],
+                          selection: $saved.scope)
+                .accessibilityLabel(model.t(.exportScope))
+            FillSegmented(items: [(Target.paste, model.t(.exportTargetPaste)), (.file, model.t(.exportTargetFile))], selection: $saved.target)
             if saved.target == .file {
                 Picker(model.t(.exportFormat), selection: $saved.ext) {
                     Text(model.t(.exportFormatTxt)).tag(Ext.txt)

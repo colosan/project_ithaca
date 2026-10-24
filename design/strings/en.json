@@ -645,6 +645,8 @@
   "menu.textReset": "Default Text Size",
   "menu.findNext": "Find Next",
   "menu.findPrevious": "Find Previous",
+  "menu.help": "Ithaca Help",
+  "menu.shortcuts": "Keyboard Shortcuts",
   "sheet.previous": "Previous Sheet",
   "sheet.next": "Next Sheet",
   "symbol.ellipsis": "Ellipsis",

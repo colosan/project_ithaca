@@ -568,6 +568,8 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case menuTextReset = "menu.textReset"
     case menuFindNext = "menu.findNext"
     case menuFindPrevious = "menu.findPrevious"
+    case menuHelp = "menu.help"
+    case menuShortcuts = "menu.shortcuts"
     case sheetPrevious = "sheet.previous"
     case sheetNext = "sheet.next"
     case symbolEllipsis = "symbol.ellipsis"
@@ -1176,6 +1178,8 @@ public enum L10n {
             .menuTextReset: .text("글자 기본 크기"),
             .menuFindNext: .text("다음 찾기"),
             .menuFindPrevious: .text("이전 찾기"),
+            .menuHelp: .text("Ithaca 도움말"),
+            .menuShortcuts: .text("단축키 보기"),
             .sheetPrevious: .text("이전 시트"),
             .sheetNext: .text("다음 시트"),
             .symbolEllipsis: .text("말줄임표"),
@@ -1763,6 +1767,8 @@ public enum L10n {
             .menuTextReset: .text("Default Text Size"),
             .menuFindNext: .text("Find Next"),
             .menuFindPrevious: .text("Find Previous"),
+            .menuHelp: .text("Ithaca Help"),
+            .menuShortcuts: .text("Keyboard Shortcuts"),
             .sheetPrevious: .text("Previous Sheet"),
             .sheetNext: .text("Next Sheet"),
             .symbolEllipsis: .text("Ellipsis"),

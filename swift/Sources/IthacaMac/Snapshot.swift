@@ -15,6 +15,8 @@ enum Snapshot {
         var setup: (AppModel, UserDefaults) -> Void = { _, _ in }
         /// Settings render as a pane without a window title bar (it showed as an empty strip above the form).
         var titled = true
+        /// Dialogs: size the canvas to the view (what a sheet does), so empty space below the form shows up as a real bug.
+        var fit = false
         /// Before the model exists (what info() reports: read-only, problems…).
         var info: LibraryInfo? = nil
         var view: (AppModel) -> AnyView = { _ in AnyView(ShellView()) }
@@ -90,10 +92,17 @@ enum Snapshot {
                   view: { _ in AnyView(HistoryView(expandNewest: true)) }),
             Scene(name: "history-sessions-en-dark", size: CGSize(width: 1040, height: 640), dark: true, locale: .en,
                   setup: { m, _ in Self.autosaves(m) }, view: { _ in AnyView(HistoryView()) }),
-            Scene(name: "new-project-first-run", size: CGSize(width: 560, height: 640), view: { _ in AnyView(NewProjectView(firstRun: true)) }),
-            Scene(name: "new-project-en", size: CGSize(width: 560, height: 480), locale: .en, view: { _ in AnyView(NewProjectView(firstRun: false)) }),
-            Scene(name: "project-settings", size: CGSize(width: 560, height: 560), view: { _ in AnyView(ProjectSettingsView()) }),
+            Scene(name: "new-project-first-run", size: CGSize(width: 560, height: 640), titled: false, fit: true, view: { _ in AnyView(NewProjectView(firstRun: true)) }),
+            Scene(name: "new-project-first-run-dark", size: CGSize(width: 560, height: 640), dark: true, titled: false, fit: true, view: { _ in AnyView(NewProjectView(firstRun: true)) }),
+            Scene(name: "new-project-en", size: CGSize(width: 560, height: 480), locale: .en, titled: false, fit: true, view: { _ in AnyView(NewProjectView(firstRun: false)) }),
+            Scene(name: "project-settings", size: CGSize(width: 560, height: 560), titled: false, fit: true, view: { _ in AnyView(ProjectSettingsView()) }),
             settings(.general), settings(.editor), settings(.editor, .en), settings(.backup), settings(.about),
+            settings(.shortcuts), settings(.shortcuts, .en),
+            Scene(name: "settings-editor-dark", size: CGSize(width: 640, height: 560), dark: true, titled: false,
+                  view: { _ in AnyView(SettingsView(updater: updater, only: .editor)) }),
+            // The palette finds the editing commands by name, with their keys.
+            Scene(name: "palette-commands", size: wide, setup: { m, _ in m.paletteSeed = "제목"; m.overlay = .palette(search: false) }),
+            Scene(name: "palette-empty-dark", size: wide, dark: true, setup: { m, _ in m.overlay = .palette(search: false) }),
             // r3: release schedule, folder stats, platform goal, Claude connector.
             Scene(name: "shell-1240-scheduled-sheet", size: wide, setup: { m, d in
                 if let s = m.folder?.sheets.first(where: { $0.episode?.status == .scheduled }) { m.openSheet(s.id) }
@@ -159,16 +168,26 @@ enum Snapshot {
         s.setup(model, defaults)
         let appearance = NSAppearance(named: s.dark ? .darkAqua : .aqua)
         NSApp.appearance = appearance
-        let root = s.view(model)
-            .environment(model)
-            .environment(\.locale, Locale(identifier: model.locale.rawValue))
-            .defaultAppStorage(defaults)
-            .frame(width: s.size.width, height: s.size.height, alignment: .top)
+        func content() -> some View {
+            s.view(model)
+                .environment(model)
+                .environment(\.locale, Locale(identifier: model.locale.rawValue))
+                .defaultAppStorage(defaults)
+        }
+        // A dialog renders at the size its sheet would take (its fitting size), not on a tall fixed canvas.
+        var size = s.size
+        if s.fit {
+            let probe = NSHostingView(rootView: content())
+            probe.appearance = appearance
+            size = probe.fittingSize
+        }
+        let root = content()
+            .frame(width: size.width, height: size.height, alignment: .top)
             .background(Color.surfaceCanvas)
-        let window = NSWindow(contentRect: CGRect(origin: .zero, size: s.size), styleMask: s.titled ? [.titled, .fullSizeContentView] : [.borderless], backing: .buffered, defer: false)
+        let window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: s.titled ? [.titled, .fullSizeContentView] : [.borderless], backing: .buffered, defer: false)
         window.appearance = appearance
         let host = NSHostingView(rootView: root)
-        host.frame = CGRect(origin: .zero, size: s.size)
+        host.frame = CGRect(origin: .zero, size: size)
         window.contentView = host
         window.setFrameOrigin(NSPoint(x: -10_000, y: -10_000))
         window.orderFrontRegardless()

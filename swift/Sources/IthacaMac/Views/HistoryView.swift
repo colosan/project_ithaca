@@ -54,6 +54,7 @@ struct HistoryView: View {
                 .labelsHidden()
                 .fixedSize()
                 IconButton(.close, label: model.t(.actionClose)) { dismiss() }
+                    .keyboardShortcut(.cancelAction)
             }
             .padding(.horizontal, T.Space.s300)
             .padding(.vertical, T.Space.s150)

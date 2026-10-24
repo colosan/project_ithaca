@@ -563,6 +563,8 @@ export type StringKey =
   | "menu.textReset"
   | "menu.findNext"
   | "menu.findPrevious"
+  | "menu.help"
+  | "menu.shortcuts"
   | "sheet.previous"
   | "sheet.next"
   | "symbol.ellipsis"
@@ -1154,6 +1156,8 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "menu.textReset": "글자 기본 크기",
     "menu.findNext": "다음 찾기",
     "menu.findPrevious": "이전 찾기",
+    "menu.help": "Ithaca 도움말",
+    "menu.shortcuts": "단축키 보기",
     "sheet.previous": "이전 시트",
     "sheet.next": "다음 시트",
     "symbol.ellipsis": "말줄임표",
@@ -1828,6 +1832,8 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "menu.textReset": "Default Text Size",
     "menu.findNext": "Find Next",
     "menu.findPrevious": "Find Previous",
+    "menu.help": "Ithaca Help",
+    "menu.shortcuts": "Keyboard Shortcuts",
     "sheet.previous": "Previous Sheet",
     "sheet.next": "Next Sheet",
     "symbol.ellipsis": "Ellipsis",

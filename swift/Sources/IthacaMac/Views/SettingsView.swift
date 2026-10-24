@@ -1,11 +1,12 @@
-// Settings window (design/screens/preferences): General · Editor · Backup · Claude · About.
-// Sync and Shortcuts editing are hidden until they work; Claude is read-only (no write permission yet).
+// Settings window (design/screens/preferences): General · Editor · Backup · Shortcuts · Claude · About.
+// Sync is hidden until it works; Shortcuts is a read-only list; Claude is read-only (no write permission yet).
+// Text is the dialog size (label, 13 pt regular) like System Settings, not the 15 pt list-row body.
 import AppKit
 import IthacaCore
 import IthacaDesign
 import SwiftUI
 
-enum SettingsSection: String { case general, editor, backup, claude, about }
+enum SettingsSection: String { case general, editor, backup, shortcuts, claude, about }
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
@@ -21,12 +22,13 @@ struct SettingsView: View {
                 case .general: GeneralSettings()
                 case .editor: EditorSettings()
                 case .backup: BackupSettings()
+                case .shortcuts: ShortcutSettings()
                 case .claude: ClaudeSettings()
                 case .about: AboutSettings(updater: updater)
                 }
             }
             .frame(width: T.Layout.Pane.dialogDefault + T.Space.s800)
-            .textStyle(.body)
+            .textStyle(.label, weight: 400)
         } else {
             tabs
         }
@@ -37,11 +39,35 @@ struct SettingsView: View {
             GeneralSettings().tabItem { Label { Text(model.t(.prefsGeneral)) } icon: { Image(lucide: .settings) } }.tag(SettingsSection.general)
             EditorSettings().tabItem { Label { Text(model.t(.prefsEditor)) } icon: { Image(lucide: .editorText) } }.tag(SettingsSection.editor)
             BackupSettings().tabItem { Label { Text(model.t(.prefsBackup)) } icon: { Image(lucide: .backup) } }.tag(SettingsSection.backup)
+            ShortcutSettings().tabItem { Label { Text(model.t(.prefsShortcuts)) } icon: { Image(lucide: .keyboard) } }.tag(SettingsSection.shortcuts)
             ClaudeSettings().tabItem { Label { Text(model.t(.prefsClaude)) } icon: { Image(lucide: .claude) } }.tag(SettingsSection.claude)
             AboutSettings(updater: updater).tabItem { Label { Text(model.t(.prefsAbout)) } icon: { Image(lucide: .info) } }.tag(SettingsSection.about)
         }
         .frame(width: T.Layout.Pane.dialogDefault + T.Space.s800)
-        .textStyle(.body)
+        .textStyle(.label, weight: 400)
+    }
+}
+
+/// Every key equivalent, from the same list the menu bar uses. Read only (changing them is a later version).
+private struct ShortcutSettings: View {
+    @Environment(AppModel.self) private var model
+
+    var body: some View {
+        Form {
+            ForEach(AppCommand.shortcutGroups, id: \.0) { group in
+                Section(model.t(group.0)) {
+                    ForEach(group.1, id: \.self) { c in
+                        LabeledContent(model.t(c.label).replacingOccurrences(of: "…", with: "")) {
+                            Text(c.keysLabel ?? "").monospacedDigit().foregroundStyle(Color.inkSecondary)
+                        }
+                    }
+                }
+            }
+            Section {
+                Caption(model.t(.shortcutsCustomizeLater))
+            }
+        }
+        .formStyle(.grouped)
     }
 }
 

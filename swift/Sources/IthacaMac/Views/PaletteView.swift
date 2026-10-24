@@ -3,120 +3,6 @@ import AppKit
 import IthacaDesign
 import SwiftUI
 
-/// The one command list the menu bar and the palette share (app-shell spec: same source).
-enum AppCommand: CaseIterable {
-    case newSheet, newProject, search, focus, sheetInfo, history, export, copyForPaste, projectSettings, settings, moveUp, moveDown, showTrash, trashSheet, importWeb
-    // Episodes (2026-10-24 review): the daily serial steps without the context menu.
-    case publishedThrough, renumber, toggleExclude, statusDraft, statusRevising, statusScheduled, statusPublished
-
-    var label: L10nKey {
-        switch self {
-        case .newSheet: .sheetNew
-        case .newProject: .libraryNewProject
-        case .search: .searchTitle
-        case .focus: .focusTitle
-        case .sheetInfo: .paletteSheetInfo
-        case .history: .historyTitle
-        case .export: .exportTitle
-        case .projectSettings: .projectSettingsTitle
-        case .settings: .prefsTitle
-        case .moveUp: .sheetMoveUp
-        case .moveDown: .sheetMoveDown
-        case .showTrash: .trashTitle
-        case .trashSheet: .sheetTrash
-        case .importWeb: .importWeb
-        case .copyForPaste: .sheetCopyForPaste
-        case .publishedThrough: .episodePublishedThrough
-        case .renumber: .episodeRenumber
-        case .toggleExclude: .episodeExclude
-        case .statusDraft: .episodeStatusDraft
-        case .statusRevising: .episodeStatusRevising
-        case .statusScheduled: .episodeStatusScheduled
-        case .statusPublished: .episodeStatusPublished
-        }
-    }
-
-    var status: EpisodeStatus? {
-        switch self {
-        case .statusDraft: .draft
-        case .statusRevising: .revising
-        case .statusScheduled: .scheduled
-        case .statusPublished: .published
-        default: nil
-        }
-    }
-
-    /// What the palette shows (some labels depend on the open sheet).
-    @MainActor func title(_ m: AppModel) -> String {
-        if status != nil { return m.t(.paletteSetStatus, ["status": m.t(label)]) }
-        if self == .toggleExclude, m.sheet?.episode?.excluded == true { return m.t(.episodeInclude) }
-        return m.t(label)
-    }
-
-    var icon: IthacaIcon {
-        switch self {
-        case .newSheet: .add
-        case .newProject: .folder
-        case .search: .search
-        case .focus: .focus
-        case .sheetInfo: .stats
-        case .history: .history
-        case .export: .export
-        case .projectSettings, .settings: .settings
-        case .moveUp: .collapsed
-        case .moveDown: .expanded
-        case .showTrash: .trash
-        case .trashSheet: .delete
-        case .importWeb: .backup
-        case .copyForPaste: .copy
-        case .publishedThrough: .check
-        case .renumber: .reorder
-        case .toggleExclude: .edit
-        case .statusDraft, .statusRevising, .statusScheduled, .statusPublished: .sheet
-        }
-    }
-
-    /// Same rule as the menu bar's disabled items: sheet commands need an open sheet, project commands a project.
-    @MainActor func available(_ m: AppModel) -> Bool {
-        // Read-only library: nothing that writes.
-        if m.readOnly, [.newSheet, .newProject, .moveUp, .moveDown, .trashSheet, .importWeb, .publishedThrough, .renumber, .toggleExclude].contains(self) { return false }
-        if m.readOnly, status != nil { return false }
-        if let status { return m.sheetId != nil && m.sheet?.episode?.status != status }
-        return switch self {
-        case .sheetInfo, .history, .moveUp, .moveDown, .trashSheet, .copyForPaste: m.sheetId != nil
-        case .publishedThrough: m.sheet?.episode != nil
-        case .toggleExclude: m.sheet != nil && (m.sheet?.episode != nil || m.sheet?.folder == m.folders.first?.id)
-        case .renumber: m.folder != nil
-        case .export, .projectSettings, .showTrash, .newSheet: m.projectId != nil
-        default: true
-        }
-    }
-
-    @MainActor func run(_ m: AppModel) {
-        switch self {
-        case .newSheet: m.newSheet()
-        case .newProject: m.show(.newProject(firstRun: false))
-        case .search: m.overlay = .palette(search: true)
-        case .focus: m.toggleFocus()
-        case .sheetInfo: m.inspectorOpen = true; AppEnvironment.defaults.set(InspectorTab.info.rawValue, forKey: "ithaca.inspectorTab")
-        case .history: if m.sheetId != nil { m.show(.history) }
-        case .export: if m.projectId != nil { m.show(.export) }
-        case .projectSettings: if m.projectId != nil { m.show(.projectSettings) }
-        case .settings: openSettingsWindow()
-        case .moveUp: m.moveSheet(-1)
-        case .moveDown: m.moveSheet(1)
-        case .showTrash: m.showingTrash = true; if !m.dockedList { m.libraryOverlay = true }
-        case .trashSheet: m.trashSheet()
-        case .importWeb: m.importWebBackup()
-        case .copyForPaste: m.copyForPaste()
-        case .publishedThrough: m.markPublishedThrough()
-        case .renumber: m.renumberEpisodes()
-        case .toggleExclude: if let id = m.sheetId { m.toggleExcluded(id) }
-        case .statusDraft, .statusRevising, .statusScheduled, .statusPublished: m.setEpisodeStatus(status)
-        }
-    }
-}
-
 @MainActor func openSettingsWindow() {
     NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
 }
@@ -288,9 +174,10 @@ struct PaletteView: View {
             }
         }
         if !searchMode || !q.isEmpty {
-            // The four status commands only once something is typed ("발행", "상태"…): the empty list stays short.
-            for c in AppCommand.allCases where c.available(m) && (q.isEmpty ? c.status == nil : c.title(m).lowercased().contains(lower)) {
-                out.append(Hit(id: "c:\(c)", group: .command, icon: c.icon, title: c.title(m)) { m.overlay = nil; c.run(m) })
+            // Status and editing commands only once something is typed ("발행", "굵게"…): the empty list stays short.
+            // Each row shows its key, so the palette also teaches the shortcut.
+            for c in AppCommand.allCases where c.available(m) && (q.isEmpty ? !c.typedOnly : c.title(m).lowercased().contains(lower)) {
+                out.append(Hit(id: "c:\(c)", group: .command, icon: c.icon, title: c.title(m), meta: c.keysLabel) { c.runFromPalette(m) })
             }
         }
         return out
