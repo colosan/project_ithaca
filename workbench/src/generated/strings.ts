@@ -300,6 +300,7 @@ export type StringKey =
   | "palette.hintClose"
   | "focus.title"
   | "focus.exit"
+  | "editorOnly.exit"
   | "inspector.title"
   | "inspector.reference"
   | "inspector.info"
@@ -894,6 +895,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "palette.hintClose": "Esc 닫기",
     "focus.title": "집중 모드",
     "focus.exit": "집중 모드 끝내기",
+    "editorOnly.exit": "양옆 창 다시 보기",
     "inspector.title": "인스펙터",
     "inspector.reference": "참조",
     "inspector.info": "정보",
@@ -1514,6 +1516,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "palette.hintClose": "Esc to close",
     "focus.title": "Focus mode",
     "focus.exit": "Exit focus mode",
+    "editorOnly.exit": "Show side panes",
     "inspector.title": "Inspector",
     "inspector.reference": "Reference",
     "inspector.info": "Info",

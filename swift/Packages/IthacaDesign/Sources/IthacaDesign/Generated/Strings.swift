@@ -305,6 +305,7 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case paletteHintClose = "palette.hintClose"
     case focusTitle = "focus.title"
     case focusExit = "focus.exit"
+    case editorOnlyExit = "editorOnly.exit"
     case inspectorTitle = "inspector.title"
     case inspectorReference = "inspector.reference"
     case inspectorInfo = "inspector.info"
@@ -916,6 +917,7 @@ public enum L10n {
             .paletteHintClose: .text("Esc 닫기"),
             .focusTitle: .text("집중 모드"),
             .focusExit: .text("집중 모드 끝내기"),
+            .editorOnlyExit: .text("양옆 창 다시 보기"),
             .inspectorTitle: .text("인스펙터"),
             .inspectorReference: .text("참조"),
             .inspectorInfo: .text("정보"),
@@ -1506,6 +1508,7 @@ public enum L10n {
             .paletteHintClose: .text("Esc to close"),
             .focusTitle: .text("Focus mode"),
             .focusExit: .text("Exit focus mode"),
+            .editorOnlyExit: .text("Show side panes"),
             .inspectorTitle: .text("Inspector"),
             .inspectorReference: .text("Reference"),
             .inspectorInfo: .text("Info"),

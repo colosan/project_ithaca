@@ -325,6 +325,7 @@
   "palette.hintClose": "Esc to close",
   "focus.title": "Focus mode",
   "focus.exit": "Exit focus mode",
+  "editorOnly.exit": "Show side panes",
   "inspector.title": "Inspector",
   "inspector.reference": "Reference",
   "inspector.info": "Info",

@@ -30,7 +30,7 @@ struct ShellView: View {
         GeometryReader { geo in
             let panes = Panes.forWidth(geo.size.width, inspectorOpen: model.inspectorOpen)
             let sizeClass = T.Layout.SizeClass.forWidth(geo.size.width)
-            let focus = model.focusMode
+            let focus = model.panesHidden
             ZStack(alignment: .topLeading) {
                 HStack(spacing: 0) {
                     if !focus && panes.library { LibraryPane().frame(width: T.Layout.Pane.libraryDefault) }
@@ -142,7 +142,7 @@ final class EscapeMonitor {
     static func handle(_ event: NSEvent, model: AppModel, window: NSWindow?) -> Bool {
         guard event.keyCode == 53, event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.capsLock).isEmpty,
               let window, event.window === window, window.attachedSheet == nil,
-              model.overlay == nil, !model.focusMode, model.editor?.isComposing != true else { return false }
+              model.overlay == nil, !model.panesHidden, model.editor?.isComposing != true else { return false }
         if let tv = window.firstResponder as? NSTextView, tv.isFieldEditor { return false }
         if model.libraryOverlay && !(model.dockedLibrary && model.dockedList) { model.libraryOverlay = false; return true }
         if model.inspectorOpen && !model.inspectorDocks { model.inspectorOpen = false; return true }

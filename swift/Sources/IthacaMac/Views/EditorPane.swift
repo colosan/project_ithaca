@@ -25,9 +25,9 @@ struct EditorPane: View {
 
     private var toolbar: some View {
         HStack(spacing: T.Space.s50) {
-            if model.focusMode {
+            if model.panesHidden {
                 Spacer(minLength: 0)
-                KitButton(model.t(.focusExit), icon: .focus, variant: .ghost) { model.focusMode = false }
+                KitButton(model.t(model.focusMode ? .focusExit : .editorOnlyExit), icon: .focus, variant: .ghost) { model.showPanes() }
             } else {
                 if !panes.list || panes.compact {
                     IconButton(.library, label: model.t(.libraryShow), active: model.libraryOverlay) { model.libraryOverlay.toggle() }

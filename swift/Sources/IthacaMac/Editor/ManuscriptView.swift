@@ -49,8 +49,8 @@ struct ManuscriptView: NSViewRepresentable {
         tv.textStorage?.delegate = context.coordinator
         context.coordinator.textView = tv
         tv.onEscape = { [weak model] in
-            guard let model, model.focusMode else { return false }
-            model.focusMode = false
+            guard let model, model.panesHidden else { return false }
+            model.showPanes()
             return true
         }
         model.editor = context.coordinator
@@ -548,6 +548,24 @@ final class ManuscriptTextView: NSTextView {
         breakUndoCoalescing()
     }
 
+    /// Home / End / Page Up / Page Down move the caret (line start · line end · a page), with ⇧ extending the
+    /// selection, instead of AppKit's scroll-only default: writers coming from Windows editors expect the caret to follow.
+    static let caretKeys: [UInt16: (Selector, Selector)] = [
+        115: (#selector(moveToBeginningOfLine(_:)), #selector(moveToBeginningOfLineAndModifySelection(_:))),
+        119: (#selector(moveToEndOfLine(_:)), #selector(moveToEndOfLineAndModifySelection(_:))),
+        116: (#selector(pageUp(_:)), #selector(pageUpAndModifySelection(_:))),
+        121: (#selector(pageDown(_:)), #selector(pageDownAndModifySelection(_:))),
+    ]
+
+    override func keyDown(with event: NSEvent) {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting([.function, .numericPad, .capsLock])
+        if !hasMarkedText(), flags.isEmpty || flags == .shift, let pair = Self.caretKeys[event.keyCode] {
+            doCommand(by: flags == .shift ? pair.1 : pair.0)
+            return
+        }
+        super.keyDown(with: event)
+    }
+
     /// Esc first leaves focus mode (returns true when it did); otherwise the standard behavior (word completion).
     var onEscape: (() -> Bool)?
     override func cancelOperation(_ sender: Any?) {
@@ -649,7 +667,9 @@ enum Styles {
                 return
             }
             if let m = listRe.firstMatch(in: storage.string, range: line) {
-                storage.addAttribute(.foregroundColor, value: markColor, range: m.range(at: 1))
+                // Line-start marks stay visible even in "hide": a dialogue dash ("- ") is part of the text.
+                let lineMark: NSColor = markup == .hide ? .token(T.Color.inkMarkup) : markColor
+                storage.addAttribute(.foregroundColor, value: lineMark, range: m.range(at: 1))
             }
             if TextMetrics.isSceneBreak(Substring(ns.substring(with: line))) {
                 storage.addAttribute(.foregroundColor, value: NSColor.token(T.Color.inkTertiary), range: line)

@@ -130,6 +130,9 @@ final class AppModel {
     /// Info tab: the open sheet, or totals of the open folder (folder header / "Folder info").
     var inspectorScope: InspectorScope = .sheet
     var focusMode = false
+    /// ⌘3: side panes hidden without focus-mode dimming.
+    var editorOnly = false
+    var panesHidden: Bool { focusMode || editorOnly }
     /// Overlay request for panes that can't dock at this width (⌘1 / ⌘2, the library button).
     var libraryOverlay = false
     var overlay: Overlay?
@@ -1019,7 +1022,7 @@ final class AppModel {
         inspectorScope = .folder
         defaults.set(InspectorTab.info.rawValue, forKey: "ithaca.inspectorTab")
         inspectorOpen = true
-        focusMode = false
+        showPanes()
     }
 
     /// Footer goal: the open sheet's count on the project's basis (platform bases count the text as pasted).
@@ -1148,8 +1151,10 @@ final class AppModel {
 
     // MARK: View
 
-    func toggleInspector() { inspectorOpen.toggle(); focusMode = false }
-    func toggleFocus() { focusMode.toggle(); if focusMode { libraryOverlay = false } }
+    func toggleInspector() { inspectorOpen.toggle(); showPanes() }
+    func toggleFocus() { focusMode.toggle(); editorOnly = false; if focusMode { libraryOverlay = false } }
+    func toggleEditorOnly() { editorOnly.toggle(); focusMode = false; if editorOnly { libraryOverlay = false } }
+    func showPanes() { focusMode = false; editorOnly = false }
     func show(_ o: Overlay) {
         if case .palette = o, case .palette = overlay { overlay = nil; return }
         // Export and history read the stored text: save what's typed first.

@@ -227,7 +227,8 @@ enum AppCommand: CaseIterable {
         case .newSheet: m.newSheet()
         case .newProject: m.show(.newProject(firstRun: false))
         case .search: m.overlay = .palette(search: true)
-        case .focus, .editorOnly: m.toggleFocus()
+        case .focus: m.toggleFocus()
+        case .editorOnly: m.toggleEditorOnly()
         case .sheetInfo: m.inspectorOpen = true; AppEnvironment.defaults.set(InspectorTab.info.rawValue, forKey: "ithaca.inspectorTab")
         case .history: if m.sheetId != nil { m.show(.history) }
         case .export: if m.projectId != nil { m.show(.export) }
@@ -253,10 +254,10 @@ enum AppCommand: CaseIterable {
         case .bold, .italic, .strike, .heading1, .heading2, .heading3, .body, .quote, .sceneBreak: if let f = format { m.editor?.format(f) }
         case .symbols: m.editor?.showSymbols()
         case .showLibrary:
-            m.focusMode = false
+            m.showPanes()
             if !m.dockedLibrary { m.libraryOverlay.toggle() }
         case .showList:
-            m.focusMode = false
+            m.showPanes()
             if !m.dockedList { m.libraryOverlay.toggle() }
         case .inspector: m.toggleInspector()
         case .palette: m.show(.palette(search: false))

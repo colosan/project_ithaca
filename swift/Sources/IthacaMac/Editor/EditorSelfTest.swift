@@ -252,7 +252,7 @@ enum EditorSelfTest {
         check(tv.string == "가나다라마바", "one undo restores a multi-range cut")
 
         // 19. Preferences apply live: text size, line spacing, markup modes, typewriter room below the last line.
-        let prefs = (try? lib.createSheet(project: pid, folder: model.folders[0].id, text: "- 대사 한 줄\n본문"))!.id
+        let prefs = (try? lib.createSheet(project: pid, folder: model.folders[0].id, text: "- 대사 한 줄\n**본문**"))!.id
         model.reloadOutline()
         model.openSheet(prefs)
         pump(0.3)
@@ -282,7 +282,22 @@ enum EditorSelfTest {
         check(color(at: 0) == resolved(.token(T.Color.inkMarkup)) && color(at: 2) == resolved(.token(T.Color.inkPrimary)), "dim: line-start '-' drawn in ink.markup, text in ink.primary")
         model.markup = .hide
         pump(0.2)
-        check(color(at: 0).last == 0, "hide: marks hidden live")
+        check(color(at: 9).last == 0, "hide: emphasis marks hidden live")
+        check(color(at: 0) == resolved(.token(T.Color.inkMarkup)), "hide: line-start '-' (dialogue dash) stays visible")
+        // Home / End / Page keys move the caret (⇧ extends), not just the view.
+        func key(_ code: UInt16, _ flags: NSEvent.ModifierFlags = []) {
+            let e = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: flags.union(.function), timestamp: 0,
+                                     windowNumber: tv.window?.windowNumber ?? 0, context: nil, characters: "", charactersIgnoringModifiers: "",
+                                     isARepeat: false, keyCode: code)!
+            tv.keyDown(with: e)
+        }
+        tv.setSelectedRange(NSRange(location: 4, length: 0))
+        key(119)
+        check(tv.selectedRange() == NSRange(location: 8, length: 0), "End moves the caret to the line end (\(tv.selectedRange()))")
+        key(115, .shift)
+        check(tv.selectedRange() == NSRange(location: 0, length: 8), "⇧Home selects to the line start (\(tv.selectedRange()))")
+        key(115)
+        check(tv.selectedRange() == NSRange(location: 0, length: 0), "Home moves the caret to the line start")
         model.markup = .show
         pump(0.2)
         check(color(at: 0) == resolved(.token(T.Color.inkSecondary)), "show: marks in ink.secondary")
@@ -326,6 +341,10 @@ enum EditorSelfTest {
         check(dimRuns() > 0, "focus mode dims the other paragraphs")
         tv.cancelOperation(nil)
         check(!model.focusMode, "Esc leaves focus mode")
+        model.toggleEditorOnly()
+        check(model.panesHidden && !model.focusMode, "⌘3 hides the side panes without focus mode")
+        tv.cancelOperation(nil)
+        check(!model.panesHidden, "Esc shows the side panes again")
         pump(0.2)
         check(dimRuns() == 0, "dimming cleared when focus mode ends")
 
