@@ -61,6 +61,15 @@ enum Snapshot {
             Scene(name: "shell-1240-inspector-reference-dark", size: wide, dark: true, setup: { m, d in m.inspectorOpen = true; d.set("reference", forKey: "ithaca.inspectorTab") }),
             Scene(name: "shell-inspector-outline-1000", size: CGSize(width: 1000, height: 700), setup: { m, d in m.inspectorOpen = true; d.set("outline", forKey: "ithaca.inspectorTab") }),
             Scene(name: "shell-focus", size: wide, setup: { m, _ in m.focusMode = true }),
+            Scene(name: "shell-library-folded", size: wide, setup: { m, d in
+                for t in ["두 번째 작품", "세 번째 작품"] { _ = try? m.library.createProject(title: t, language: .ko, folders: ["연재"]) }
+                m.refreshProjects()
+                d.set(true, forKey: "ithaca.libraryFolded")
+            }),
+            Scene(name: "shell-library-many", size: wide, setup: { m, _ in
+                for t in ["두 번째 작품", "세 번째 작품"] { _ = try? m.library.createProject(title: t, language: .ko, folders: ["연재"]) }
+                m.refreshProjects()
+            }),
             // Empty folder: the list offers "new sheet" (navigation spec).
             Scene(name: "shell-empty-folder", size: wide, setup: { m, _ in m.createFolder("빈 폴더") }),
             Scene(name: "shell-list-focused", size: wide, setup: { m, _ in m.listFocusRequest += 1 }),

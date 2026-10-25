@@ -21,6 +21,7 @@ struct LibraryPane: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(model.projects) { p in projectRows(p) }
+                    Spacer().frame(height: lastExpanded ? 0 : T.Space.s150)
                     LibraryRow(active: model.showingTrash, muted: true) {
                         model.showingTrash = true
                         // Like a folder: the overlay closes when the list it fills is docked beside it.
@@ -63,6 +64,9 @@ struct LibraryPane: View {
         .background(Color.surfaceSidebar)
         .hairline(.trailing)
     }
+
+    /// The last project is unfolded: its own bottom room already separates it from the trash.
+    private var lastExpanded: Bool { !folded && model.projects.last?.id == model.projectId }
 
     @ViewBuilder
     private func projectRows(_ p: ProjectSummary) -> some View {
@@ -111,7 +115,8 @@ struct LibraryPane: View {
                 }
             }
         }
-        .padding(.bottom, T.Space.s150)
+        // Room below an unfolded project only: folded projects stack like rows.
+        .padding(.bottom, expanded ? T.Space.s150 : 0)
     }
 
     private func startEditing(_ id: String, _ text: String) {
