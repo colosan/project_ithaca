@@ -377,6 +377,58 @@ fn export_docx(&self, project: String, sheets: Vec<String>, options: DocxOptions
 //               margin_left_mm = 30.0, margin_right_mm = 30.0 }   // margins = Hangul Office's A4 defaults
 ```
 
+## Story bible (added: bible) — ADR-0010
+
+Entries are sheets whose front matter has `종류`/`kind` (ADR-0010 §1). Nothing new is stored; everything
+below is computed from live sheet text on request. Offsets are UTF-16 (NSTextView).
+
+```rust
+// EntryKind { Character, Place, Faction, Term }
+// BibleEntry { sheet, folder, kind: EntryKind, name: String, aliases: Vec<String>,
+//              fields: Vec<Field> /* front matter except 종류/별칭/본문에서 찾지 않음, in order */,
+//              sections: Vec<Section> /* `## ` sections in order; text trimmed */,
+//              matchable: bool /* false when 본문에서 찾지 않음 */,
+//              last_seen: Option<Appearance> /* latest sheet (reading order) mentioning it */ }
+// Field { key, value }   Section { title, body }
+// Appearance { sheet, title, folder, number: Option<u32> /* episode number */, count: u32 /* mentions */,
+//              offset: u32, length: u32 /* first mention */, lines: Vec<String> /* up to 3 dialogue lines
+//              (lines starting with a quote mark: " “ 「 『 ' ‘ - ―) that mention the entry, else the
+//              first lines that mention it; trimmed, ≤ 120 chars */ }
+// Mention { entry /* entry sheet id */, offset: u32, length: u32 /* name only, josa excluded */, alias: bool }
+
+/// Model-level, no library: parses a sheet. None when it isn't an entry (no/unknown 종류).
+fn parse_entry(text: String) -> Option<ParsedEntry>;   // ParsedEntry { kind, name, aliases, fields, sections, matchable,
+                                                        //               body_start: u32 /* UTF-16 offset after the front matter */ }
+/// Model-level: the text of a new entry. `language` picks Korean or English keys and section titles.
+/// Character: 별칭 나이 소속 능력 상태 외모 / 한 줄 소개 · 성격 · 말투 · 호칭 · 반응 · 메모
+/// Place: 별칭 속한 곳 / 한 줄 소개 · 감각 · 규칙 · 메모     Faction: 별칭 우두머리 / 한 줄 소개 · 구성원 · 목표 · 관계 · 메모
+/// Term: 별칭 / 뜻 · 메모.   Empty values and empty sections; `name` under `# `.
+fn entry_template(kind: EntryKind, name: String, language: Language) -> String;
+
+/// Every live entry of the project, sorted by last_seen (most recent sheet first; never seen last, then by name).
+fn bible(&self, project: String) -> Result<Vec<BibleEntry>, CoreError>;
+/// Mentions of matchable entries in `text` (the editor's current text — may be unsaved), in order,
+/// non-overlapping, longest match first. `text` is treated like a sheet: its own front matter is skipped.
+fn mentions_in(&self, project: String, text: String) -> Result<Vec<Mention>, CoreError>;
+/// Every live non-entry sheet that mentions the entry, in reading order (folder order, then serial order).
+fn appearances(&self, project: String, entry: String) -> Result<Vec<Appearance>, CoreError>;
+/// Notion export: a .md file or a folder of them (recursively). Nothing written.
+/// One entry per file: `# title` → name; `key: value` lines right after the title → front matter;
+/// `## heading` sections matching a known section title of `kind` → that section, others → kept as is;
+/// loose text before the first `##` → `## 메모`. Notion's " <32 hex>" suffix is cut from names.
+fn bible_import_preview(path: String, kind: EntryKind, language: Language) -> Result<Vec<ImportedEntry>, CoreError>;
+// ImportedEntry { source: String /* relative path */, name, fields: u32, sections: u32, text: String }
+/// Creates the previewed entries in `folder` (appended, in order). All or nothing. Returns their sheet ids.
+fn import_bible(&self, project: String, folder: String, entries: Vec<String> /* texts */) -> Result<Vec<String>, CoreError>;
+```
+
+Rules elsewhere (changed: bible):
+- `title_of`, `excerpt_of`, `counts`, `platform_body`, export (txt · md · docx) and search snippets skip an
+  entry's front matter. A sheet starting with `---` but without `종류`/`kind` is unchanged (scene break).
+- SheetSummary gains `entry: Option<EntryKind>` (default nil) so lists can show the kind icon.
+- ithaca-mcp: tools `bible` (`{project, name?}` → all entries, or the one whose name/alias matches) and
+  `mentions` (`{project, sheet}` → entries mentioned in that sheet with counts). Read only (ADR-0009).
+
 ## Types
 
 `Language { Ko, En }` · `GoalBasis { WithSpaces, WithoutSpaces, Words, Munpia, Novelpia }` (r3) · `McpPermission { Read }` (r3) · `Actor { Me, Claude }` ·
