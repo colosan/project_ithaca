@@ -42,6 +42,11 @@ enum Snapshot {
                   setup: { _, d in d.set(tab.rawValue, forKey: "ithaca.settingsTab") }, titled: false,
                   view: { _ in AnyView(SettingsView(updater: updater, only: tab)) })
         }
+        func editorAll(_ locale: LocalePref) -> Scene {
+            Scene(name: "settings-editor-all-\(locale.rawValue)", size: CGSize(width: 640, height: 2240), locale: locale,
+                  setup: { m, _ in m.autoPairs = true; m.ellipsis = .double; m.symbols.append(Symbols.make("〔", close: "〕")) }, titled: false,
+                  view: { _ in AnyView(SettingsView(updater: updater, only: .editor)) })
+        }
         func claude(_ locale: LocalePref) -> Scene {
             Scene(name: "settings-claude-on-\(locale.rawValue)", size: CGSize(width: 640, height: 760), locale: locale,
                   setup: { m, d in
@@ -110,6 +115,8 @@ enum Snapshot {
             Scene(name: "project-settings", size: CGSize(width: 560, height: 560), titled: false, fit: true, view: { _ in AnyView(ProjectSettingsView()) }),
             settings(.general), settings(.editor), settings(.editor, .en), settings(.backup), settings(.about),
             settings(.shortcuts), settings(.shortcuts, .en),
+            // The whole editor tab (conveniences, the symbol list with a custom entry) on one tall canvas.
+            editorAll(.ko), editorAll(.en),
             Scene(name: "settings-editor-dark", size: CGSize(width: 640, height: 560), dark: true, titled: false,
                   view: { _ in AnyView(SettingsView(updater: updater, only: .editor)) }),
             // The palette finds the editing commands by name, with their keys.

@@ -62,4 +62,6 @@ enum class IthacaIcon(val asset: String) {
     SavedLocal("hard-drive"),
     Damaged("file-warning"),
     Branched("git-branch"),
+    MoveUp("arrow-up"),
+    MoveDown("arrow-down"),
 }

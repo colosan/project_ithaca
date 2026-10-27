@@ -362,6 +362,151 @@ enum EditorSelfTest {
         check(!scroll.isFindBarVisible, "the find bar closes")
         model.flushSave()
 
+        // 23. Editor conveniences (story-bible spec §7): pairs, ellipsis, first-line indent, text replacement, symbol list.
+        let conv = (try? lib.createSheet(project: pid, folder: model.folders[0].id, text: ""))!.id
+        model.reloadOutline()
+        model.openSheet(conv)
+        pump(0.3)
+        /// Committed input at the caret, one key press per event (like the keyboard after composition).
+        func type(_ s: String) { tv.insertText(s, replacementRange: tv.selectedRange()); pump(0.05) }
+        func undo() { tv.undoManager?.undo(); pump(0.05) }
+        func setText(_ s: String, caret: Int? = nil) {
+            tv.setSelectedRange(NSRange(location: 0, length: (tv.string as NSString).length))
+            tv.rawInsert(s, replacementRange: tv.selectedRange())
+            tv.setSelectedRange(NSRange(location: caret ?? (s as NSString).length, length: 0))
+            pump(0.05)
+            tv.undoManager?.removeAllActions()
+            tv.conveniences.reset()
+        }
+        check(!model.autoPairs && model.ellipsis == .off && !model.firstLineIndent && !model.textReplacement, "conveniences are off by default")
+        for s in ["(", "「", ".", ".", "."] { type(s) }
+        check(tv.string == "(「...", "off: no closing pair, no ellipsis ('\(tv.string)')")
+
+        model.autoPairs = true
+        pump(0.2)
+        setText("")
+        type("「")
+        check(tv.string == "「」" && tv.selectedRange() == NSRange(location: 1, length: 0), "pairs: 「 adds 」 with the caret between ('\(tv.string)')")
+        type("안")
+        type("」")
+        check(tv.string == "「안」" && tv.selectedRange().location == 3, "pairs: typing 」 steps over the one put there ('\(tv.string)', \(tv.selectedRange().location))")
+        type("」")
+        check(tv.string == "「안」」", "pairs: a second 」 is just typed")
+        // A syllable composed inside the pair (marked text) is left alone; the closer still steps over afterwards.
+        setText("")
+        type("「")
+        for s in ["ㅎ", "하", "한"] {
+            tv.setMarkedText(s, selectedRange: NSRange(location: 1, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
+            pump(0.05)
+        }
+        check(tv.string == "「한」" && tv.hasMarkedText(), "pairs: composition inside the pair intact ('\(tv.string)')")
+        tv.insertText("한", replacementRange: tv.markedRange())
+        type("」")
+        check(tv.string == "「한」" && tv.selectedRange().location == 3, "pairs: closer steps over after the composed syllable ('\(tv.string)')")
+        setText("")
+        type("(")
+        undo()
+        check(tv.string == "(", "pairs: one undo takes back only the closer ('\(tv.string)')")
+        undo()
+        check(tv.string == "", "pairs: the next undo takes the typed opener")
+        setText("")
+        type("(")
+        tv.deleteBackward(nil)
+        pump(0.05)
+        check(tv.string == "", "pairs: backspace in an empty pair deletes both ('\(tv.string)')")
+        undo()
+        check(tv.string == ")", "pairs: undo after that brings back the closer first ('\(tv.string)')")
+        setText("웃었다", caret: 0)
+        tv.setSelectedRange(NSRange(location: 0, length: 3))
+        type("『")
+        check(tv.string == "『웃었다』" && tv.selectedRange() == NSRange(location: 1, length: 3), "pairs: an opener wraps the selection ('\(tv.string)')")
+        undo()
+        check(tv.string == "웃었다", "pairs: one undo unwraps it")
+        setText("말", caret: 0)
+        type("(")
+        check(tv.string == "(말", "pairs: no closer in front of a word ('\(tv.string)')")
+        setText("가")
+        type("\"")
+        check(tv.string == "가\"", "pairs: a straight quote after a letter is a closing quote ('\(tv.string)')")
+        setText("")
+        tv.setMarkedText("ㅎ", selectedRange: NSRange(location: 1, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
+        tv.insertText("(", replacementRange: tv.markedRange())
+        pump(0.05)
+        check(tv.string == "(" && !tv.hasMarkedText(), "pairs: nothing added to input that ends a composition ('\(tv.string)')")
+        setText("")
+        tv.setMarkedText("하", selectedRange: NSRange(location: 1, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
+        tv.insertText("(", replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(tv.string.hasPrefix("하") || tv.string == "(", "pairs: input while composing is left to the input method ('\(tv.string)')")
+        tv.unmarkText()
+        pump(0.05)
+
+        model.ellipsis = .single
+        pump(0.2)
+        setText("그런")
+        for _ in 0..<3 { type(".") }
+        check(tv.string == "그런…" && tv.selectedRange().location == 3, "ellipsis: ... becomes … ('\(tv.string)')")
+        undo()
+        check(tv.string == "그런...", "ellipsis: one undo gives back the three dots ('\(tv.string)')")
+        model.ellipsis = .double
+        pump(0.2)
+        setText("")
+        for _ in 0..<3 { type(".") }
+        check(tv.string == "……", "ellipsis: or …… when chosen ('\(tv.string)')")
+        setText("..")
+        tv.setMarkedText(".", selectedRange: NSRange(location: 1, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
+        tv.insertText(".", replacementRange: tv.markedRange())
+        pump(0.05)
+        check(tv.string == "...", "ellipsis: not while composing ('\(tv.string)')")
+        model.ellipsis = .off
+        model.autoPairs = false
+        pump(0.2)
+        setText("")
+        type("(")
+        check(tv.string == "(", "pairs off again: just the typed character")
+
+        // First-line indent: drawing only (paragraph style), not on headings, scene breaks or the front matter.
+        let indented = "---\n종류: 인물\n---\n# 제목\n본문 첫 줄\n* * *\n둘째 문단"
+        setText(indented)
+        func headIndent(_ needle: String) -> CGFloat {
+            let at = (tv.string as NSString).range(of: needle).location
+            return (tv.textStorage?.attribute(.paragraphStyle, at: at, effectiveRange: nil) as? NSParagraphStyle)?.firstLineHeadIndent ?? -1
+        }
+        pump(0.3)
+        check(headIndent("본문") == 0, "indent off: body flush")
+        model.firstLineIndent = true
+        pump(0.3)
+        check(headIndent("본문") > 0 && headIndent("둘째") > 0, "indent on: body paragraphs indented (\(headIndent("본문")))")
+        check(headIndent("제목") == 0 && headIndent("* * *") == 0 && headIndent("종류") == 0, "indent on: heading, scene break and front matter stay flush")
+        check(tv.string == indented, "indent on: the text itself is unchanged")
+        model.firstLineIndent = false
+        pump(0.3)
+        check(headIndent("본문") == 0, "indent off again")
+
+        // System text replacement follows the preference.
+        check(!tv.isAutomaticTextReplacementEnabled, "text replacement off by default")
+        model.textReplacement = true
+        pump(0.2)
+        check(tv.isAutomaticTextReplacementEnabled, "text replacement on")
+        model.textReplacement = false
+        pump(0.2)
+        check(!tv.isAutomaticTextReplacementEnabled, "text replacement off again")
+
+        // The symbol list's order is the ⌘/ menu's (and Format › Symbols'); it persists only while customized.
+        guard let coord = model.editor as? ManuscriptView.Coordinator else { fail("no coordinator") }
+        check(coord.symbolMenu().items.first?.title.hasPrefix("…") == true, "default symbol menu starts with …")
+        model.symbols = [Symbols.defaults[5], Symbols.defaults[0], Symbols.make("◎", close: nil), Symbols.make("〔", close: "〕")]
+        let symMenu = coord.symbolMenu()
+        check(symMenu.items.map { $0.title.components(separatedBy: "    ")[0] } == ["―", "…", "◎", "〔〕"] && symMenu.items.map(\.keyEquivalent) == ["1", "2", "3", "4"],
+              "symbol menu follows the list order (\(symMenu.items.map(\.title)))")
+        check(model.menu.symbols == model.symbols && (model.defaults.array(forKey: "ithaca.symbols") as? [[String]])?.count == 4, "the list reaches the menu bar and is stored")
+        setText("")
+        symMenu.performActionForItem(at: 3)
+        check(tv.string == "〔〕" && tv.selectedRange().location == 1, "a custom pair from the menu leaves the caret inside ('\(tv.string)')")
+        check(Symbols.decode(model.defaults.array(forKey: "ithaca.symbols")) == model.symbols, "the stored list reads back the same (names kept)")
+        model.symbols = Symbols.defaults
+        check(model.defaults.object(forKey: "ithaca.symbols") == nil && coord.symbolMenu().items.count == Symbols.defaults.count + 1, "reset: defaults again (24 + separator)")
+        model.flushSave()
+
         pb.clearContents()
         pb.writeObjects(clip.map { pairs in let i = NSPasteboardItem(); pairs.forEach { i.setData($0.1, forType: $0.0) }; return i })
 

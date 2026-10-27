@@ -54,6 +54,11 @@ enum ThemePref: String, CaseIterable { case system, light, dark }
 enum LocalePref: String, CaseIterable { case system, ko, en }
 enum MarkupMode: String, CaseIterable { case show, dim, hide }
 enum FocusScope: String, CaseIterable { case sentence, paragraph }
+/// `...` typed in the manuscript: left alone, or turned into `…` / `……` (editor conveniences).
+enum EllipsisMode: String, CaseIterable {
+    case off, single, double
+    var replacement: String? { switch self { case .off: nil; case .single: "…"; case .double: "……" } }
+}
 
 /// What the model needs from the text view without owning it (ManuscriptView's coordinator implements it).
 @MainActor
@@ -157,6 +162,18 @@ final class AppModel {
     var markup: MarkupMode { didSet { defaults.set(markup.rawValue, forKey: "ithaca.markup") } }
     var focusScope: FocusScope { didSet { defaults.set(focusScope.rawValue, forKey: "ithaca.focusScope") } }
     var typewriter: Bool { didSet { defaults.set(typewriter, forKey: "ithaca.typewriter") } }
+    // Editor conveniences (story-bible spec §7), all off by default.
+    var firstLineIndent: Bool { didSet { defaults.set(firstLineIndent, forKey: "ithaca.firstLineIndent") } }
+    var autoPairs: Bool { didSet { defaults.set(autoPairs, forKey: "ithaca.autoPairs") } }
+    var ellipsis: EllipsisMode { didSet { defaults.set(ellipsis.rawValue, forKey: "ithaca.ellipsis") } }
+    var textReplacement: Bool { didSet { defaults.set(textReplacement, forKey: "ithaca.textReplacement") } }
+    /// The ⌘/ symbol menu, in the writer's order. Stored only while it differs from the defaults.
+    var symbols: [Symbol] {
+        didSet {
+            if symbols == Symbols.defaults { defaults.removeObject(forKey: "ithaca.symbols") } else { defaults.set(Symbols.encode(symbols), forKey: "ithaca.symbols") }
+            menu.symbols = symbols
+        }
+    }
     var confirmDelete: Bool { didSet { defaults.set(confirmDelete, forKey: "ithaca.confirmDelete") } }
     /// nil = follow the manuscript language (on for English, off for Korean — the system checker flags ordinary Korean).
     var spellCheck: Bool? { didSet { defaults.set(spellCheck.map { $0 ? "on" : "off" } ?? "auto", forKey: "ithaca.spell") } }
@@ -178,10 +195,16 @@ final class AppModel {
         markup = MarkupMode(rawValue: defaults.string(forKey: "ithaca.markup") ?? "") ?? .dim
         focusScope = FocusScope(rawValue: defaults.string(forKey: "ithaca.focusScope") ?? "") ?? .paragraph
         typewriter = defaults.object(forKey: "ithaca.typewriter") as? Bool ?? false
+        firstLineIndent = defaults.object(forKey: "ithaca.firstLineIndent") as? Bool ?? false
+        autoPairs = defaults.object(forKey: "ithaca.autoPairs") as? Bool ?? false
+        ellipsis = EllipsisMode(rawValue: defaults.string(forKey: "ithaca.ellipsis") ?? "") ?? .off
+        textReplacement = defaults.object(forKey: "ithaca.textReplacement") as? Bool ?? false
+        symbols = Symbols.decode(defaults.array(forKey: "ithaca.symbols")) ?? Symbols.defaults
         confirmDelete = defaults.object(forKey: "ithaca.confirmDelete") as? Bool ?? true
         switch defaults.string(forKey: "ithaca.spell") { case "on": spellCheck = true; case "off": spellCheck = false; default: spellCheck = nil }
         carets = (defaults.dictionary(forKey: "ithaca.carets") as? [String: Int]) ?? [:]
         menu.locale = locale
+        menu.symbols = symbols
         menu.readOnly = info.readOnly || info.lockedByOther
         refreshProjects()
         restoreSelection()
@@ -1224,4 +1247,6 @@ final class MenuState: ObservableObject {
     @Published var hasProject = false
     /// Read-only library: write commands are disabled.
     @Published var readOnly = false
+    /// Format › Symbols follows the editor's symbol list.
+    @Published var symbols: [Symbol] = Symbols.defaults
 }

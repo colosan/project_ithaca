@@ -566,9 +566,9 @@ struct IthacaCommands: Commands {
             item(.sceneBreak, off: off)
             item(.symbols, off: off)
             Menu(t(.formatSymbols).replacingOccurrences(of: "…", with: "")) {
-                ForEach(Symbols.all.indices, id: \.self) { i in
-                    let s = Symbols.all[i]
-                    Button(s.menuTitle(t(s.name)), action: go { model in model.editor?.insert(s.text, wrapping: s.close) })
+                ForEach(menu.symbols.indices, id: \.self) { i in
+                    let s = menu.symbols[i]
+                    Button(s.menuTitle(s.name.map { t($0) }), action: go { model in model.editor?.insert(s.text, wrapping: s.close) })
                 }
             }
             .disabled(off)

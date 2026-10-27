@@ -136,6 +136,19 @@ private struct EditorSettings: View {
                 labeled(.prefsEditorSpell, .prefsEditorSpellAutoHint)
             }
             .toggleStyle(KitSwitchStyle())
+            // Conveniences (story-bible spec §7): all off by default.
+            Section {
+                Toggle(isOn: $m.firstLineIndent) { labeled(.prefsEditorIndent, .prefsEditorIndentHint) }.toggleStyle(KitSwitchStyle())
+                Toggle(isOn: $m.autoPairs) { labeled(.prefsEditorPairs, .prefsEditorPairsHint) }.toggleStyle(KitSwitchStyle())
+                Picker(selection: $m.ellipsis) {
+                    Text(model.t(.prefsEditorEllipsisOff)).tag(EllipsisMode.off)
+                    Text(verbatim: "…").tag(EllipsisMode.single)
+                    Text(verbatim: "……").tag(EllipsisMode.double)
+                } label: { labeled(.prefsEditorEllipsis, .prefsEditorEllipsisHint) }
+                .pickerStyle(.segmented)
+                Toggle(isOn: $m.textReplacement) { labeled(.prefsEditorTextReplacement, .prefsEditorTextReplacementHint) }.toggleStyle(KitSwitchStyle())
+            }
+            SymbolListSettings()
         }
         .formStyle(.grouped)
     }
@@ -145,6 +158,73 @@ private struct EditorSettings: View {
             Text(model.t(title))
             Caption(model.t(hint))
         }
+    }
+}
+
+/// The ⌘/ symbol menu, in the writer's order: move up / down, remove, add (glyph + optional closing pair), restore defaults.
+private struct SymbolListSettings: View {
+    @Environment(AppModel.self) private var model
+    @State private var text = ""
+    @State private var close = ""
+
+    var body: some View {
+        Section {
+            if model.symbols.isEmpty { Caption(model.t(.prefsEditorSymbolsEmpty)).fixedSize(horizontal: false, vertical: true) }
+            ForEach(Array(model.symbols.enumerated()), id: \.offset) { i, s in
+                HStack(spacing: T.Space.s100) {
+                    // The menu's key for the first ten (1–9, then 0).
+                    Text(i < 10 ? "\((i + 1) % 10)" : "")
+                        .monospacedDigit().foregroundStyle(Color.inkTertiary)
+                        .frame(width: T.Space.s200, alignment: .trailing)
+                    Text(s.glyph).frame(minWidth: T.Space.s400, alignment: .leading)
+                    Text(s.name.map { model.t($0) } ?? "").foregroundStyle(Color.inkSecondary).lineLimit(1)
+                    Spacer(minLength: 0)
+                    IconButton(.moveUp, label: model.t(.prefsEditorSymbolsMoveUp)) { move(i, by: -1) }.disabled(i == 0)
+                    IconButton(.moveDown, label: model.t(.prefsEditorSymbolsMoveDown)) { move(i, by: 1) }.disabled(i == model.symbols.count - 1)
+                    IconButton(.close, label: model.t(.prefsEditorSymbolsRemove)) { model.symbols.remove(at: i) }
+                }
+            }
+            HStack(spacing: T.Space.s100) {
+                TextField(model.t(.prefsEditorSymbolsText), text: $text, prompt: Text(model.t(.prefsEditorSymbolsText))).frame(width: T.Space.s800 + T.Space.s400)
+                TextField(model.t(.prefsEditorSymbolsClose), text: $close, prompt: Text(model.t(.prefsEditorSymbolsClose)))
+                KitButton(model.t(.prefsEditorSymbolsAdd), icon: .add, action: add).disabled(candidate == nil)
+            }
+            .labelsHidden()
+            .textFieldStyle(.roundedBorder)
+            .onSubmit(add)
+        } header: {
+            VStack(alignment: .leading, spacing: T.Space.s25) {
+                Text(model.t(.prefsEditorSymbols))
+                Caption(model.t(.prefsEditorSymbolsHint)).fixedSize(horizontal: false, vertical: true)
+            }
+        } footer: {
+            HStack {
+                Spacer(minLength: 0)
+                KitButton(model.t(.prefsEditorSymbolsReset), icon: .restore) { model.symbols = Symbols.defaults }
+                    .disabled(model.symbols == Symbols.defaults)
+            }
+        }
+    }
+
+    /// What the fields would add: a glyph that isn't in the list yet.
+    private var candidate: Symbol? {
+        let t = text.trimmingCharacters(in: .whitespacesAndNewlines), c = close.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !t.isEmpty else { return nil }
+        let s = Symbols.make(t, close: c)
+        return model.symbols.contains { $0.text == s.text && $0.close == s.close } ? nil : s
+    }
+
+    private func add() {
+        guard let s = candidate else { return }
+        model.symbols.append(s)
+        text = ""
+        close = ""
+    }
+
+    private func move(_ i: Int, by d: Int) {
+        let j = i + d
+        guard model.symbols.indices.contains(i), model.symbols.indices.contains(j) else { return }
+        model.symbols.swapAt(i, j)
     }
 }
 

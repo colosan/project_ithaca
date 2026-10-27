@@ -127,10 +127,10 @@ struct ManuscriptView: NSViewRepresentable {
             return tv
         }
 
-        /// One undoable replacement, then the selection.
+        /// One undoable replacement, then the selection. Bypasses the typing conveniences (no pairs, no `...`).
         private func replace(_ tv: NSTextView, _ range: NSRange, with text: String, select: NSRange) {
             tv.breakUndoCoalescing()
-            tv.insertText(text, replacementRange: range)
+            if let mtv = tv as? ManuscriptTextView { mtv.rawInsert(text, replacementRange: range) } else { tv.insertText(text, replacementRange: range) }
             tv.breakUndoCoalescing()
             tv.setSelectedRange(select)
         }
@@ -223,18 +223,24 @@ struct ManuscriptView: NSViewRepresentable {
             }
         }
 
-        /// The symbol menu at the caret: 1–9 · 0 pick the first ten, arrows and Return the rest.
-        func showSymbols() {
-            guard let tv = editable else { return }
+        /// The symbol menu, in the writer's order (Settings › Editor): 1–9 · 0 pick the first ten, arrows and Return the rest.
+        func symbolMenu() -> NSMenu {
             let menu = NSMenu()
-            for (i, s) in Symbols.all.enumerated() {
-                let item = NSMenuItem(title: s.menuTitle(model.t(s.name)), action: #selector(pickSymbol(_:)), keyEquivalent: i < 10 ? String((i + 1) % 10) : "")
+            for (i, s) in model.symbols.enumerated() {
+                let item = NSMenuItem(title: s.menuTitle(s.name.map { model.t($0) }), action: #selector(pickSymbol(_:)), keyEquivalent: i < 10 ? String((i + 1) % 10) : "")
                 item.keyEquivalentModifierMask = []
                 item.target = self
                 item.tag = i
                 if i == 10 { menu.addItem(.separator()) }
                 menu.addItem(item)
             }
+            return menu
+        }
+
+        /// The symbol menu at the caret.
+        func showSymbols() {
+            guard let tv = editable else { return }
+            let menu = symbolMenu()
             var at = NSPoint(x: tv.textContainerInset.width, y: tv.textContainerInset.height)
             if let rect = tv.firstRect(forCharacterRange: tv.selectedRange(), actualRange: nil) as NSRect?, let w = tv.window, rect != .zero {
                 let inView = tv.convert(w.convertFromScreen(rect), from: nil)
@@ -244,7 +250,8 @@ struct ManuscriptView: NSViewRepresentable {
         }
 
         @objc private func pickSymbol(_ item: NSMenuItem) {
-            let s = Symbols.all[item.tag]
+            guard model.symbols.indices.contains(item.tag) else { return }
+            let s = model.symbols[item.tag]
             insert(s.text, wrapping: s.close)
         }
 
@@ -264,6 +271,7 @@ struct ManuscriptView: NSViewRepresentable {
             loading = true
             if tv.hasMarkedText() { tv.unmarkText() }
             loadedToken = model.loadToken
+            tv.conveniences.reset()
             tv.string = model.text
             tv.undoManager?.removeAllActions()
             tv.isEditable = !model.editorLocked && model.sheetId != nil
@@ -283,8 +291,11 @@ struct ManuscriptView: NSViewRepresentable {
         /// Fonts and paragraph styles follow the text-size, markup and spelling preferences.
         func configure(sizeClass: T.Layout.SizeClass, force: Bool) {
             guard let tv = textView else { return }
-            let key = StyleKey(size: model.textSize, spacing: model.lineSpacing, width: model.lineWidth, markup: model.markup, sizeClass: sizeClass, spell: model.spellCheckActive, readOnly: model.editorLocked)
+            let key = StyleKey(size: model.textSize, spacing: model.lineSpacing, width: model.lineWidth, markup: model.markup, sizeClass: sizeClass, spell: model.spellCheckActive,
+                               readOnly: model.editorLocked, indent: model.firstLineIndent)
             tv.isEditable = !model.editorLocked && model.sheetId != nil
+            tv.conveniences.options = ConvenienceOptions(pairs: model.autoPairs, ellipsis: model.ellipsis.replacement)
+            if tv.isAutomaticTextReplacementEnabled != model.textReplacement { tv.isAutomaticTextReplacementEnabled = model.textReplacement }
             tv.padX = T.Layout.Editor.paddingX(sizeClass)
             tv.typewriter = model.typewriter
             tv.measure = (T.Layout.Editor.measure * model.lineWidth.scale).rounded()
@@ -293,7 +304,7 @@ struct ManuscriptView: NSViewRepresentable {
             guard force || key != style else { return }
             style = key
             tv.isContinuousSpellCheckingEnabled = key.spell
-            tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing)
+            tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing, indent: key.indent)
             tv.setValue(NSAttributedString(string: "\(model.t(.sheetPlaceholderTitle))\n\(model.t(.sheetPlaceholderBody))",
                                            attributes: Styles.base(model.textSize, model.lineSpacing).merging([.foregroundColor: NSColor.token(T.Color.inkTertiary)]) { $1 }),
                         forKey: "placeholderAttributedString")
@@ -382,19 +393,20 @@ struct ManuscriptView: NSViewRepresentable {
         private func restyle(_ range: NSRange) {
             guard let tv = textView, let storage = tv.textStorage else { return }
             let ns = storage.string as NSString
-            guard ns.length > 0 else { tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing); return }
+            let indent = model.firstLineIndent
+            guard ns.length > 0 else { tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing, indent: indent); return }
             let start = min(range.location, ns.length)
             let para = ns.paragraphRange(for: NSRange(location: start, length: min(range.length, ns.length - start)))
             let selection = tv.selectedRanges
             storage.beginEditing()
-            Styles.apply(to: storage, in: para, size: model.textSize, spacing: model.lineSpacing, markup: model.markup)
+            Styles.apply(to: storage, in: para, size: model.textSize, spacing: model.lineSpacing, markup: model.markup, indent: indent)
             storage.endEditing()
             tv.selectedRanges = selection
             // New characters take the style of the line the caret is on.
             let caret = min(tv.selectedRange().location, ns.length)
             let line = ns.paragraphRange(for: NSRange(location: caret, length: 0))
             let heading = TextMetrics.isHeading(Substring(ns.substring(with: line)))
-            tv.typingAttributes = heading ? Styles.heading(model.textSize, model.lineSpacing) : Styles.base(model.textSize, model.lineSpacing)
+            tv.typingAttributes = heading ? Styles.heading(model.textSize, model.lineSpacing) : Styles.base(model.textSize, model.lineSpacing, indent: indent)
         }
 
         // MARK: Focus mode (rendering attributes: drawn on top, storage untouched)
@@ -470,6 +482,7 @@ struct ManuscriptView: NSViewRepresentable {
         var sizeClass: T.Layout.SizeClass = .large
         var spell = false
         var readOnly = false
+        var indent = false
     }
 }
 
@@ -496,6 +509,44 @@ final class ManuscriptTextView: NSTextView {
     var typewriter = false
     /// Line length cap (editor.measure × the line-width preference).
     var measure: CGFloat = T.Layout.Editor.measure
+    /// Pairs and `...` while typing (EditorConveniences.swift).
+    let conveniences = EditorConveniences()
+
+    /// Committed input from the keyboard / input method. Composition (marked text) passes straight through.
+    override func insertText(_ string: Any, replacementRange: NSRange) {
+        if let s = (string as? String) ?? (string as? NSAttributedString)?.string,
+           conveniences.insert(s, replacementRange: replacementRange, in: self) { return }
+        super.insertText(string, replacementRange: replacementRange)
+    }
+
+    override func deleteBackward(_ sender: Any?) {
+        if conveniences.deleteBackward(in: self) { return }
+        super.deleteBackward(sender)
+    }
+
+    /// Inserts without the typing conveniences: formatting, symbols, paste and the conveniences' own changes.
+    func rawInsert(_ string: Any, replacementRange: NSRange) { super.insertText(string, replacementRange: replacementRange) }
+    func rawDeleteBackward() { super.deleteBackward(nil) }
+
+    /// Runs `body` as an undo step of its own, apart from what this key press already registered (the typed character),
+    /// so ⌘Z first takes back only the automatic change.
+    func separateUndoStep(_ body: () -> Void) {
+        breakUndoCoalescing()
+        if let um = undoManager, um.groupsByEvent, um.groupingLevel == 1 {
+            // The event's automatic group holds the typed character: close it and open the next one,
+            // which AppKit closes at the end of the event as it would have closed its own.
+            um.endUndoGrouping()
+            um.beginUndoGrouping()
+            body()
+        } else if let um = undoManager {
+            um.beginUndoGrouping()
+            body()
+            um.endUndoGrouping()
+        } else {
+            body()
+        }
+        breakUndoCoalescing()
+    }
 
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
@@ -544,7 +595,7 @@ final class ManuscriptTextView: NSTextView {
         if s == nil, let html = pb.data(forType: .html) { s = NSAttributedString(html: html, documentAttributes: nil)?.string }
         guard let text = s?.normalizedNewlines else { return super.paste(sender) }
         breakUndoCoalescing()
-        insertText(text, replacementRange: selectedRange())
+        rawInsert(text, replacementRange: selectedRange())
         breakUndoCoalescing()
     }
 
@@ -617,31 +668,35 @@ enum Styles {
 
     static func lineHeight(_ size: TextSize, _ spacing: LineSpacing = .normal) -> CGFloat { (token(size).lineHeight * spacing.scale).rounded() }
 
-    private static func paragraph(lineHeight: CGFloat) -> NSParagraphStyle {
+    private static func paragraph(lineHeight: CGFloat, indent: CGFloat = 0) -> NSParagraphStyle {
         let p = NSMutableParagraphStyle()
         p.minimumLineHeight = lineHeight
         p.maximumLineHeight = lineHeight
+        p.firstLineHeadIndent = indent
         p.lineBreakMode = .byWordWrapping
         // Korean wraps at word boundaries like printed Korean; long unbroken runs still break.
         p.lineBreakStrategy = [.hangulWordPriority]
         return p
     }
 
-    private static func attrs(_ t: TextStyleToken, scale: Double = 1, spacing: LineSpacing = .normal) -> [NSAttributedString.Key: Any] {
+    private static func attrs(_ t: TextStyleToken, scale: Double = 1, spacing: LineSpacing = .normal, indent: Bool = false) -> [NSAttributedString.Key: Any] {
         let base = Fonts.ns(t)
         let font = scale == 1 ? base : (NSFont(descriptor: base.fontDescriptor, size: (t.size * scale).rounded()) ?? base)
         let lineHeight = (t.lineHeight * scale * spacing.scale).rounded()
         let natural = font.ascender - font.descender
         return [
             .font: font,
-            .paragraphStyle: paragraph(lineHeight: lineHeight),
+            // First-line indent is 1 em, drawn only: the text itself never gets spaces.
+            .paragraphStyle: paragraph(lineHeight: lineHeight, indent: indent ? font.pointSize : 0),
             .foregroundColor: NSColor.token(T.Color.inkPrimary),
             .baselineOffset: max(0, (lineHeight - natural) / 2),
             .kern: t.tracking * font.pointSize,
         ]
     }
 
-    static func base(_ size: TextSize, _ spacing: LineSpacing = .normal) -> [NSAttributedString.Key: Any] { attrs(token(size), spacing: spacing) }
+    static func base(_ size: TextSize, _ spacing: LineSpacing = .normal, indent: Bool = false) -> [NSAttributedString.Key: Any] {
+        attrs(token(size), spacing: spacing, indent: indent)
+    }
 
     /// Headings scale with the chosen text size.
     static func heading(_ size: TextSize, _ spacing: LineSpacing = .normal) -> [NSAttributedString.Key: Any] {
@@ -652,14 +707,34 @@ enum Styles {
     private static let listRe = try! NSRegularExpression(pattern: #"^[ \t]*([-*+>]|\d+\.)[ \t]+"#, options: [.anchorsMatchLines])
     private static let emphasisRe = try! NSRegularExpression(pattern: #"(\*\*|__|\*|_|~~|`)(?=\S)(.+?)(?<=\S)\1"#)
 
-    static func apply(to storage: NSTextStorage, in range: NSRange, size: TextSize, spacing: LineSpacing = .normal, markup: MarkupMode) {
+    /// End of the front matter block (a `---` first line through the next `---` line, ADR-0010), or 0 when there is none.
+    /// Only the first few dozen lines are looked at: a block is a handful of `key: value` lines.
+    static func frontMatterEnd(_ ns: NSString) -> Int {
+        func line(at i: Int) -> (NSRange, Bool) {
+            let r = ns.lineRange(for: NSRange(location: i, length: 0))
+            return (r, ns.substring(with: r).trimmingCharacters(in: .whitespacesAndNewlines) == "---")
+        }
+        guard ns.length >= 3, line(at: 0).1 else { return 0 }
+        var at = NSMaxRange(line(at: 0).0)
+        for _ in 0..<40 where at < ns.length {
+            let (r, fence) = line(at: at)
+            if fence { return NSMaxRange(r) }
+            at = NSMaxRange(r)
+        }
+        return 0
+    }
+
+    static func apply(to storage: NSTextStorage, in range: NSRange, size: TextSize, spacing: LineSpacing = .normal, markup: MarkupMode, indent: Bool = false) {
         let ns = storage.string as NSString
-        storage.setAttributes(base(size, spacing), range: range)
+        storage.setAttributes(base(size, spacing, indent: indent), range: range)
         let markColor: NSColor = switch markup {
         case .show: .token(T.Color.inkSecondary)
         case .dim: .token(T.Color.inkMarkup)
         case .hide: .clear
         }
+        // Lines that aren't prose keep a flush first line: the front matter block, scene breaks (headings use their own style).
+        let flat = indent ? base(size, spacing)[.paragraphStyle] : nil
+        let frontMatter = indent ? frontMatterEnd(ns) : 0
         ns.enumerateSubstrings(in: range, options: [.byParagraphs, .substringNotRequired]) { _, line, _, _ in
             if let m = headingRe.firstMatch(in: storage.string, range: line) {
                 storage.setAttributes(heading(size, spacing), range: line)
@@ -671,8 +746,12 @@ enum Styles {
                 let lineMark: NSColor = markup == .hide ? .token(T.Color.inkMarkup) : markColor
                 storage.addAttribute(.foregroundColor, value: lineMark, range: m.range(at: 1))
             }
-            if TextMetrics.isSceneBreak(Substring(ns.substring(with: line))) {
+            let sceneBreak = TextMetrics.isSceneBreak(Substring(ns.substring(with: line)))
+            if sceneBreak {
                 storage.addAttribute(.foregroundColor, value: NSColor.token(T.Color.inkTertiary), range: line)
+            }
+            if let flat, sceneBreak || line.location < frontMatter {
+                storage.addAttribute(.paragraphStyle, value: flat, range: line)
             }
             for m in emphasisRe.matches(in: storage.string, range: line) {
                 let mark = m.range(at: 1).length
@@ -687,41 +766,4 @@ enum Styles {
             }
         }
     }
-}
-
-/// Symbols web-novel writers type often: the first ten are on 1–9 · 0 in the symbol menu (⌘/).
-struct Symbol {
-    let text: String
-    var close: String? = nil
-    let name: L10nKey
-    func menuTitle(_ label: String) -> String { "\(text)\(close ?? "")    \(label)" }
-}
-
-enum Symbols {
-    static let all: [Symbol] = [
-        Symbol(text: "…", name: .symbolEllipsis),
-        Symbol(text: "「", close: "」", name: .symbolCornerBracket),
-        Symbol(text: "『", close: "』", name: .symbolDoubleCornerBracket),
-        Symbol(text: "\u{201C}", close: "\u{201D}", name: .symbolDoubleQuote),
-        Symbol(text: "\u{2018}", close: "\u{2019}", name: .symbolSingleQuote),
-        Symbol(text: "―", name: .symbolDash),
-        Symbol(text: "·", name: .symbolMiddleDot),
-        Symbol(text: "※", name: .symbolReference),
-        Symbol(text: "♡", name: .symbolHeart),
-        Symbol(text: "★", name: .symbolStar),
-        Symbol(text: "《", close: "》", name: .symbolDoubleAngle),
-        Symbol(text: "〈", close: "〉", name: .symbolAngle),
-        Symbol(text: "【", close: "】", name: .symbolLenticular),
-        Symbol(text: "♥", name: .symbolHeartFilled),
-        Symbol(text: "☆", name: .symbolStarOutline),
-        Symbol(text: "♪", name: .symbolNote),
-        Symbol(text: "～", name: .symbolTilde),
-        Symbol(text: "→", name: .symbolArrow),
-        Symbol(text: "×", name: .symbolTimes),
-        Symbol(text: "○", name: .symbolCircle),
-        Symbol(text: "●", name: .symbolCircleFilled),
-        Symbol(text: "◆", name: .symbolDiamond),
-        Symbol(text: "■", name: .symbolSquare),
-        Symbol(text: "▶", name: .symbolTriangle),
-    ]
 }

@@ -232,6 +232,23 @@ export type StringKey =
   | "prefs.editor.spellHint"
   | "prefs.editor.smartQuotes"
   | "prefs.editor.pairs"
+  | "prefs.editor.indentHint"
+  | "prefs.editor.pairsHint"
+  | "prefs.editor.ellipsis"
+  | "prefs.editor.ellipsisHint"
+  | "prefs.editor.ellipsis.off"
+  | "prefs.editor.textReplacement"
+  | "prefs.editor.textReplacementHint"
+  | "prefs.editor.symbols"
+  | "prefs.editor.symbolsHint"
+  | "prefs.editor.symbols.moveUp"
+  | "prefs.editor.symbols.moveDown"
+  | "prefs.editor.symbols.remove"
+  | "prefs.editor.symbols.text"
+  | "prefs.editor.symbols.close"
+  | "prefs.editor.symbols.add"
+  | "prefs.editor.symbols.reset"
+  | "prefs.editor.symbols.empty"
   | "sync.upToDate"
   | "sync.inProgress"
   | "sync.now"
@@ -827,6 +844,23 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "prefs.editor.spellHint": "기기의 사전을 써요.",
     "prefs.editor.smartQuotes": "둥근 따옴표로 바꾸기",
     "prefs.editor.pairs": "괄호 · 따옴표 짝 자동으로 닫기",
+    "prefs.editor.indentHint": "보이기만 들여 써요. 원고 글자는 그대로예요.",
+    "prefs.editor.pairsHint": "「 ( “ 를 치면 닫는 짝도 넣어요. 글을 고르고 치면 감싸요.",
+    "prefs.editor.ellipsis": "줄임표 자동",
+    "prefs.editor.ellipsisHint": "... 을 치면 고른 줄임표로 바꿔요.",
+    "prefs.editor.ellipsis.off": "끄기",
+    "prefs.editor.textReplacement": "시스템 텍스트 대치",
+    "prefs.editor.textReplacementHint": "macOS 키보드 설정의 텍스트 대치 목록을 원고에 적용해요.",
+    "prefs.editor.symbols": "특수문자 목록",
+    "prefs.editor.symbolsHint": "⌘/ 메뉴에 이 순서로 나와요. 앞의 10개는 1–9 · 0으로 바로 넣어요.",
+    "prefs.editor.symbols.moveUp": "위로",
+    "prefs.editor.symbols.moveDown": "아래로",
+    "prefs.editor.symbols.remove": "목록에서 빼기",
+    "prefs.editor.symbols.text": "글자",
+    "prefs.editor.symbols.close": "닫는 짝(없어도 돼요)",
+    "prefs.editor.symbols.add": "더하기",
+    "prefs.editor.symbols.reset": "기본 목록으로",
+    "prefs.editor.symbols.empty": "목록이 비었어요. 아래에서 더하거나 기본 목록으로 되돌리세요.",
     "sync.upToDate": "모든 기기와 맞춰졌어요",
     "sync.inProgress": "동기화하는 중…",
     "sync.now": "지금 동기화",
@@ -1439,6 +1473,23 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "prefs.editor.spellHint": "Uses the system dictionary",
     "prefs.editor.smartQuotes": "Smart quotes",
     "prefs.editor.pairs": "Close brackets and quotes automatically",
+    "prefs.editor.indentHint": "Display only. The manuscript text stays as it is.",
+    "prefs.editor.pairsHint": "Typing 「 ( “ adds the closing one too. With text selected, it wraps it.",
+    "prefs.editor.ellipsis": "Ellipsis",
+    "prefs.editor.ellipsisHint": "Typing ... turns it into the one you pick",
+    "prefs.editor.ellipsis.off": "Off",
+    "prefs.editor.textReplacement": "System text replacements",
+    "prefs.editor.textReplacementHint": "Applies the Text Replacements list from macOS Keyboard settings",
+    "prefs.editor.symbols": "Symbol list",
+    "prefs.editor.symbolsHint": "The ⌘/ menu shows them in this order. The first ten are on 1–9 · 0.",
+    "prefs.editor.symbols.moveUp": "Move up",
+    "prefs.editor.symbols.moveDown": "Move down",
+    "prefs.editor.symbols.remove": "Remove from list",
+    "prefs.editor.symbols.text": "Symbol",
+    "prefs.editor.symbols.close": "Closing pair (optional)",
+    "prefs.editor.symbols.add": "Add",
+    "prefs.editor.symbols.reset": "Restore defaults",
+    "prefs.editor.symbols.empty": "The list is empty. Add a symbol below or restore the defaults.",
     "sync.upToDate": "Up to date on all devices",
     "sync.inProgress": "Syncing…",
     "sync.now": "Sync now",

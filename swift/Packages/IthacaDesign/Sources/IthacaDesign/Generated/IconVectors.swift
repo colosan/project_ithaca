@@ -23,8 +23,10 @@ public enum IconVectors {
         switch asset {
         case "archive": return [.rect(x: 2, y: 3, width: 20, height: 5, rx: 1), .path("M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"), .path("M10 12h4")]
         case "arrow-big-up": return [.path("M9 19a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1v-6a1 1 0 0 1 1-1h3.293a.707.707 0 0 0 .5-1.207l-7.086-7.086a1 1 0 0 0-1.414 0l-7.086 7.086a.707.707 0 0 0 .5 1.207H8a1 1 0 0 1 1 1z")]
+        case "arrow-down": return [.path("M12 5v14"), .path("m19 12-7 7-7-7")]
         case "arrow-left": return [.path("m12 19-7-7 7-7"), .path("M19 12H5")]
         case "arrow-right": return [.path("M5 12h14"), .path("m12 5 7 7-7 7")]
+        case "arrow-up": return [.path("m5 12 7-7 7 7"), .path("M12 19V5")]
         case "arrow-up-right": return [.path("M7 7h10v10"), .path("M7 17 17 7")]
         case "bug": return [.path("M12 20v-9"), .path("M14 7a4 4 0 0 1 4 4v3a6 6 0 0 1-12 0v-3a4 4 0 0 1 4-4z"), .path("M14.12 3.88 16 2"), .path("M21 21a4 4 0 0 0-3.81-4"), .path("M21 5a4 4 0 0 1-3.55 3.97"), .path("M22 13h-4"), .path("M3 21a4 4 0 0 1 3.81-4"), .path("M3 5a4 4 0 0 0 3.55 3.97"), .path("M6 13H2"), .path("m8 2 1.88 1.88"), .path("M9 7.13V6a3 3 0 1 1 6 0v1.13")]
         case "chart-no-axes-column": return [.path("M5 21v-6"), .path("M12 21V3"), .path("M19 21V9")]

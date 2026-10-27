@@ -237,6 +237,23 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case prefsEditorSpellHint = "prefs.editor.spellHint"
     case prefsEditorSmartQuotes = "prefs.editor.smartQuotes"
     case prefsEditorPairs = "prefs.editor.pairs"
+    case prefsEditorIndentHint = "prefs.editor.indentHint"
+    case prefsEditorPairsHint = "prefs.editor.pairsHint"
+    case prefsEditorEllipsis = "prefs.editor.ellipsis"
+    case prefsEditorEllipsisHint = "prefs.editor.ellipsisHint"
+    case prefsEditorEllipsisOff = "prefs.editor.ellipsis.off"
+    case prefsEditorTextReplacement = "prefs.editor.textReplacement"
+    case prefsEditorTextReplacementHint = "prefs.editor.textReplacementHint"
+    case prefsEditorSymbols = "prefs.editor.symbols"
+    case prefsEditorSymbolsHint = "prefs.editor.symbolsHint"
+    case prefsEditorSymbolsMoveUp = "prefs.editor.symbols.moveUp"
+    case prefsEditorSymbolsMoveDown = "prefs.editor.symbols.moveDown"
+    case prefsEditorSymbolsRemove = "prefs.editor.symbols.remove"
+    case prefsEditorSymbolsText = "prefs.editor.symbols.text"
+    case prefsEditorSymbolsClose = "prefs.editor.symbols.close"
+    case prefsEditorSymbolsAdd = "prefs.editor.symbols.add"
+    case prefsEditorSymbolsReset = "prefs.editor.symbols.reset"
+    case prefsEditorSymbolsEmpty = "prefs.editor.symbols.empty"
     case syncUpToDate = "sync.upToDate"
     case syncInProgress = "sync.inProgress"
     case syncNow = "sync.now"
@@ -849,6 +866,23 @@ public enum L10n {
             .prefsEditorSpellHint: .text("기기의 사전을 써요."),
             .prefsEditorSmartQuotes: .text("둥근 따옴표로 바꾸기"),
             .prefsEditorPairs: .text("괄호 · 따옴표 짝 자동으로 닫기"),
+            .prefsEditorIndentHint: .text("보이기만 들여 써요. 원고 글자는 그대로예요."),
+            .prefsEditorPairsHint: .text("「 ( “ 를 치면 닫는 짝도 넣어요. 글을 고르고 치면 감싸요."),
+            .prefsEditorEllipsis: .text("줄임표 자동"),
+            .prefsEditorEllipsisHint: .text("... 을 치면 고른 줄임표로 바꿔요."),
+            .prefsEditorEllipsisOff: .text("끄기"),
+            .prefsEditorTextReplacement: .text("시스템 텍스트 대치"),
+            .prefsEditorTextReplacementHint: .text("macOS 키보드 설정의 텍스트 대치 목록을 원고에 적용해요."),
+            .prefsEditorSymbols: .text("특수문자 목록"),
+            .prefsEditorSymbolsHint: .text("⌘/ 메뉴에 이 순서로 나와요. 앞의 10개는 1–9 · 0으로 바로 넣어요."),
+            .prefsEditorSymbolsMoveUp: .text("위로"),
+            .prefsEditorSymbolsMoveDown: .text("아래로"),
+            .prefsEditorSymbolsRemove: .text("목록에서 빼기"),
+            .prefsEditorSymbolsText: .text("글자"),
+            .prefsEditorSymbolsClose: .text("닫는 짝(없어도 돼요)"),
+            .prefsEditorSymbolsAdd: .text("더하기"),
+            .prefsEditorSymbolsReset: .text("기본 목록으로"),
+            .prefsEditorSymbolsEmpty: .text("목록이 비었어요. 아래에서 더하거나 기본 목록으로 되돌리세요."),
             .syncUpToDate: .text("모든 기기와 맞춰졌어요"),
             .syncInProgress: .text("동기화하는 중…"),
             .syncNow: .text("지금 동기화"),
@@ -1440,6 +1474,23 @@ public enum L10n {
             .prefsEditorSpellHint: .text("Uses the system dictionary"),
             .prefsEditorSmartQuotes: .text("Smart quotes"),
             .prefsEditorPairs: .text("Close brackets and quotes automatically"),
+            .prefsEditorIndentHint: .text("Display only. The manuscript text stays as it is."),
+            .prefsEditorPairsHint: .text("Typing 「 ( “ adds the closing one too. With text selected, it wraps it."),
+            .prefsEditorEllipsis: .text("Ellipsis"),
+            .prefsEditorEllipsisHint: .text("Typing ... turns it into the one you pick"),
+            .prefsEditorEllipsisOff: .text("Off"),
+            .prefsEditorTextReplacement: .text("System text replacements"),
+            .prefsEditorTextReplacementHint: .text("Applies the Text Replacements list from macOS Keyboard settings"),
+            .prefsEditorSymbols: .text("Symbol list"),
+            .prefsEditorSymbolsHint: .text("The ⌘/ menu shows them in this order. The first ten are on 1–9 · 0."),
+            .prefsEditorSymbolsMoveUp: .text("Move up"),
+            .prefsEditorSymbolsMoveDown: .text("Move down"),
+            .prefsEditorSymbolsRemove: .text("Remove from list"),
+            .prefsEditorSymbolsText: .text("Symbol"),
+            .prefsEditorSymbolsClose: .text("Closing pair (optional)"),
+            .prefsEditorSymbolsAdd: .text("Add"),
+            .prefsEditorSymbolsReset: .text("Restore defaults"),
+            .prefsEditorSymbolsEmpty: .text("The list is empty. Add a symbol below or restore the defaults."),
             .syncUpToDate: .text("Up to date on all devices"),
             .syncInProgress: .text("Syncing…"),
             .syncNow: .text("Sync now"),

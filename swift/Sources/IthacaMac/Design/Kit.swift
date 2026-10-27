@@ -81,6 +81,7 @@ struct IconButton: View {
     var active = false
     let action: () -> Void
     @State private var hover = false
+    @Environment(\.isEnabled) private var enabled
 
     init(_ icon: IthacaIcon, label: String, active: Bool = false, action: @escaping () -> Void) {
         self.icon = icon
@@ -93,8 +94,9 @@ struct IconButton: View {
         Button(action: action) {
             Icon(icon, size: T.Size.iconMd, color: active ? .accentPrimary : .inkSecondary)
                 .frame(width: T.Size.controlSm, height: T.Size.controlSm)
-                .background(RoundedRectangle(cornerRadius: T.Radius.control).fill(active || hover ? Color.surfaceSelected : .clear))
+                .background(RoundedRectangle(cornerRadius: T.Radius.control).fill(active || (hover && enabled) ? Color.surfaceSelected : .clear))
                 .contentShape(Rectangle())
+                .opacity(enabled ? 1 : T.Opacity.disabled)
         }
         .buttonStyle(.plain)
         .onHover { hover = $0 }

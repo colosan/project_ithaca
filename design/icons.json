@@ -65,6 +65,8 @@
     "folderOpen": "folder-open",
     "savedLocal": "hard-drive",
     "damaged": "file-warning",
-    "branched": "git-branch"
+    "branched": "git-branch",
+    "moveUp": "arrow-up",
+    "moveDown": "arrow-down"
   }
 }
