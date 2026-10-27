@@ -203,7 +203,8 @@ fn para_xml(kind: Para, page_break: bool, text: &str, out: &mut String) {
 fn sheet_paras<'a>(body: &'a str, o: &DocxOptions) -> Vec<(Para, std::borrow::Cow<'a, str>)> {
     let mut out = Vec::new();
     let mut first = true;
-    for l in body.split('\n') {
+    // (changed: bible) An entry's front matter is not manuscript.
+    for l in crate::bible::body_of(body).split('\n') {
         let l = l.trim_end_matches('\r');
         if js_trim(l).is_empty() {
             continue;
@@ -630,5 +631,15 @@ mod tests {
         let doc = &unzip(&bytes)["word/document.xml"];
         well_formed(doc);
         assert!(doc.contains("<w:body><w:p/>"));
+    }
+
+    /// (added: bible) An entry's front matter is not exported; a `---` scene break still is.
+    #[test]
+    fn entry_front_matter_is_left_out() {
+        let o = DocxOptions::default();
+        let doc = document_xml(["---\n종류: 인물\n나이: 17\n---\n# 서윤\n본문"], &o);
+        assert_eq!(paragraphs(&doc), ["서윤", "본문"]);
+        let plain = document_xml(["---\n장면\n---\n끝"], &o);
+        assert_eq!(paragraphs(&plain), ["---", "장면", "* * *", "끝"]);
     }
 }

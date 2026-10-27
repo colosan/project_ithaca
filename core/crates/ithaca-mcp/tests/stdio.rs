@@ -151,7 +151,9 @@ fn without_mcp_json_every_tool_says_how_to_turn_it_on() {
             "read_sheet",
             "search",
             "get_lore",
-            "get_episode_stats"
+            "get_episode_stats",
+            "bible",
+            "mentions"
         ]
     );
     for t in tools["result"]["tools"].as_array().unwrap() {
@@ -591,4 +593,87 @@ fn long_queries_are_not_echoed_and_huge_ones_are_refused() {
     );
     assert_eq!(r["error"]["code"], -32602, "{r}");
     assert_eq!(m.request("ping", json!({}))["result"], json!({}));
+}
+
+// ── bible ─────────────────────────────────────────────────────────────
+
+#[test]
+fn bible_and_mentions_read_entries() {
+    let dir = tempfile::tempdir().unwrap();
+    let (mut writer, a, _) = library(dir.path());
+    let o = writer.outline(&a).unwrap();
+    let notes = o.folders[1].id.clone();
+    let e1 = o.folders[0].sheets[0].id.clone();
+    writer
+        .save_sheet(
+            &a,
+            &e1,
+            "# 1화 안개\n\n해원이가 등대에 올랐다.\n“윤이야, 해원아!”",
+        )
+        .unwrap();
+    let haewon = writer
+        .create_sheet(
+            &a,
+            &notes,
+            "---\n종류: 인물\n별칭: 윤이\n나이: 17\n---\n# 해원\n\n## 한 줄 소개\n등대지기의 딸.\n\n## 말투\n짧게 끊어 말한다.\n",
+        )
+        .unwrap()
+        .id;
+    writer
+        .create_sheet(&a, &notes, "---\n종류: 장소\n---\n# 벼리섬\n")
+        .unwrap();
+    writer
+        .set_mcp_settings(true, std::slice::from_ref(&a))
+        .unwrap();
+    let mut m = Mcp::spawn(dir.path());
+    m.request(
+        "initialize",
+        json!({ "protocolVersion": "2025-11-25", "capabilities": {},
+                "clientInfo": { "name": "test", "version": "1" } }),
+    );
+
+    let all = m.call("bible", json!({ "project": a }));
+    assert_eq!(all["isError"], false, "{all}");
+    let v = payload(&all);
+    let entries = v["entries"].as_array().unwrap();
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0]["name"], "해원");
+    assert_eq!(entries[0]["kind"], "character");
+    assert_eq!(
+        entries[0]["fields"][0],
+        json!({ "key": "나이", "value": "17" })
+    );
+    assert_eq!(entries[0]["sections"][1]["text"], "짧게 끊어 말한다.");
+    // Last seen in reading order: the plain notes sheet of the second folder, after the episodes.
+    assert!(entries[0]["lastSeen"]["episode"].is_null());
+    assert_eq!(entries[0]["lastSeen"]["title"], "인물");
+    assert_eq!(
+        entries[0]["lastSeen"]["lines"],
+        json!(["해원: 등대지기의 딸. 안개를 싫어한다."])
+    );
+    assert!(entries[1]["lastSeen"].is_null());
+
+    // By alias: the entry and where it appears.
+    let one = m.call("bible", json!({ "project": a, "name": "윤이" }));
+    assert_eq!(one["isError"], false, "{one}");
+    let v = payload(&one);
+    assert_eq!(v["sheet"], haewon.as_str());
+    assert_eq!(v["appearances"][0]["sheet"], e1.as_str());
+    assert_eq!(v["appearances"][0]["episode"], 1);
+    assert_eq!(v["appearances"][0]["mentions"], 3);
+    assert_eq!(v["appearances"][0]["lines"], json!(["“윤이야, 해원아!”"]));
+    assert_eq!(v["appearances"].as_array().unwrap().len(), 2);
+    let none = m.call("bible", json!({ "project": a, "name": "아무개" }));
+    assert_eq!(none["isError"], true);
+    assert!(text(&none).contains("해원, 벼리섬"), "{none}");
+
+    let ms = m.call("mentions", json!({ "project": a, "sheet": "1화 안개" }));
+    assert_eq!(ms["isError"], false, "{ms}");
+    let v = payload(&ms);
+    assert_eq!(
+        v["entries"],
+        json!([{ "sheet": haewon, "kind": "character", "name": "해원", "mentions": 3, "byAlias": 1 }])
+    );
+    let bad = m.call("mentions", json!({ "project": a, "sheet": "없는 시트" }));
+    assert_eq!(bad["isError"], true);
 }

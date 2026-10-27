@@ -34,7 +34,7 @@ MCP 규격은 2026-07-28 개정에서 `initialize` 핸드셰이크를 없앴다.
    - 블록은 원자적으로 쓰인다. 그리고 sheet 블록이 그것을 가리키는 목차 블록보다 먼저 쓰인다. 그래서 앱이 방금 쓴 내용이 반쪽 없이 보인다(테스트로 확인했다).
    - 파일이 없거나, 깨졌거나, `enabled: false`이면 모든 도구가 "Ithaca → 설정 → Claude에서 켜라"는 오류를 돌려준다.
    - 목록에 있는 살아 있는 작품만 보인다. 숨긴 작품과 없는 작품은 같은 오류로 답한다.
-6. **도구는 6개다**(영어 설명, ADR-0005): `list_projects`, `get_outline`, `read_sheet`, `search`, `get_lore`, `get_episode_stats`. 모두 `readOnlyHint`가 붙는다.
+6. **도구는 8개다**(영어 설명, ADR-0005): `list_projects`, `get_outline`, `read_sheet`, `search`, `get_lore`, `get_episode_stats`, `bible` · `mentions`(ADR-0010 에서 더함). 모두 `readOnlyHint`가 붙는다.
    - 크기 상한: sheet 200,000자, 설정집 150,000자(넘는 sheet는 목록으로 알려 준다), 검색 결과 100개(작품당 50개).
    - "연재 폴더"는 회차 정보가 있는 sheet를 하나라도 가진 폴더다. 작품 전체에 회차 정보가 하나도 없으면 첫 폴더를 연재 폴더로 본다. 나머지 폴더가 설정집(`get_lore`)이 된다.
 7. **쓰기 도구는 아직 없다.**

@@ -1,0 +1,9 @@
+{
+  "title": {
+    "ko": "설정 항목 · 이름 넣기",
+    "en": "Story bible · name completion"
+  },
+  "description": "인물 · 장소 · 세력 · 용어 항목, @ / ⌥Esc 이름 넣기, 요약 카드, 이 회차에 나온 항목, 설정 가져오기 (ADR-0010, 프로토타입 없음)",
+  "version": "0.0.0",
+  "planned": true
+}

@@ -152,7 +152,7 @@ fn place_of(rel: &Path) -> Place {
     Place::of(&rel.file_stem().map(nfc).unwrap_or_default())
 }
 
-fn path_cmp(a: &Path, b: &Path) -> Ordering {
+pub(crate) fn path_cmp(a: &Path, b: &Path) -> Ordering {
     let name = |c: std::path::Component| nfc(c.as_os_str());
     let (mut x, mut y) = (a.components().map(name), b.components().map(name));
     loop {
@@ -235,7 +235,7 @@ fn mtime_ms(meta: &fs::Metadata) -> Option<i64> {
 
 /// Every non-hidden file under `dir` (recursively, no symlinks), as paths relative to the import
 /// root. A folder or entry that can't be read goes to `skipped` and the walk goes on.
-fn walk(dir: &Path, rel: &Path, out: &mut Vec<PathBuf>, skipped: &mut Vec<String>) {
+pub(crate) fn walk(dir: &Path, rel: &Path, out: &mut Vec<PathBuf>, skipped: &mut Vec<String>) {
     let can_not = |skipped: &mut Vec<String>, r: &Path, e: std::io::Error| {
         skipped.push(format!("{} (can't read: {e})", shown(r)));
     };
@@ -266,7 +266,7 @@ fn walk(dir: &Path, rel: &Path, out: &mut Vec<PathBuf>, skipped: &mut Vec<String
 }
 
 /// A relative path as reported: NFC components joined by `/`.
-fn shown(rel: &Path) -> String {
+pub(crate) fn shown(rel: &Path) -> String {
     rel.components()
         .map(|c| nfc(c.as_os_str()))
         .collect::<Vec<_>>()

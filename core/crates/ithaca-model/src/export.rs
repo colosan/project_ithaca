@@ -71,6 +71,8 @@ pub(crate) fn strip_list_mark(s: &str) -> &str {
 pub fn render_sheet(body: &str, o: &ExportOptions) -> String {
     // (changed: qa4) `\r\n` / `\r` count as line breaks.
     let body = normalize_newlines(body);
+    // (changed: bible) An entry's front matter is not manuscript.
+    let body = crate::bible::body_of(&body);
     let mut lines: Vec<&str> = body.split('\n').collect();
     if !o.include_title
         && let Some(i) = lines.iter().position(|l| !js_trim(l).is_empty())
@@ -106,7 +108,7 @@ pub fn export_sheets<'a>(bodies: impl IntoIterator<Item = &'a str>, o: &ExportOp
     if o.markdown {
         bodies
             .into_iter()
-            .map(|b| js_trim(&normalize_newlines(b)).to_string())
+            .map(|b| js_trim(crate::bible::body_of(&normalize_newlines(b))).to_string())
             .collect::<Vec<_>>()
             .join("\n\n---\n\n")
     } else {

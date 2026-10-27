@@ -6,8 +6,9 @@
 //! go through the app — the lock holder — so its blocks are recorded as `actor: claude`
 //! (ADR-0002 §6) and can be reverted from history. This server never opens the library writable.
 
+use ithaca_model::EntryKind;
 use ithaca_model::{CountRule, EpisodeInfo, EpisodeStatus, GoalBasis, count_for, munpia_pages};
-use ithaca_store::{FolderInfo, Outline, ProjectSummary, SheetSummary};
+use ithaca_store::{Appearance, BibleEntry, FolderInfo, Outline, ProjectSummary, SheetSummary};
 use serde_json::{Map, Value, json};
 
 use crate::{Ctx, ToolError};
@@ -202,6 +203,41 @@ pub const TOOLS: &[Tool] = &[
                         "folder": { "type": "string", "description": "Optional: folder id or name. Default: every serial folder." },
                         "offset": offset_prop("Episode rows to skip, counted across the folders. Default 0.") },
                     "required": ["project"], "additionalProperties": false })
+        },
+    },
+    Tool {
+        name: "bible",
+        title: "Story bible",
+        description: "The project's story-bible entries (characters, places, factions, terms): \
+            sheets whose front matter has `종류`/`kind`. Each entry has its name, aliases, the \
+            front-matter fields (age, affiliation, status …), its `##` sections (summary, voice, \
+            forms of address …) and where it was last mentioned (episode, mention count, up to 3 \
+            lines). Without `name`: every entry, most recently mentioned first. With `name`: the \
+            entry with that name or alias, plus every sheet that mentions it in reading order.",
+        access: Access::Read,
+        run: bible,
+        check: no_check,
+        schema: || {
+            json!({ "type": "object", "properties": {
+                        "project": project_prop(),
+                        "name": { "type": "string", "description": "Optional: an entry's name or alias, as written." } },
+                    "required": ["project"], "additionalProperties": false })
+        },
+    },
+    Tool {
+        name: "mentions",
+        title: "Entries in a sheet",
+        description: "Which story-bible entries a sheet mentions (by name or alias, Korean \
+            particles allowed after the name), in order of first mention, with how often each \
+            appears. Use bible for the entries themselves.",
+        access: Access::Read,
+        run: mentions,
+        check: no_check,
+        schema: || {
+            json!({ "type": "object", "properties": {
+                        "project": project_prop(),
+                        "sheet": { "type": "string", "description": "Sheet id from get_outline or search, or its exact title." } },
+                    "required": ["project", "sheet"], "additionalProperties": false })
         },
     },
 ];
@@ -405,6 +441,50 @@ fn sheet_row(s: &SheetSummary) -> Value {
     })
 }
 
+fn kind_name(k: EntryKind) -> &'static str {
+    match k {
+        EntryKind::Character => "character",
+        EntryKind::Place => "place",
+        EntryKind::Faction => "faction",
+        EntryKind::Term => "term",
+    }
+}
+
+fn appearance_json(a: &Appearance) -> Value {
+    json!({
+        "sheet": a.sheet,
+        "title": a.title,
+        "episode": a.number,
+        "mentions": a.count,
+        "lines": a.lines,
+    })
+}
+
+fn entry_json(e: &BibleEntry) -> Value {
+    json!({
+        "sheet": e.sheet,
+        "kind": kind_name(e.kind),
+        "name": e.name,
+        "aliases": e.aliases,
+        "fields": e.fields.iter().map(|f| json!({ "key": f.key, "value": f.value })).collect::<Vec<_>>(),
+        "sections": e.sections.iter().map(|s| json!({ "title": s.title, "text": s.body })).collect::<Vec<_>>(),
+        "matchedInText": e.matchable,
+        "lastSeen": e.last_seen.as_ref().map(appearance_json),
+    })
+}
+
+/// A live sheet of the outline by id, else by exact title.
+fn sheet_by<'a>(o: &'a Outline, key: &str) -> Option<(&'a FolderInfo, &'a SheetSummary)> {
+    let all = || {
+        o.folders
+            .iter()
+            .flat_map(|f| f.sheets.iter().map(move |s| (f, s)))
+    };
+    all()
+        .find(|(_, s)| s.id == key)
+        .or_else(|| all().find(|(_, s)| s.title == key))
+}
+
 fn folder_by<'a>(o: &'a Outline, key: &str) -> Result<(usize, &'a FolderInfo), ToolError> {
     o.folders
         .iter()
@@ -504,18 +584,7 @@ fn read_sheet(ctx: &Ctx, args: &Map<String, Value>) -> Result<Output, ToolError>
     let p = project(ctx, arg(args, "project")?)?;
     let key = arg(args, "sheet")?;
     let o = ctx.store.outline(&p.id)?;
-    let found = o
-        .folders
-        .iter()
-        .flat_map(|f| f.sheets.iter().map(move |s| (f, s)))
-        .find(|(_, s)| s.id == key)
-        .or_else(|| {
-            o.folders
-                .iter()
-                .flat_map(|f| f.sheets.iter().map(move |s| (f, s)))
-                .find(|(_, s)| s.title == key)
-        });
-    let Some((folder, s)) = found else {
+    let Some((folder, s)) = sheet_by(&o, key) else {
         return Err(ToolError(format!(
             "No sheet \"{key}\" in \"{}\". get_outline lists the sheets.",
             p.title
@@ -806,4 +875,102 @@ fn get_episode_stats(ctx: &Ctx, args: &Map<String, Value>) -> Result<Output, Too
         ));
     }
     Ok(Output::json(summary, v))
+}
+
+fn bible(ctx: &Ctx, args: &Map<String, Value>) -> Result<Output, ToolError> {
+    let p = project(ctx, arg(args, "project")?)?;
+    let entries = ctx.store.bible(&p.id)?;
+    let Some(name) = opt_arg(args, "name")? else {
+        let v = json!({
+            "project": p.id,
+            "entries": entries.iter().map(entry_json).collect::<Vec<_>>(),
+            "note": if entries.is_empty() {
+                "This project has no story-bible entries yet (sheets whose front matter has 종류/kind). get_lore returns its setting notes."
+            } else {
+                "Most recently mentioned first. lastSeen.episode is the episode number of that sheet."
+            },
+        });
+        let summary = format!("{} story-bible entries in \"{}\".", entries.len(), p.title);
+        return Ok(Output::json(summary, v));
+    };
+    let lower = name.to_lowercase();
+    let hit = entries
+        .iter()
+        .find(|e| e.name == name)
+        .or_else(|| entries.iter().find(|e| e.aliases.iter().any(|a| a == name)))
+        .or_else(|| {
+            entries.iter().find(|e| {
+                e.name.to_lowercase() == lower
+                    || e.aliases.iter().any(|a| a.to_lowercase() == lower)
+            })
+        });
+    let Some(e) = hit else {
+        let names: Vec<&str> = entries.iter().map(|e| e.name.as_str()).collect();
+        return Err(ToolError(format!(
+            "No story-bible entry named \"{name}\" in \"{}\". Entries: {}.",
+            p.title,
+            if names.is_empty() {
+                "none".to_string()
+            } else {
+                names.join(", ")
+            }
+        )));
+    };
+    let seen = ctx.store.appearances(&p.id, &e.sheet)?;
+    let mut v = entry_json(e);
+    v["appearances"] = json!(seen.iter().map(appearance_json).collect::<Vec<_>>());
+    let summary = format!(
+        "{} ({}), mentioned in {} sheets.",
+        e.name,
+        kind_name(e.kind),
+        seen.len()
+    );
+    Ok(Output::json(summary, v))
+}
+
+fn mentions(ctx: &Ctx, args: &Map<String, Value>) -> Result<Output, ToolError> {
+    let p = project(ctx, arg(args, "project")?)?;
+    let key = arg(args, "sheet")?;
+    let o = ctx.store.outline(&p.id)?;
+    let Some((_, s)) = sheet_by(&o, key) else {
+        return Err(ToolError(format!(
+            "No sheet \"{key}\" in \"{}\". get_outline lists the sheets.",
+            p.title
+        )));
+    };
+    let text = ctx.store.sheet_text(&p.id, &s.id)?;
+    let entries = ctx.store.bible(&p.id)?;
+    let mut rows: Vec<(String, u32, u32)> = Vec::new(); // entry sheet, mentions, by alias
+    for m in ctx.store.mentions_in(&p.id, &text)? {
+        match rows.iter_mut().find(|r| r.0 == m.entry) {
+            Some(r) => {
+                r.1 += 1;
+                r.2 += m.alias as u32;
+            }
+            None => rows.push((m.entry, 1, m.alias as u32)),
+        }
+    }
+    let found: Vec<Value> = rows
+        .iter()
+        .filter_map(|(id, n, by_alias)| {
+            let e = entries.iter().find(|e| &e.sheet == id)?;
+            Some(json!({
+                "sheet": e.sheet,
+                "kind": kind_name(e.kind),
+                "name": e.name,
+                "mentions": n,
+                "byAlias": by_alias,
+            }))
+        })
+        .collect();
+    let summary = format!("{} entries mentioned in \"{}\".", found.len(), s.title);
+    Ok(Output::json(
+        summary,
+        json!({
+            "sheet": s.id,
+            "title": s.title,
+            "entries": found,
+            "note": "In order of first mention. Call bible with a name for the entry itself.",
+        }),
+    ))
 }
