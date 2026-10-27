@@ -594,6 +594,7 @@ struct IthacaCommands: Commands {
             item(.showLibrary)
             item(.showList)
             item(.editorOnly)
+            item(.mini)
             Divider()
             item(.inspector)
             item(.focus)

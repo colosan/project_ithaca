@@ -68,6 +68,8 @@ public enum IthacaIcon: String, CaseIterable, Sendable {
     case entryPlace
     case entryGroup
     case entryTerm
+    case mini
+    case expand
 
     /** The Lucide vector this use draws. */
     public var asset: String {
@@ -137,6 +139,8 @@ public enum IthacaIcon: String, CaseIterable, Sendable {
         case .entryPlace: "map-pin"
         case .entryGroup: "users"
         case .entryTerm: "book-a"
+        case .mini: "sticky-note"
+        case .expand: "maximize-2"
         }
     }
 }

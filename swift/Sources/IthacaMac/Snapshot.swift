@@ -169,6 +169,9 @@ enum Snapshot {
                   view: { _ in AnyView(BibleImportView(path: Self.notionFixture())) }),
             Scene(name: "bible-import-missing", size: CGSize(width: 720, height: 640), titled: false, fit: true,
                   view: { _ in AnyView(BibleImportView(path: "/nonexistent/노션 내보내기")) }),
+            // ⌘4: the sticky-note window.
+            Scene(name: "mini-window", size: CGSize(width: 360, height: 480), setup: { m, _ in m.mini = true }),
+            Scene(name: "mini-window-dark", size: CGSize(width: 360, height: 480), dark: true, setup: { m, _ in m.mini = true }),
             // The ＋ picker (its popover content) and an empty folder showing the same choices.
             Scene(name: "new-sheet-picker", size: CGSize(width: 320, height: 600), titled: false, fit: true,
                   view: { m in AnyView(NewSheetPicker(folder: m.folders.first?.id ?? "", autofocus: true).frame(width: 320)) }),

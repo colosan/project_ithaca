@@ -323,6 +323,8 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case focusTitle = "focus.title"
     case focusExit = "focus.exit"
     case editorOnlyExit = "editorOnly.exit"
+    case miniTitle = "mini.title"
+    case miniExit = "mini.exit"
     case inspectorTitle = "inspector.title"
     case inspectorReference = "inspector.reference"
     case inspectorInfo = "inspector.info"
@@ -666,9 +668,7 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case bibleCardChange = "bible.card.change"
     case bibleCardOpen = "bible.card.open"
     case entryNote = "entry.note"
-    case entryNoteAsChange = "entry.noteAsChange"
     case entryNoted = "entry.noted"
-    case entryNotedChange = "entry.notedChange"
     case bibleCardFirstLast = "bible.card.firstLast"
     case referencePreviousEnd = "reference.previousEnd"
     case referencePreviousOpen = "reference.previousOpen"
@@ -1022,6 +1022,8 @@ public enum L10n {
             .focusTitle: .text("집중 모드"),
             .focusExit: .text("집중 모드 끝내기"),
             .editorOnlyExit: .text("양옆 창 다시 보기"),
+            .miniTitle: .text("작은 창으로 쓰기"),
+            .miniExit: .text("크게 보기"),
             .inspectorTitle: .text("인스펙터"),
             .inspectorReference: .text("참조"),
             .inspectorInfo: .text("정보"),
@@ -1365,9 +1367,7 @@ public enum L10n {
             .bibleCardChange: .text("최신 변화"),
             .bibleCardOpen: .text("항목 열기"),
             .entryNote: .text("설정에 적기"),
-            .entryNoteAsChange: .text("{name} — 변화로 적기"),
             .entryNoted: .text("‘{name}’ 메모에 적었어요"),
-            .entryNotedChange: .text("‘{name}’ 변화에 적었어요"),
             .bibleCardFirstLast: .text("처음 {first} · 마지막 {last}"),
             .referencePreviousEnd: .text("지난 화 끝 · {episode}"),
             .referencePreviousOpen: .text("지난 화의 이 자리로 가기"),
@@ -1700,6 +1700,8 @@ public enum L10n {
             .focusTitle: .text("Focus mode"),
             .focusExit: .text("Exit focus mode"),
             .editorOnlyExit: .text("Show side panes"),
+            .miniTitle: .text("Write in a Small Window"),
+            .miniExit: .text("Back to Full Window"),
             .inspectorTitle: .text("Inspector"),
             .inspectorReference: .text("Reference"),
             .inspectorInfo: .text("Info"),
@@ -2043,9 +2045,7 @@ public enum L10n {
             .bibleCardChange: .text("Latest change"),
             .bibleCardOpen: .text("Open Entry"),
             .entryNote: .text("Note in Story Bible"),
-            .entryNoteAsChange: .text("{name} — as a change"),
             .entryNoted: .text("Noted in {name}"),
-            .entryNotedChange: .text("Noted as a change in {name}"),
             .bibleCardFirstLast: .text("First {first} · last {last}"),
             .referencePreviousEnd: .text("End of {episode}"),
             .referencePreviousOpen: .text("Go to the end of the previous episode"),

@@ -25,6 +25,7 @@ struct Panes: Equatable {
 struct ShellView: View {
     @Environment(AppModel.self) private var model
     @State private var escape: EscapeMonitor?
+    @State private var window: NSWindow?
 
     var body: some View {
         GeometryReader { geo in
@@ -79,10 +80,13 @@ struct ShellView: View {
             if escape == nil { escape = m }
             m.window = w
             if w != nil { m.install(model) } else { m.remove() }
+            if let w, window !== w { window = w; MiniWindow.apply(w, mini: model.mini) }
         })
         .background(Color.surfaceCanvas)
         .foregroundStyle(Color.inkPrimary)
-        .frame(minWidth: T.Layout.Window.minWidth, minHeight: T.Layout.Window.minHeight)
+        .frame(minWidth: model.mini ? MiniWindow.minSize.width : T.Layout.Window.minWidth,
+               minHeight: model.mini ? MiniWindow.minSize.height : T.Layout.Window.minHeight)
+        .onChange(of: model.mini) { _, mini in if let window { MiniWindow.toggle(window, mini: mini, defaults: model.defaults) } }
         .sheet(item: dialogBinding) { o in
             Group {
                 switch o {

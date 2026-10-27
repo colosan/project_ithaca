@@ -618,6 +618,12 @@ enum EditorSelfTest {
         let pid = model.projectId!, folder = model.folders[0].id
         // Start from no entries: the entry-sheet checks before this leave some behind.
         for s in model.folders.flatMap(\.sheets) where s.entry != nil { try? lib.deleteSheetForever(project: pid, sheet: s.id) }
+        // ⌘4 sticky note: only the editor, nothing open over it; ⌘4 again brings the panes back.
+        model.inspectorOpen = true
+        model.toggleMini()
+        check(model.mini && model.panesHidden && !model.inspectorOpen, "small window: editor only")
+        model.toggleMini()
+        check(!model.mini && !model.panesHidden, "small window off: panes back")
         // The ＋ picker: template fields without summary and notes; 0.6.0's `세력` reads as a group.
         check(NewSheetPicker.templateFields(.character, .ko) == ["성격", "말투", "호칭", "반응"], "picker fields \(NewSheetPicker.templateFields(.character, .ko))")
         check(NewSheetPicker.templateFields(.term, .ko) == ["뜻"], "picker fields (term)")

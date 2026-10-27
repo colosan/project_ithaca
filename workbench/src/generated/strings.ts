@@ -318,6 +318,8 @@ export type StringKey =
   | "focus.title"
   | "focus.exit"
   | "editorOnly.exit"
+  | "mini.title"
+  | "mini.exit"
   | "inspector.title"
   | "inspector.reference"
   | "inspector.info"
@@ -661,9 +663,7 @@ export type StringKey =
   | "bible.card.change"
   | "bible.card.open"
   | "entry.note"
-  | "entry.noteAsChange"
   | "entry.noted"
-  | "entry.notedChange"
   | "bible.card.firstLast"
   | "reference.previousEnd"
   | "reference.previousOpen"
@@ -1000,6 +1000,8 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "focus.title": "집중 모드",
     "focus.exit": "집중 모드 끝내기",
     "editorOnly.exit": "양옆 창 다시 보기",
+    "mini.title": "작은 창으로 쓰기",
+    "mini.exit": "크게 보기",
     "inspector.title": "인스펙터",
     "inspector.reference": "참조",
     "inspector.info": "정보",
@@ -1343,9 +1345,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "bible.card.change": "최신 변화",
     "bible.card.open": "항목 열기",
     "entry.note": "설정에 적기",
-    "entry.noteAsChange": "{name} — 변화로 적기",
     "entry.noted": "‘{name}’ 메모에 적었어요",
-    "entry.notedChange": "‘{name}’ 변화에 적었어요",
     "bible.card.firstLast": "처음 {first} · 마지막 {last}",
     "reference.previousEnd": "지난 화 끝 · {episode}",
     "reference.previousOpen": "지난 화의 이 자리로 가기",
@@ -1708,6 +1708,8 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "focus.title": "Focus mode",
     "focus.exit": "Exit focus mode",
     "editorOnly.exit": "Show side panes",
+    "mini.title": "Write in a Small Window",
+    "mini.exit": "Back to Full Window",
     "inspector.title": "Inspector",
     "inspector.reference": "Reference",
     "inspector.info": "Info",
@@ -2117,9 +2119,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "bible.card.change": "Latest change",
     "bible.card.open": "Open Entry",
     "entry.note": "Note in Story Bible",
-    "entry.noteAsChange": "{name} — as a change",
     "entry.noted": "Noted in {name}",
-    "entry.notedChange": "Noted as a change in {name}",
     "bible.card.firstLast": "First {first} · last {last}",
     "reference.previousEnd": "End of {episode}",
     "reference.previousOpen": "Go to the end of the previous episode",

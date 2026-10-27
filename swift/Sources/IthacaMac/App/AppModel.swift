@@ -153,7 +153,9 @@ final class AppModel {
     var focusMode = false
     /// ⌘3: side panes hidden without focus-mode dimming.
     var editorOnly = false
-    var panesHidden: Bool { focusMode || editorOnly }
+    /// ⌘4: the window becomes a small sticky note over other apps — just the sheet being written (`MiniWindow`).
+    var mini: Bool { didSet { defaults.set(mini, forKey: "ithaca.mini") } }
+    var panesHidden: Bool { focusMode || editorOnly || mini }
     /// Overlay request for panes that can't dock at this width (⌘1 / ⌘2, the library button).
     var libraryOverlay = false
     var overlay: Overlay?
@@ -231,6 +233,7 @@ final class AppModel {
         textReplacement = defaults.object(forKey: "ithaca.textReplacement") as? Bool ?? false
         underlineNames = defaults.object(forKey: "ithaca.underlineNames") as? Bool ?? false
         hoverCard = defaults.object(forKey: "ithaca.hoverCard") as? Bool ?? false
+        mini = defaults.object(forKey: "ithaca.mini") as? Bool ?? false
         symbols = Symbols.decode(defaults.array(forKey: "ithaca.symbols")) ?? Symbols.defaults
         confirmDelete = defaults.object(forKey: "ithaca.confirmDelete") as? Bool ?? true
         switch defaults.string(forKey: "ithaca.spell") { case "on": spellCheck = true; case "off": spellCheck = false; default: spellCheck = nil }
@@ -1220,6 +1223,13 @@ final class AppModel {
     func toggleFocus() { focusMode.toggle(); editorOnly = false; if focusMode { libraryOverlay = false } }
     func toggleEditorOnly() { editorOnly.toggle(); focusMode = false; if editorOnly { libraryOverlay = false } }
     func showPanes() { focusMode = false; editorOnly = false }
+    func toggleMini() {
+        mini.toggle()
+        focusMode = false
+        editorOnly = false
+        libraryOverlay = false
+        if mini { inspectorOpen = false; overlay = nil }
+    }
     func show(_ o: Overlay) {
         if case .palette = o, case .palette = overlay { overlay = nil; return }
         // Export and history read the stored text: save what's typed first.

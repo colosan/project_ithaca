@@ -68,4 +68,6 @@ enum class IthacaIcon(val asset: String) {
     EntryPlace("map-pin"),
     EntryGroup("users"),
     EntryTerm("book-a"),
+    Mini("sticky-note"),
+    Expand("maximize-2"),
 }

@@ -25,7 +25,13 @@ struct EditorPane: View {
 
     private var toolbar: some View {
         HStack(spacing: T.Space.s50) {
-            if model.panesHidden {
+            if model.mini {
+                // A note: which sheet, and the way back. ⌘[ ⌘] still switch sheets.
+                Text(model.sheet.map { $0.title.isEmpty ? model.t(.sheetUntitled) : $0.title } ?? "")
+                    .textStyle(.label).foregroundStyle(Color.inkSecondary).lineLimit(1).truncationMode(.tail)
+                Spacer(minLength: 0)
+                IconButton(.expand, label: model.t(.miniExit)) { model.toggleMini() }
+            } else if model.panesHidden {
                 Spacer(minLength: 0)
                 KitButton(model.t(model.focusMode ? .focusExit : .editorOnlyExit), icon: .focus, variant: .ghost) { model.showPanes() }
             } else {
@@ -35,6 +41,7 @@ struct EditorPane: View {
                 Spacer(minLength: 0)
                 IconButton(.command, label: model.t(.paletteTitle)) { model.show(.palette(search: false)) }
                 IconButton(.focus, label: model.t(.focusTitle)) { model.toggleFocus() }
+                IconButton(.mini, label: model.t(.miniTitle)) { model.toggleMini() }
                 if model.sheetId != nil {
                     IconButton(.history, label: model.t(.historyTitle)) { model.show(.history) }
                     IconButton(.export, label: model.t(.exportTitle)) { model.show(.export) }
@@ -43,6 +50,8 @@ struct EditorPane: View {
             }
         }
         .padding(.horizontal, T.Space.s150)
+        // The note's bar sits under the traffic lights' row: leave them room on the left.
+        .padding(.leading, model.mini ? 64 : 0)
         .frame(minHeight: T.Size.barTop)
     }
 
@@ -252,12 +261,12 @@ struct EditorFooter: View {
                 let postedHint = model.t(.countPostedHint, ["raw": raw.chars])
                 if model.language == .ko {
                     Text(model.t(.countWithSpaces, ["count": c.chars])).help(postedHint)
-                    Text(model.t(.countWithoutSpaces, ["count": c.charsNoSpace])).help(postedHint)
+                    if !model.mini { Text(model.t(.countWithoutSpaces, ["count": c.charsNoSpace])).help(postedHint) }
                 } else {
                     Text(model.t(.countWords, ["count": c.words], count: c.words)).help(postedHint)
                     Text(model.t(.countWithSpaces, ["count": c.chars], count: c.chars)).help(postedHint)
                 }
-                if let goal {
+                if let goal, !model.mini {
                     Text(model.t(.goalProgress, ["goal": goal.count, "percent": percent])).foregroundStyle(Color.inkSecondary)
                         .help(goalBasisName(goal.basis))
                 }

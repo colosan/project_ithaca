@@ -13,7 +13,7 @@ enum AppCommand: CaseIterable {
     // The menu bar's editing and view commands, so the palette finds them by name too.
     case importTextFolder, saveNow, previousSheet, nextSheet, findInSheet, findNext, findPrevious
     case bold, italic, strike, heading1, heading2, heading3, body, quote, sceneBreak, symbols
-    case showLibrary, showList, editorOnly, inspector, palette, textBigger, textSmaller, textReset
+    case showLibrary, showList, editorOnly, mini, inspector, palette, textBigger, textSmaller, textReset
     // Story bible (design/screens/story-bible §1 · §6): new entries, an entry from the selection, a field, the import.
     case newCharacter, newPlace, newGroup, newTerm, entryCharacter, entryPlace, entryGroup, entryTerm, addField, importBible
     // Story bible (story-bible spec §2 · §3).
@@ -63,6 +63,7 @@ enum AppCommand: CaseIterable {
         case .showLibrary: .shortcutsShowLibrary
         case .showList: .shortcutsShowList
         case .editorOnly: .shortcutsEditorOnly
+        case .mini: .miniTitle
         case .inspector: .inspectorTitle
         case .palette: .paletteTitle
         case .textBigger: .menuTextBigger
@@ -119,6 +120,7 @@ enum AppCommand: CaseIterable {
         case .showLibrary: KeyboardShortcut("1")
         case .showList: KeyboardShortcut("2")
         case .editorOnly: KeyboardShortcut("3")
+        case .mini: KeyboardShortcut("4")
         case .inspector: KeyboardShortcut("i", modifiers: [.command, .option])
         case .focus: KeyboardShortcut("d", modifiers: [.command, .shift])
         case .palette: KeyboardShortcut("k")
@@ -212,6 +214,7 @@ enum AppCommand: CaseIterable {
         case .newProject: .folder
         case .search, .findInSheet, .findNext, .findPrevious: .search
         case .focus, .editorOnly: .focus
+        case .mini: .mini
         case .sheetInfo, .inspector: .stats
         case .history: .history
         case .export: .export
@@ -269,6 +272,7 @@ enum AppCommand: CaseIterable {
         case .search: m.overlay = .palette(search: true)
         case .focus: m.toggleFocus()
         case .editorOnly: m.toggleEditorOnly()
+        case .mini: m.toggleMini()
         case .sheetInfo: m.inspectorOpen = true; AppEnvironment.defaults.set(InspectorTab.info.rawValue, forKey: "ithaca.inspectorTab")
         case .history: if m.sheetId != nil { m.show(.history) }
         case .export: if m.projectId != nil { m.show(.export) }
@@ -325,7 +329,7 @@ enum AppCommand: CaseIterable {
     /// Settings → Shortcuts: every key equivalent once, grouped like the menus.
     static let shortcutGroups: [(L10nKey, [AppCommand])] = [
         (.shortcutsGroupGeneral, [.newSheet, .newProject, .palette, .search, .saveNow, .export, .history, .settings]),
-        (.shortcutsGroupView, [.showLibrary, .showList, .editorOnly, .focus, .inspector, .entryCard, .textBigger, .textSmaller, .textReset]),
+        (.shortcutsGroupView, [.showLibrary, .showList, .editorOnly, .mini, .focus, .inspector, .entryCard, .textBigger, .textSmaller, .textReset]),
         (.shortcutsGroupFormat, [.bold, .italic, .strike, .heading1, .heading2, .heading3, .body, .quote, .sceneBreak, .symbols, .completeName]),
         (.shortcutsGroupSheet, [.previousSheet, .nextSheet, .moveUp, .moveDown, .findInSheet, .findNext, .findPrevious, .copyForPaste, .trashSheet]),
     ]

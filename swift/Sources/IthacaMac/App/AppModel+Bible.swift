@@ -117,7 +117,7 @@ extension AppModel {
             let after = StoryBible.appendItem(item, to: asChange ? .changes : .notes, in: before, language: language)
             try library.saveSheet(project: projectId, sheet: entry.sheet, text: after)
             reloadOutline()
-            showToast(Toast(message: t(asChange ? .entryNotedChange : .entryNoted, ["name": entry.name]), undo: { [weak self] in
+            showToast(Toast(message: t(.entryNoted, ["name": entry.name]), undo: { [weak self] in
                 guard let self, self.projectId == projectId, (try? self.library.sheetText(project: projectId, sheet: entry.sheet)) == after else { return }
                 do {
                     try self.library.saveSheet(project: projectId, sheet: entry.sheet, text: before)

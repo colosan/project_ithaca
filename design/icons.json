@@ -71,6 +71,8 @@
     "entryCharacter": "user",
     "entryPlace": "map-pin",
     "entryGroup": "users",
-    "entryTerm": "book-a"
+    "entryTerm": "book-a",
+    "mini": "sticky-note",
+    "expand": "maximize-2"
   }
 }
