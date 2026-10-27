@@ -1,5 +1,6 @@
 //! Ithaca data model (ADR-0001). Plain data and text rules, no IO.
 
+pub mod bible;
 pub mod docx;
 pub mod episode;
 pub mod export;
@@ -9,6 +10,10 @@ pub mod toc;
 
 use serde::{Deserialize, Serialize};
 
+pub use bible::{
+    EntryField, EntryKind, EntrySection, ParsedEntry, body_of, entry_kind, entry_template,
+    parse_entry,
+};
 pub use docx::{DocxOptions, export_docx};
 pub use episode::{EpisodeInfo, EpisodeStatus};
 pub use export::{ExportOptions, export_sheets, render_sheet};

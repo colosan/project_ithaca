@@ -173,27 +173,33 @@ pub fn strip_marks(s: &str) -> String {
         .join("\n")
 }
 
-/// First non-empty line without a leading Markdown heading mark.
+/// First non-empty line without a leading Markdown heading mark. (changed: bible) An entry's front
+/// matter is skipped.
 pub fn title_of(body: &str) -> String {
-    let line = body
+    let line = crate::bible::body_of(body)
         .split('\n')
         .find(|l| !js_trim(l).is_empty())
         .unwrap_or("");
     js_trim(strip_heading_mark(line)).to_string()
 }
 
-/// The line after the title, for the sheet list.
+/// The line after the title, for the sheet list. (changed: bible) For an entry: the first line
+/// after its name that is not a heading, front matter skipped.
 pub fn excerpt_of(body: &str) -> String {
-    let line = body
+    let entry = crate::bible::entry_kind(body).is_some();
+    let line = crate::bible::body_of(body)
         .split('\n')
         .filter(|l| !js_trim(l).is_empty() && !is_scene_break(l))
-        .nth(1)
-        .unwrap_or("");
+        .enumerate()
+        .find(|(i, l)| *i >= 1 && !(entry && is_heading(l)))
+        .map_or("", |(_, l)| l);
     js_trim(&strip_marks(line)).to_string()
 }
 
-/// Characters, words and paragraphs, exactly as the web app counts them.
+/// Characters, words and paragraphs, exactly as the web app counts them. (changed: bible) An
+/// entry's front matter is not counted.
 pub fn counts(body: &str) -> Counts {
+    let body = crate::bible::body_of(body);
     let no_newlines: String = body.chars().filter(|c| *c != '\n').collect();
     let no_space: String = body.chars().filter(|c| !is_js_space(*c)).collect();
     let words = strip_marks(body).unicode_words().count() as u32;

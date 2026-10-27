@@ -1,7 +1,7 @@
 //! What the store hands out. ithaca-ffi mirrors these as UniFFI records (core/API.md).
 
 use ithaca_ledger::{Actor, Kind};
-use ithaca_model::{Counts, EpisodeInfo, Goal, Language};
+use ithaca_model::{Counts, EntryField, EntryKind, EntrySection, EpisodeInfo, Goal, Language};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct LibraryInfo {
@@ -57,6 +57,9 @@ pub struct SheetSummary {
     /// (added: qa1) Blocks of this sheet are broken or missing: the text is the last good one and
     /// writes are refused until it is recovered.
     pub damaged: bool,
+    /// (added: bible) The kind when the sheet is a story-bible entry (its front matter names a
+    /// `종류` / `kind`). Computed from the text, never stored.
+    pub entry: Option<EntryKind>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -207,4 +210,66 @@ pub struct FolderStats {
     pub published: u32,
     pub scheduled: u32,
     pub drafts: u32,
+}
+
+/// (added: bible) A sheet that mentions an entry (core/API.md §Story bible).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Appearance {
+    pub sheet: String,
+    pub title: String,
+    pub folder: String,
+    /// The sheet's episode number, if it has one.
+    pub number: Option<u32>,
+    /// Mentions of the entry in the sheet.
+    pub count: u32,
+    /// UTF-16 offset and length of the first mention (the name only).
+    pub offset: u32,
+    pub length: u32,
+    /// Up to 3 lines that mention it: dialogue lines first, else the first such lines. Trimmed,
+    /// at most 120 characters (a long line is cut around the name, with `…`).
+    pub lines: Vec<String>,
+}
+
+/// (added: bible) A live entry sheet.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BibleEntry {
+    pub sheet: String,
+    pub folder: String,
+    pub kind: EntryKind,
+    pub name: String,
+    pub aliases: Vec<String>,
+    /// Front matter except `종류` / `별칭` / `본문에서 찾지 않음`, in order.
+    pub fields: Vec<EntryField>,
+    /// `## ` sections in order, text trimmed.
+    pub sections: Vec<EntrySection>,
+    /// False when the entry is marked `본문에서 찾지 않음` / `no-match`.
+    pub matchable: bool,
+    /// The latest sheet in reading order that mentions it.
+    pub last_seen: Option<Appearance>,
+}
+
+/// (added: bible) A name found in a text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Mention {
+    /// The entry's sheet id.
+    pub entry: String,
+    /// UTF-16 offset and length of the name, particles excluded.
+    pub offset: u32,
+    pub length: u32,
+    /// Matched by an alias rather than the name.
+    pub alias: bool,
+}
+
+/// (added: bible) One file of a story-bible import preview.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ImportedEntry {
+    /// Path relative to the chosen file's folder or the chosen folder, `/`-separated, NFC.
+    pub source: String,
+    pub name: String,
+    /// Properties taken into the front matter.
+    pub fields: u32,
+    /// Sections that got text.
+    pub sections: u32,
+    /// The entry text `import_bible` creates.
+    pub text: String,
 }

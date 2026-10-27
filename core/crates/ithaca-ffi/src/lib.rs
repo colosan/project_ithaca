@@ -60,6 +60,222 @@ pub fn platform_body(text: String) -> String {
     ithaca_model::platform_body(&text)
 }
 
+// ── Story bible (added: bible) ────────────────────────────────────────
+
+/// (added: bible) Parses a sheet's text. `None` when it is not an entry (no or unknown `종류`).
+#[uniffi::export]
+pub fn parse_entry(text: String) -> Option<ParsedEntry> {
+    ithaca_model::parse_entry(&text).map(Into::into)
+}
+
+/// (added: bible) The text of a new entry: Korean or English keys and section titles, empty values
+/// and sections, `name` under `# `.
+#[uniffi::export]
+pub fn entry_template(kind: EntryKind, name: String, language: Language) -> String {
+    ithaca_model::entry_template(kind.into(), &name, language.into())
+}
+
+/// (added: bible) A Notion export (a `.md` file or a folder of them, recursively) as entry texts of
+/// `kind`. Reads only. A missing path → NotFound.
+#[uniffi::export]
+pub fn bible_import_preview(
+    path: String,
+    kind: EntryKind,
+    language: Language,
+) -> Result<Vec<ImportedEntry>, CoreError> {
+    Ok(vec(store::bible_import_preview(
+        std::path::Path::new(&path),
+        kind.into(),
+        language.into(),
+    )?))
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, uniffi::Enum)]
+pub enum EntryKind {
+    Character,
+    Place,
+    Faction,
+    Term,
+}
+
+impl From<ithaca_model::EntryKind> for EntryKind {
+    fn from(k: ithaca_model::EntryKind) -> Self {
+        use ithaca_model::EntryKind as K;
+        match k {
+            K::Character => EntryKind::Character,
+            K::Place => EntryKind::Place,
+            K::Faction => EntryKind::Faction,
+            K::Term => EntryKind::Term,
+        }
+    }
+}
+
+impl From<EntryKind> for ithaca_model::EntryKind {
+    fn from(k: EntryKind) -> Self {
+        use ithaca_model::EntryKind as K;
+        match k {
+            EntryKind::Character => K::Character,
+            EntryKind::Place => K::Place,
+            EntryKind::Faction => K::Faction,
+            EntryKind::Term => K::Term,
+        }
+    }
+}
+
+/// A front matter `key: value` line. (Not `Field`: that name would clash in Swift.)
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct EntryField {
+    pub key: String,
+    pub value: String,
+}
+
+/// A `## title` section. (Not `Section`: SwiftUI has one.)
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct EntrySection {
+    pub title: String,
+    pub body: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct ParsedEntry {
+    pub kind: EntryKind,
+    pub name: String,
+    pub aliases: Vec<String>,
+    pub fields: Vec<EntryField>,
+    pub sections: Vec<EntrySection>,
+    pub matchable: bool,
+    /// UTF-16 offset of the first character after the front matter.
+    pub body_start: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct Appearance {
+    pub sheet: String,
+    pub title: String,
+    pub folder: String,
+    pub number: Option<u32>,
+    pub count: u32,
+    pub offset: u32,
+    pub length: u32,
+    pub lines: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct BibleEntry {
+    pub sheet: String,
+    pub folder: String,
+    pub kind: EntryKind,
+    pub name: String,
+    pub aliases: Vec<String>,
+    pub fields: Vec<EntryField>,
+    pub sections: Vec<EntrySection>,
+    pub matchable: bool,
+    pub last_seen: Option<Appearance>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct Mention {
+    pub entry: String,
+    pub offset: u32,
+    pub length: u32,
+    pub alias: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct ImportedEntry {
+    pub source: String,
+    pub name: String,
+    pub fields: u32,
+    pub sections: u32,
+    pub text: String,
+}
+
+impl From<ithaca_model::EntryField> for EntryField {
+    fn from(f: ithaca_model::EntryField) -> Self {
+        EntryField {
+            key: f.key,
+            value: f.value,
+        }
+    }
+}
+
+impl From<ithaca_model::EntrySection> for EntrySection {
+    fn from(s: ithaca_model::EntrySection) -> Self {
+        EntrySection {
+            title: s.title,
+            body: s.body,
+        }
+    }
+}
+
+impl From<ithaca_model::ParsedEntry> for ParsedEntry {
+    fn from(e: ithaca_model::ParsedEntry) -> Self {
+        ParsedEntry {
+            kind: e.kind.into(),
+            name: e.name,
+            aliases: e.aliases,
+            fields: vec(e.fields),
+            sections: vec(e.sections),
+            matchable: e.matchable,
+            body_start: e.body_start,
+        }
+    }
+}
+
+impl From<store::Appearance> for Appearance {
+    fn from(a: store::Appearance) -> Self {
+        Appearance {
+            sheet: a.sheet,
+            title: a.title,
+            folder: a.folder,
+            number: a.number,
+            count: a.count,
+            offset: a.offset,
+            length: a.length,
+            lines: a.lines,
+        }
+    }
+}
+
+impl From<store::BibleEntry> for BibleEntry {
+    fn from(e: store::BibleEntry) -> Self {
+        BibleEntry {
+            sheet: e.sheet,
+            folder: e.folder,
+            kind: e.kind.into(),
+            name: e.name,
+            aliases: e.aliases,
+            fields: vec(e.fields),
+            sections: vec(e.sections),
+            matchable: e.matchable,
+            last_seen: e.last_seen.map(Into::into),
+        }
+    }
+}
+
+impl From<store::Mention> for Mention {
+    fn from(m: store::Mention) -> Self {
+        Mention {
+            entry: m.entry,
+            offset: m.offset,
+            length: m.length,
+            alias: m.alias,
+        }
+    }
+}
+
+impl From<store::ImportedEntry> for ImportedEntry {
+    fn from(e: store::ImportedEntry) -> Self {
+        ImportedEntry {
+            source: e.source,
+            name: e.name,
+            fields: e.fields,
+            sections: e.sections,
+            text: e.text,
+        }
+    }
+}
+
 // ── Types ─────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error, uniffi::Error)]
@@ -199,6 +415,9 @@ pub struct SheetSummary {
     /// `Corrupt` until `recover_sheet_from_backup` or `keep_last_good_text`.
     #[uniffi(default = false)]
     pub damaged: bool,
+    /// (added: bible) The kind when the sheet is a story-bible entry; derived from the text.
+    #[uniffi(default = None)]
+    pub entry: Option<EntryKind>,
 }
 
 /// Added round 2.
@@ -506,6 +725,7 @@ impl From<store::SheetSummary> for SheetSummary {
             branched: s.branched,
             episode: s.episode.map(Into::into),
             damaged: s.damaged,
+            entry: s.entry.map(Into::into),
         }
     }
 }
@@ -1067,6 +1287,34 @@ impl Library {
         Ok(self.lock().folder_stats(&project, &folder)?.into())
     }
 
+    /// (added: bible) Every live entry of the project, most recently seen first (never seen last,
+    /// then by name).
+    pub fn bible(&self, project: String) -> R<Vec<BibleEntry>> {
+        Ok(vec(self.lock().bible(&project)?))
+    }
+
+    /// (added: bible) Mentions of matchable entries in `text` (may be unsaved): in order,
+    /// non-overlapping, longest first; the text's own front matter (and own name) skipped.
+    pub fn mentions_in(&self, project: String, text: String) -> R<Vec<Mention>> {
+        Ok(vec(self.lock().mentions_in(&project, &text)?))
+    }
+
+    /// (added: bible) Every live non-entry sheet mentioning the entry, in reading order.
+    pub fn appearances(&self, project: String, entry: String) -> R<Vec<Appearance>> {
+        Ok(vec(self.lock().appearances(&project, &entry)?))
+    }
+
+    /// (added: bible) Creates the previewed entry texts at the end of `folder`, in order. All or
+    /// nothing. Returns the new sheet ids.
+    pub fn import_bible(
+        &self,
+        project: String,
+        folder: String,
+        entries: Vec<String>,
+    ) -> R<Vec<String>> {
+        Ok(self.lock().import_bible(&project, &folder, &entries)?)
+    }
+
     /// `<library>/mcp.json`; off with no projects when missing or unreadable.
     pub fn mcp_settings(&self) -> McpSettings {
         self.lock().mcp_settings().into()
@@ -1314,5 +1562,59 @@ mod tests {
             ro.set_mcp_settings(false, vec![]),
             Err(CoreError::ReadOnly)
         ));
+    }
+
+    /// (added: bible) The story bible through the FFI.
+    #[test]
+    fn bible_through_ffi() {
+        let dir = tempfile::tempdir().unwrap();
+        let lib =
+            Library::open(dir.path().join("lib").to_string_lossy().into(), "d".into()).unwrap();
+        let p = lib
+            .create_project(
+                "작품".into(),
+                Language::Ko,
+                vec!["연재".into(), "설정".into()],
+            )
+            .unwrap();
+        let o = lib.outline(p.id.clone()).unwrap();
+        let ep = o.folders[0].sheets[0].id.clone();
+        lib.save_sheet(p.id.clone(), ep.clone(), "# 1화\n\n“서윤아!”".into())
+            .unwrap();
+        let t = entry_template(EntryKind::Character, "서윤".into(), Language::Ko);
+        let e = parse_entry(t.clone()).unwrap();
+        assert_eq!(e.kind, EntryKind::Character);
+        assert_eq!(e.sections[0].title, "한 줄 소개");
+        assert!(parse_entry("---\n장면\n---".into()).is_none());
+        let s = lib
+            .create_sheet(p.id.clone(), o.folders[1].id.clone(), t)
+            .unwrap();
+        assert_eq!(s.entry, Some(EntryKind::Character));
+        assert_eq!(s.title, "서윤");
+        let b = lib.bible(p.id.clone()).unwrap();
+        assert_eq!(b.len(), 1);
+        assert_eq!(b[0].last_seen.as_ref().unwrap().sheet, ep);
+        let m = lib.mentions_in(p.id.clone(), "서윤이가".into()).unwrap();
+        assert_eq!((m[0].offset, m[0].length, m[0].alias), (0, 2, false));
+        let a = lib.appearances(p.id.clone(), s.id.clone()).unwrap();
+        assert_eq!(a[0].lines, ["“서윤아!”"]);
+        let src = dir.path().join("해원.md");
+        std::fs::write(&src, "# 해원\n\n나이: 18\n").unwrap();
+        let pv = bible_import_preview(
+            src.to_string_lossy().into(),
+            EntryKind::Character,
+            Language::Ko,
+        )
+        .unwrap();
+        assert_eq!((pv[0].name.as_str(), pv[0].fields), ("해원", 1));
+        let ids = lib
+            .import_bible(
+                p.id.clone(),
+                o.folders[1].id.clone(),
+                vec![pv[0].text.clone()],
+            )
+            .unwrap();
+        assert_eq!(ids.len(), 1);
+        assert_eq!(lib.bible(p.id).unwrap().len(), 2);
     }
 }

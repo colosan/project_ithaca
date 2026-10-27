@@ -168,7 +168,7 @@ fn set_mcp_settings(&self, enabled: bool, projects: Vec<String>) -> Result<McpSe
   `{"mcpServers":{"ithaca":{"command":"/Applications/Ithaca.app/Contents/MacOS/ithaca-mcp"}}}`
   (use the app's real bundle path when it is not in /Applications). Optional `"args": ["--library", "<folder>"]`
   for a library elsewhere; default `~/Library/Application Support/Ithaca/Library`.
-- Tools: `list_projects`, `get_outline`, `read_sheet`, `search`, `get_lore`, `get_episode_stats` — all
+- Tools: `list_projects`, `get_outline`, `read_sheet`, `search`, `get_lore`, `get_episode_stats`, `bible`, `mentions` (added: bible) — all
   read-only. No address or token: stdio only (the spec's 주소 · 토큰 rows are not needed yet).
 - (added: qa4) Library: `--library <folder>`, else `$ITHACA_LIBRARY_PATH`, else the default folder.
   `serverInfo.version` / `--version` = the app version: `ITHACA_APP_VERSION` at build time
@@ -377,25 +377,34 @@ fn export_docx(&self, project: String, sheets: Vec<String>, options: DocxOptions
 //               margin_left_mm = 30.0, margin_right_mm = 30.0 }   // margins = Hangul Office's A4 defaults
 ```
 
-## Story bible (added: bible) — ADR-0010
+## Story bible (added: bible) — ADR-0010 · implemented (core 0.3, `ithaca_model::bible`, `ithaca-store/src/bible.rs`)
 
 Entries are sheets whose front matter has `종류`/`kind` (ADR-0010 §1). Nothing new is stored; everything
 below is computed from live sheet text on request. Offsets are UTF-16 (NSTextView).
+Swift: `parseEntry(text:)` · `entryTemplate(kind:name:language:)` · `bibleImportPreview(path:kind:language:)` (free
+functions) and `Library.bible(project:)` · `mentionsIn(project:text:)` · `appearances(project:entry:)` ·
+`importBible(project:folder:entries:)`. `EntryKind` cases `.character .place .faction .term`.
 
 ```rust
 // EntryKind { Character, Place, Faction, Term }
 // BibleEntry { sheet, folder, kind: EntryKind, name: String, aliases: Vec<String>,
-//              fields: Vec<Field> /* front matter except 종류/별칭/본문에서 찾지 않음, in order */,
-//              sections: Vec<Section> /* `## ` sections in order; text trimmed */,
+//              fields: Vec<EntryField> /* front matter except 종류/별칭/본문에서 찾지 않음, in order */,
+//              sections: Vec<EntrySection> /* `## ` sections in order; text trimmed */,
 //              matchable: bool /* false when 본문에서 찾지 않음 */,
 //              last_seen: Option<Appearance> /* latest sheet (reading order) mentioning it */ }
-// Field { key, value }   Section { title, body }
+// EntryField { key, value }   EntrySection { title, body }
+//   (changed: bible) Named EntryField / EntrySection, not Field / Section: SwiftUI has a `Section`.
 // Appearance { sheet, title, folder, number: Option<u32> /* episode number */, count: u32 /* mentions */,
 //              offset: u32, length: u32 /* first mention */, lines: Vec<String> /* up to 3 dialogue lines
 //              (lines starting with a quote mark: " “ 「 『 ' ‘ - ―) that mention the entry, else the
-//              first lines that mention it; trimmed, ≤ 120 chars */ }
+//              first lines that mention it; trimmed, ≤ 120 chars — a longer line is cut to a window
+//              around the name with `…` */ }
 // Mention { entry /* entry sheet id */, offset: u32, length: u32 /* name only, josa excluded */, alias: bool }
 
+/// Front matter: the FIRST line is `---` (trailing spaces allowed), then `key: value` lines (`:` or `：`; lines
+/// without a colon ignored; values may be empty), closed by a `---` line. No closing line → not an entry.
+/// Keys: 종류/kind · 별칭/aliases (comma separated, also `，` `、`) · 본문에서 찾지 않음/no-match (`예 네 yes true`),
+/// case-insensitive. Name = first `# ` line after the front matter, else the first non-empty line.
 /// Model-level, no library: parses a sheet. None when it isn't an entry (no/unknown 종류).
 fn parse_entry(text: String) -> Option<ParsedEntry>;   // ParsedEntry { kind, name, aliases, fields, sections, matchable,
                                                         //               body_start: u32 /* UTF-16 offset after the front matter */ }
@@ -408,14 +417,28 @@ fn entry_template(kind: EntryKind, name: String, language: Language) -> String;
 /// Every live entry of the project, sorted by last_seen (most recent sheet first; never seen last, then by name).
 fn bible(&self, project: String) -> Result<Vec<BibleEntry>, CoreError>;
 /// Mentions of matchable entries in `text` (the editor's current text — may be unsaved), in order,
-/// non-overlapping, longest match first. `text` is treated like a sheet: its own front matter is skipped.
+/// non-overlapping, longest match first. `text` is treated like a sheet: its own front matter is skipped,
+/// and when `text` is itself an entry its own name (same kind and name) is not reported.
+/// Matching (ADR-0010 §3, `ithaca_model::bible`): names and aliases of ≥ 2 graphemes, exact spelling; the
+/// character before must not be a letter or digit (any script); after the name comes the end, a
+/// non-letter/digit, one or two particles from `bible::JOSA` followed by a non-letter/digit (서윤이가, 서윤에게도),
+/// or a copula stem from `bible::JOSA_OPEN` with anything after it (서윤이었다, 벼리였고, 서윤이라는).
+/// So `벼리` does not match in `벼리섬` and `Kai` not in `Kaiser`.
 fn mentions_in(&self, project: String, text: String) -> Result<Vec<Mention>, CoreError>;
 /// Every live non-entry sheet that mentions the entry, in reading order (folder order, then serial order).
+/// Plain sheets of non-serial folders count too. Empty for a no-match entry. NotFound when `entry` is not a
+/// live entry sheet.
 fn appearances(&self, project: String, entry: String) -> Result<Vec<Appearance>, CoreError>;
 /// Notion export: a .md file or a folder of them (recursively). Nothing written.
 /// One entry per file: `# title` → name; `key: value` lines right after the title → front matter;
 /// `## heading` sections matching a known section title of `kind` → that section, others → kept as is;
 /// loose text before the first `##` → `## 메모`. Notion's " <32 hex>" suffix is cut from names.
+/// Output order: template keys (filled from same-named properties; 별칭/aliases/alias → the aliases key),
+/// then the other properties (a 종류/kind property is dropped); template sections in template order (empty
+/// ones kept), unknown sections as they came, the notes section last (loose text first). Section titles
+/// of either language match (`## Voice` → `## 말투` in a Korean import). No `# ` title → the file name.
+/// Files: `.md` / `.markdown` under a folder, natural path order; one file given = that file. Missing → NotFound.
+/// `fields` = properties taken, `sections` = sections that got text.
 fn bible_import_preview(path: String, kind: EntryKind, language: Language) -> Result<Vec<ImportedEntry>, CoreError>;
 // ImportedEntry { source: String /* relative path */, name, fields: u32, sections: u32, text: String }
 /// Creates the previewed entries in `folder` (appended, in order). All or nothing. Returns their sheet ids.
@@ -423,9 +446,12 @@ fn import_bible(&self, project: String, folder: String, entries: Vec<String> /* 
 ```
 
 Rules elsewhere (changed: bible):
-- `title_of`, `excerpt_of`, `counts`, `platform_body`, export (txt · md · docx) and search snippets skip an
-  entry's front matter. A sheet starting with `---` but without `종류`/`kind` is unchanged (scene break).
-- SheetSummary gains `entry: Option<EntryKind>` (default nil) so lists can show the kind icon.
+- `title_of`, `excerpt_of`, `counts`, `platform_body`, export (txt · md · docx) and search skip an
+  entry's front matter (search finds nothing inside it; offsets stay relative to the whole sheet). A sheet
+  starting with `---` but without `종류`/`kind` is unchanged (scene break). An entry's excerpt is its first
+  non-heading line after the name (so the one-line summary, not "한 줄 소개").
+- SheetSummary gains `entry: Option<EntryKind>` (default nil) so lists can show the kind icon. It and the
+  counts are derived from the text on load, so caches written by older cores stay valid (no cache bump).
 - ithaca-mcp: tools `bible` (`{project, name?}` → all entries, or the one whose name/alias matches) and
   `mentions` (`{project, sheet}` → entries mentioned in that sheet with counts). Read only (ADR-0009).
 

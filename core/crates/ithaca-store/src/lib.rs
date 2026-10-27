@@ -3,6 +3,7 @@
 //! [`Store`] is single-threaded; ithaca-ffi wraps it in a `Mutex`.
 
 pub mod backup;
+mod bible;
 pub mod error;
 pub mod format;
 pub mod fsutil;
@@ -27,6 +28,7 @@ use ithaca_model::{
     Toc, excerpt_of, export_sheets, title_of,
 };
 
+pub use bible::import_preview as bible_import_preview;
 pub use error::{Result, StoreError};
 pub use format::{FORMAT, Migration};
 pub use types::*;
@@ -399,6 +401,7 @@ impl Store {
             branched: chain.is_some_and(|c| c.branched()),
             episode: entry.episode.clone(),
             damaged: p.damage.contains_key(sheet),
+            entry: ithaca_model::entry_kind(text),
         })
     }
 
@@ -1306,11 +1309,15 @@ impl Store {
                 break;
             }
             let text = p.chains.get(&s).map_or("", |c| c.text.as_str());
-            for m in search::find(text, query, limit - hits.len()) {
+            // (changed: bible) An entry's front matter is not searched; offsets stay sheet-relative.
+            let start = ithaca_model::bible::body_offset(text);
+            let base = text[..start].encode_utf16().count() as u32;
+            for m in search::find(&text[start..], query, limit - hits.len()) {
                 hits.push(SearchHit {
                     project: p.id.clone(),
                     sheet: s.clone(),
                     title: title_of(text),
+                    offset: base + m.offset,
                     ..m
                 });
             }
