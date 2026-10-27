@@ -27,6 +27,7 @@ enum NavSelfTest {
         // Offscreen window (far off any display) with the real shell, 1240 pt: everything docked.
         let window = NSWindow(contentRect: CGRect(x: -30000, y: -30000, width: 1240, height: 800), styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = NSHostingView(rootView: ShellView().environment(model))
+        window.setFrameOrigin(NSPoint(x: -20000, y: -20000))  // off screen: tests must not show over the owner's work
         window.orderFrontRegardless()
         pump(0.5)
         guard let sheets = model.folder?.sheets, sheets.count >= 3 else { print("✗ seed has no folder"); exit(1) }

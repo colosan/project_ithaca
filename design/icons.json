@@ -67,6 +67,10 @@
     "damaged": "file-warning",
     "branched": "git-branch",
     "moveUp": "arrow-up",
-    "moveDown": "arrow-down"
+    "moveDown": "arrow-down",
+    "entryCharacter": "user",
+    "entryPlace": "map-pin",
+    "entryFaction": "flag",
+    "entryTerm": "book-a"
   }
 }

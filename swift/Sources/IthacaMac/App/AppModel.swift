@@ -75,6 +75,10 @@ protocol EditorBridge: AnyObject {
     func insert(_ text: String, wrapping close: String?)
     func showSymbols()
     func findNext(_ forward: Bool)
+    /// ⌥Esc (Edit › Insert Name): word completion with the story bible's names first.
+    func completeName()
+    /// ⌥⌘R (View › Story Bible Card): the card of the name at the caret. False when the caret isn't on a name.
+    @discardableResult func showEntryCard() -> Bool
 }
 
 enum TextFormat { case bold, italic, strike, heading(Int), body, quote, sceneBreak }
@@ -167,6 +171,20 @@ final class AppModel {
     var autoPairs: Bool { didSet { defaults.set(autoPairs, forKey: "ithaca.autoPairs") } }
     var ellipsis: EllipsisMode { didSet { defaults.set(ellipsis.rawValue, forKey: "ithaca.ellipsis") } }
     var textReplacement: Bool { didSet { defaults.set(textReplacement, forKey: "ithaca.textReplacement") } }
+    // Story bible display (spec §3 · §5), both off by default.
+    var underlineNames: Bool { didSet { defaults.set(underlineNames, forKey: "ithaca.underlineNames") } }
+    var hoverCard: Bool { didSet { defaults.set(hoverCard, forKey: "ithaca.hoverCard") } }
+
+    // MARK: Story bible (AppModel+Bible.swift)
+    /// The open project's entries, most recently seen first. Written only by AppModel+Bible.swift.
+    var bible: [BibleEntry] = []
+    /// Mentions in the open sheet's text (inspector, underline), 1 s after typing stops. Written only by AppModel+Bible.swift.
+    var sheetMentions: [Mention] = []
+    /// Bumped whenever `sheetMentions` is recomputed (the editor redraws underlines once per bump).
+    var mentionsGeneration = 0
+    @ObservationIgnored var bibleProject: String?
+    @ObservationIgnored var bibleTask: Task<Void, Never>?
+    @ObservationIgnored var mentionsTask: Task<Void, Never>?
     /// The ⌘/ symbol menu, in the writer's order. Stored only while it differs from the defaults.
     var symbols: [Symbol] {
         didSet {
@@ -199,6 +217,8 @@ final class AppModel {
         autoPairs = defaults.object(forKey: "ithaca.autoPairs") as? Bool ?? false
         ellipsis = EllipsisMode(rawValue: defaults.string(forKey: "ithaca.ellipsis") ?? "") ?? .off
         textReplacement = defaults.object(forKey: "ithaca.textReplacement") as? Bool ?? false
+        underlineNames = defaults.object(forKey: "ithaca.underlineNames") as? Bool ?? false
+        hoverCard = defaults.object(forKey: "ithaca.hoverCard") as? Bool ?? false
         symbols = Symbols.decode(defaults.array(forKey: "ithaca.symbols")) ?? Symbols.defaults
         confirmDelete = defaults.object(forKey: "ithaca.confirmDelete") as? Bool ?? true
         switch defaults.string(forKey: "ithaca.spell") { case "on": spellCheck = true; case "off": spellCheck = false; default: spellCheck = nil }
@@ -306,6 +326,7 @@ final class AppModel {
         guard let projectId else { outline = nil; return }
         do { outline = try library.outline(project: projectId) } catch { outline = nil }
         menu.hasSheet = sheetId != nil
+        outlineDidReload()
     }
 
     private func restoreSelection() {
@@ -380,6 +401,7 @@ final class AppModel {
         pendingSelection = range
         menu.hasSheet = true
         rememberSelection()
+        refreshMentions()
     }
 
     /// Where the editor should put the selection after the next load (search hits); otherwise the remembered caret.
@@ -414,6 +436,7 @@ final class AppModel {
         loadToken += 1
         updateCounts(now: true)
         menu.hasSheet = false
+        refreshMentions()
     }
 
     // MARK: Editing · saving
@@ -448,6 +471,7 @@ final class AppModel {
         }
         updateCounts(now: false)
         scheduleSave()
+        scheduleMentions()
     }
 
     /// Counting is O(sheet) (graphemes, regex, words, and the core's platform_body + count_for for the posted counts):
@@ -511,6 +535,7 @@ final class AppModel {
             retryAttempt = 0
             saveStatus = .saved
             replaceSummary(summary)
+            didSaveForBible(sheetId)
         } catch {
             saveStatus = .failed((error as? LibraryError) == .readOnly ? readOnlyMessage : error.localizedDescription)
             scheduleRetry()

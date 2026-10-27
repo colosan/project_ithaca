@@ -311,6 +311,14 @@ protocol LibraryAPI: AnyObject {
     func exportText(project: String, sheets: [String], options: ExportOptions) throws -> String
     /// (docx) The sheets as a .docx file's bytes (`sheets` as in exportText).
     func exportDocx(project: String, sheets: [String], options: DocxOptions) throws -> Data
+
+    // Story bible (core/API.md §Story bible, ADR-0010): computed from live sheet text on request, nothing stored.
+    /// Every live entry, most recently seen first (never seen last, by name).
+    func bible(project: String) throws -> [BibleEntry]
+    /// Mentions of matchable entries in `text` (the editor's text, may be unsaved), in order. UTF-16 offsets.
+    func mentionsIn(project: String, text: String) throws -> [Mention]
+    /// Every live non-entry sheet that mentions the entry, in reading order.
+    func appearances(project: String, entry: String) throws -> [Appearance]
 }
 
 extension Int64 {

@@ -975,7 +975,7 @@ mod tests {
         assert!(names(&m, "이 안에 있었다").is_empty());
         assert!(names(&m, "보이안").is_empty());
         assert_eq!(names(&m, "이안과 벼리").len(), 2);
-        // `벼리섬` is a different word when only 벼리 is an entry.
+        // `벼리섬` is a different word when only `벼리` is an entry.
         assert!(names(&m, "벼리섬에 도착했다").is_empty());
         assert!(names(&m, "벼리섬").is_empty());
     }
@@ -1059,7 +1059,7 @@ mod tests {
         // A long line is cut around the name.
         let t = format!("{}서윤이 왔다{}", "가".repeat(300), "나".repeat(300));
         let ms = m.find(&t);
-        assert!(ms.is_empty()); // 가서윤: inside a word
+        assert!(ms.is_empty()); // `가서윤`: inside a word
         let t = format!("{} 서윤이 왔다 {}", "가".repeat(300), "나".repeat(300));
         let ms = m.find(&t);
         let l = &mention_lines(&t, &ms)[0];
@@ -1078,7 +1078,7 @@ mod tests {
         );
         assert_eq!(r.name, "서윤");
         assert_eq!(r.fields, 3);
-        assert_eq!(r.sections, 3); // 말투 (two parts), 비밀, 메모
+        assert_eq!(r.sections, 3); // `말투` (two parts), `비밀`, `메모`
         let e = parse_entry(&r.text).unwrap();
         assert_eq!(e.kind, EntryKind::Character);
         assert_eq!(e.name, "서윤");

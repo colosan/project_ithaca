@@ -48,6 +48,7 @@ private struct ReferenceTab: View {
         let candidates = model.folders.flatMap { f in f.sheets.filter { $0.id != model.sheetId }.map { (f, $0) } }
         let fallback = candidates.first { $0.0.order == 1 }?.1.id ?? candidates.first?.1.id ?? ""
         let id = candidates.contains { $0.1.id == picked } ? picked : fallback
+        BibleMentionsSection()
         if candidates.isEmpty {
             Caption(model.t(.referenceNone))
         } else {
@@ -129,6 +130,7 @@ private struct SheetInfo: View {
                 (model.t(.infoModified), model.dateTime(sheet.modified.date)),
             ]
             VStack(alignment: .leading, spacing: 0) {
+                if let entry = model.openEntry { EntryAppearancesSection(entry: entry) }
                 Picker(model.t(.episodeStatus), selection: Binding(get: { sheet.episode?.status }, set: { model.setEpisodeStatus($0) })) {
                     Text(model.t(.episodeNone)).tag(EpisodeStatus?.none)
                     ForEach(EpisodeStatus.allCases, id: \.self) { s in Text(model.t(model.statusKey(s))).tag(EpisodeStatus?.some(s)) }

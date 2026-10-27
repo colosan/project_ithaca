@@ -64,4 +64,8 @@ enum class IthacaIcon(val asset: String) {
     Branched("git-branch"),
     MoveUp("arrow-up"),
     MoveDown("arrow-down"),
+    EntryCharacter("user"),
+    EntryPlace("map-pin"),
+    EntryFaction("flag"),
+    EntryTerm("book-a"),
 }
