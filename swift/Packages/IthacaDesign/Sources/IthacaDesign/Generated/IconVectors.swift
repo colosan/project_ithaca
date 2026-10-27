@@ -46,7 +46,6 @@ public enum IconVectors {
         case "ellipsis": return [.circle(cx: 12, cy: 12, r: 1), .circle(cx: 19, cy: 12, r: 1), .circle(cx: 5, cy: 12, r: 1)]
         case "file-text": return [.path("M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"), .path("M14 2v5a1 1 0 0 0 1 1h5"), .path("M10 9H8"), .path("M16 13H8"), .path("M16 17H8")]
         case "file-warning": return [.path("M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"), .path("M12 9v4"), .path("M12 17h.01")]
-        case "flag": return [.path("M4 22V4a1 1 0 0 1 .4-.8A6 6 0 0 1 8 2c3 0 5 2 7.333 2q2 0 3.067-.8A1 1 0 0 1 20 4v10a1 1 0 0 1-.4.8A6 6 0 0 1 16 16c-3 0-5-2-8-2a6 6 0 0 0-4 1.528")]
         case "focus": return [.circle(cx: 12, cy: 12, r: 3), .path("M3 7V5a2 2 0 0 1 2-2h2"), .path("M17 3h2a2 2 0 0 1 2 2v2"), .path("M21 17v2a2 2 0 0 1-2 2h-2"), .path("M7 21H5a2 2 0 0 1-2-2v-2")]
         case "folder": return [.path("M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z")]
         case "folder-open": return [.path("m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2")]
@@ -84,6 +83,7 @@ public enum IconVectors {
         case "type": return [.path("M12 4v16"), .path("M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"), .path("M9 20h6")]
         case "undo-2": return [.path("M9 14 4 9l5-5"), .path("M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11")]
         case "user": return [.path("M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"), .circle(cx: 12, cy: 7, r: 4)]
+        case "users": return [.path("M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"), .path("M16 3.128a4 4 0 0 1 0 7.744"), .path("M22 21v-2a4 4 0 0 0-3-3.87"), .circle(cx: 9, cy: 7, r: 4)]
         case "x": return [.path("M18 6 6 18"), .path("m6 6 12 12")]
         default: return []
         }

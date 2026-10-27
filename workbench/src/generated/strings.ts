@@ -612,12 +612,22 @@ export type StringKey =
   | "symbol.triangle"
   | "entry.kindCharacter"
   | "entry.kindPlace"
-  | "entry.kindFaction"
+  | "entry.kindGroup"
   | "entry.kindTerm"
   | "entry.newCharacter"
   | "entry.newPlace"
-  | "entry.newFaction"
+  | "entry.newGroup"
   | "entry.newTerm"
+  | "newSheet.title"
+  | "newSheet.blank"
+  | "newSheet.blankHint"
+  | "newSheet.episodeHint"
+  | "newSheet.bible"
+  | "newSheet.hintCharacter"
+  | "newSheet.hintPlace"
+  | "newSheet.hintGroup"
+  | "newSheet.hintTerm"
+  | "newSheet.shortcut"
   | "entry.fromSelection"
   | "entry.fromSelectionAs"
   | "entry.created"
@@ -638,7 +648,6 @@ export type StringKey =
   | "importBible.empty"
   | "importBible.import"
   | "importBible.done"
-  | "entry.newMenu"
   | "bible.completeName"
   | "bible.card.title"
   | "bible.episode"
@@ -1276,12 +1285,22 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "symbol.triangle": "세모",
     "entry.kindCharacter": "인물",
     "entry.kindPlace": "장소",
-    "entry.kindFaction": "세력",
+    "entry.kindGroup": "집단",
     "entry.kindTerm": "용어",
     "entry.newCharacter": "새 인물",
     "entry.newPlace": "새 장소",
-    "entry.newFaction": "새 세력",
+    "entry.newGroup": "새 집단",
     "entry.newTerm": "새 용어",
+    "newSheet.title": "새로 만들기",
+    "newSheet.blank": "빈 시트",
+    "newSheet.blankHint": "원고 · 메모 · 무엇이든",
+    "newSheet.episodeHint": "{number}화로 이어서 써요",
+    "newSheet.bible": "설정 항목",
+    "newSheet.hintCharacter": "등장인물 — 성격과 말투",
+    "newSheet.hintPlace": "무대가 되는 곳",
+    "newSheet.hintGroup": "가문 · 길드 · 회사 · 나라",
+    "newSheet.hintTerm": "작품 속 낱말과 뜻",
+    "newSheet.shortcut": "⌘N 은 고르지 않고 바로 빈 시트를 만들어요.",
     "entry.fromSelection": "설정 항목으로 만들기",
     "entry.fromSelectionAs": "설정 항목으로 만들기 · {kind}",
     "entry.created": "{folder}에 ‘{name}’ 항목을 만들었어요",
@@ -1302,7 +1321,6 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "importBible.empty": "이 위치에는 가져올 .md 파일이 없어요.",
     "importBible.import": "가져오기",
     "importBible.done": "{folder}에 설정 항목 {count}개를 가져왔어요",
-    "entry.newMenu": "새 설정 항목",
     "bible.completeName": "이름 넣기",
     "bible.card.title": "설정 카드",
     "bible.episode": "{number}화",
@@ -2023,12 +2041,22 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "symbol.triangle": "Triangle",
     "entry.kindCharacter": "Character",
     "entry.kindPlace": "Place",
-    "entry.kindFaction": "Faction",
+    "entry.kindGroup": "Group",
     "entry.kindTerm": "Term",
     "entry.newCharacter": "New Character",
     "entry.newPlace": "New Place",
-    "entry.newFaction": "New Faction",
+    "entry.newGroup": "New Group",
     "entry.newTerm": "New Term",
+    "newSheet.title": "Create",
+    "newSheet.blank": "Blank sheet",
+    "newSheet.blankHint": "Manuscript, notes, anything",
+    "newSheet.episodeHint": "Continues as episode {number}",
+    "newSheet.bible": "Story bible",
+    "newSheet.hintCharacter": "People — personality and voice",
+    "newSheet.hintPlace": "Where things happen",
+    "newSheet.hintGroup": "Families, guilds, companies, nations",
+    "newSheet.hintTerm": "Words of your world",
+    "newSheet.shortcut": "⌘N skips this and makes a blank sheet.",
     "entry.fromSelection": "Make Story Bible Entry",
     "entry.fromSelectionAs": "Make Story Bible Entry · {kind}",
     "entry.created": "Created “{name}” in {folder}",
@@ -2055,7 +2083,6 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
       "one": "Imported {count} entry into {folder}",
       "other": "Imported {count} entries into {folder}"
     },
-    "entry.newMenu": "New Story Bible Entry",
     "bible.completeName": "Insert Name",
     "bible.card.title": "Story Bible Card",
     "bible.episode": "Ep. {number}",

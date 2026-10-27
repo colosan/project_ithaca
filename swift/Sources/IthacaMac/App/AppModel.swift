@@ -694,9 +694,8 @@ final class AppModel {
             do {
                 let s = try library.createSheet(project: projectId, folder: fid, text: "")
                 // New sheets of the serial (first) folder are the next episode: last number + 1, Draft (PRODUCT 2026-10-24).
-                if fid == folders.first?.id {
-                    let last = folders.first?.sheets.compactMap { $0.episode?.excluded == true ? nil : $0.episode?.number }.max() ?? 0
-                    try library.setEpisode(project: projectId, sheet: s.id, info: EpisodeInfo(number: last + 1, status: .draft))
+                if let next = nextEpisodeNumber(in: fid) {
+                    try library.setEpisode(project: projectId, sheet: s.id, info: EpisodeInfo(number: next, status: .draft))
                 }
                 reloadOutline()
                 openSheet(s.id)
@@ -773,6 +772,12 @@ final class AppModel {
     }
 
     /// Folder context menu / empty list: a new sheet at the end of `folder`.
+    /// The number a new sheet in `folder` gets: only the serial (first) folder numbers its sheets.
+    func nextEpisodeNumber(in folder: String) -> Int? {
+        guard folder == folders.first?.id else { return nil }
+        return (folders.first?.sheets.compactMap { $0.episode?.excluded == true ? nil : $0.episode?.number }.max() ?? 0) + 1
+    }
+
     func newSheet(in folder: String) {
         guard folders.contains(where: { $0.id == folder }) else { return }
         if folder != folderId { selectFolder(folder) }

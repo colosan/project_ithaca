@@ -50,7 +50,7 @@ are visible. Start with list_projects; project, folder and sheet ids come from t
 get_outline (a project may also be named by its exact title). Setting notes, characters and \
 world-building live in non-serial folders: get_lore returns them in one go. Episode numbers, \
 statuses (draft/revising/scheduled/published) and stock (비축분) come from get_episode_stats. \
-Characters, places, factions and terms the writer keeps as story-bible entries come from bible \
+Characters, places, groups and terms the writer keeps as story-bible entries come from bible \
 (one entry by name, with where it appears); mentions lists the entries a sheet names. \
 You cannot change anything in Ithaca through these tools.";
 

@@ -616,7 +616,7 @@ struct IthacaCommands: Commands {
             Divider()
             item(.newCharacter, off: noProject || ro)
             item(.newPlace, off: noProject || ro)
-            item(.newFaction, off: noProject || ro)
+            item(.newGroup, off: noProject || ro)
             item(.newTerm, off: noProject || ro)
             Divider()
             item(.history, t(.historyTitle) + "…", off: noSheet)

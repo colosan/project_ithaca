@@ -169,6 +169,12 @@ enum Snapshot {
                   view: { _ in AnyView(BibleImportView(path: Self.notionFixture())) }),
             Scene(name: "bible-import-missing", size: CGSize(width: 720, height: 640), titled: false, fit: true,
                   view: { _ in AnyView(BibleImportView(path: "/nonexistent/노션 내보내기")) }),
+            // The ＋ picker (its popover content) and an empty folder showing the same choices.
+            Scene(name: "new-sheet-picker", size: CGSize(width: 320, height: 600), titled: false, fit: true,
+                  view: { m in AnyView(NewSheetPicker(folder: m.folders.first?.id ?? "", autofocus: true).frame(width: 320)) }),
+            Scene(name: "new-sheet-picker-en-dark", size: CGSize(width: 320, height: 600), dark: true, locale: .en, titled: false, fit: true,
+                  view: { m in AnyView(NewSheetPicker(folder: m.folders.last?.id ?? "").frame(width: 320)) }),
+            Scene(name: "new-sheet-empty-folder", size: wide, setup: { m, _ in m.createFolder("인물 설정") }),
         ] + bibleScenes
     }
 
@@ -252,7 +258,7 @@ enum Snapshot {
         run(from: now - 40 * minute, saves: 9, every: 4 * minute, trimEvery: 4)
     }
 
-    /// The seed's lore folder as story bible entries (a filled character, a place, a faction, a term), the character open.
+    /// The seed's lore folder as story bible entries (a filled character, a place, a group, a term), the character open.
     static func bibleSeed(_ m: AppModel) {
         guard let pid = m.projectId, let lore = m.folders.first(where: { $0.name == "설정" }) else { return }
         let character = """
@@ -291,7 +297,7 @@ enum Snapshot {
             _ = try? m.library.saveSheet(project: pid, sheet: sheets[0].id, text: character)
             _ = try? m.library.saveSheet(project: pid, sheet: sheets[2].id, text: place)
         }
-        _ = try? m.library.createSheet(project: pid, folder: lore.id, text: "---\n종류: 세력\n별칭:\n우두머리: 해무회장\n---\n# 해무회\n\n## 한 줄 소개\n섬의 항로를 쥔 선주들의 모임.\n")
+        _ = try? m.library.createSheet(project: pid, folder: lore.id, text: "---\n종류: 집단\n별칭:\n대표: 해무회장\n---\n# 해무회\n\n## 한 줄 소개\n섬의 항로를 쥔 선주들의 모임.\n")
         _ = try? m.library.createSheet(project: pid, folder: lore.id, text: "---\n종류: 용어\n별칭: 불빛말\n---\n# 등대 신호\n\n## 뜻\n불빛의 횟수와 간격으로 주고받는 말.\n")
         m.reloadOutline()
         if let first = sheets.first { m.openSheet(first.id) }

@@ -7,13 +7,13 @@ import IthacaDesign
 import UniformTypeIdentifiers
 
 extension EntryKind {
-    static let all: [EntryKind] = [.character, .place, .faction, .term]
+    static let all: [EntryKind] = [.character, .place, .group, .term]
 
     var icon: IthacaIcon {
         switch self {
         case .character: .entryCharacter
         case .place: .entryPlace
-        case .faction: .entryFaction
+        case .group: .entryGroup
         case .term: .entryTerm
         }
     }
@@ -22,7 +22,7 @@ extension EntryKind {
         switch self {
         case .character: .entryKindCharacter
         case .place: .entryKindPlace
-        case .faction: .entryKindFaction
+        case .group: .entryKindGroup
         case .term: .entryKindTerm
         }
     }
@@ -31,8 +31,18 @@ extension EntryKind {
         switch self {
         case .character: .entryNewCharacter
         case .place: .entryNewPlace
-        case .faction: .entryNewFaction
+        case .group: .entryNewGroup
         case .term: .entryNewTerm
+        }
+    }
+
+    /// The new-sheet picker's line under the kind.
+    var hint: L10nKey {
+        switch self {
+        case .character: .newSheetHintCharacter
+        case .place: .newSheetHintPlace
+        case .group: .newSheetHintGroup
+        case .term: .newSheetHintTerm
         }
     }
 
@@ -42,11 +52,11 @@ extension EntryKind {
         switch (self, language) {
         case (.character, .ko): ["원하는 것", "두려운 것", "관계", "비밀/복선", "변화"]
         case (.place, .ko): ["있었던 일", "자주 오는 인물"]
-        case (.faction, .ko): ["근거지", "비밀"]
+        case (.group, .ko): ["근거지", "비밀"]
         case (.term, .ko): ["예문"]
         case (.character, .en): ["Wants", "Fears", "Relationships", "Secrets / foreshadowing", "Changes"]
         case (.place, .en): ["Events", "Regulars"]
-        case (.faction, .en): ["Base", "Secrets"]
+        case (.group, .en): ["Base", "Secrets"]
         case (.term, .en): ["Examples"]
         }
     }
@@ -145,7 +155,7 @@ extension AppModel {
     /// The open sheet's entry kind (nil for plain sheets). Reads only the front matter.
     var openEntryKind: EntryKind? { sheetId == nil ? nil : StoryBible.kind(of: text) }
 
-    /// "New Character / Place / Faction / Term": the template in `folder` (default: the current one), opened with the
+    /// "New Character / Place / Group / Term": the template in `folder` (default: the current one), opened with the
     /// caret on the name line.
     func newEntry(_ kind: EntryKind, in folder: String? = nil) {
         guard let projectId, !readOnly, let fid = folder ?? folderId ?? folders.first?.id, folders.contains(where: { $0.id == fid }) else { return }

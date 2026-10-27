@@ -94,7 +94,7 @@ pub fn bible_import_preview(
 pub enum EntryKind {
     Character,
     Place,
-    Faction,
+    Group,
     Term,
 }
 
@@ -104,7 +104,7 @@ impl From<ithaca_model::EntryKind> for EntryKind {
         match k {
             K::Character => EntryKind::Character,
             K::Place => EntryKind::Place,
-            K::Faction => EntryKind::Faction,
+            K::Group => EntryKind::Group,
             K::Term => EntryKind::Term,
         }
     }
@@ -116,7 +116,7 @@ impl From<EntryKind> for ithaca_model::EntryKind {
         match k {
             EntryKind::Character => K::Character,
             EntryKind::Place => K::Place,
-            EntryKind::Faction => K::Faction,
+            EntryKind::Group => K::Group,
             EntryKind::Term => K::Term,
         }
     }

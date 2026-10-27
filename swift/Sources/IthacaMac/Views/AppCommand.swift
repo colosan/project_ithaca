@@ -15,7 +15,7 @@ enum AppCommand: CaseIterable {
     case bold, italic, strike, heading1, heading2, heading3, body, quote, sceneBreak, symbols
     case showLibrary, showList, editorOnly, inspector, palette, textBigger, textSmaller, textReset
     // Story bible (design/screens/story-bible §1 · §6): new entries, an entry from the selection, a field, the import.
-    case newCharacter, newPlace, newFaction, newTerm, entryCharacter, entryPlace, entryFaction, entryTerm, addField, importBible
+    case newCharacter, newPlace, newGroup, newTerm, entryCharacter, entryPlace, entryGroup, entryTerm, addField, importBible
     // Story bible (story-bible spec §2 · §3).
     case completeName, entryCard
 
@@ -68,8 +68,8 @@ enum AppCommand: CaseIterable {
         case .textBigger: .menuTextBigger
         case .textSmaller: .menuTextSmaller
         case .textReset: .menuTextReset
-        case .newCharacter, .newPlace, .newFaction, .newTerm: entryKind!.newLabel
-        case .entryCharacter, .entryPlace, .entryFaction, .entryTerm: .entryFromSelection
+        case .newCharacter, .newPlace, .newGroup, .newTerm: entryKind!.newLabel
+        case .entryCharacter, .entryPlace, .entryGroup, .entryTerm: .entryFromSelection
         case .addField: .entryAddField
         case .importBible: .importBibleTitle
         case .completeName: .bibleCompleteName
@@ -82,14 +82,14 @@ enum AppCommand: CaseIterable {
         switch self {
         case .newCharacter, .entryCharacter: .character
         case .newPlace, .entryPlace: .place
-        case .newFaction, .entryFaction: .faction
+        case .newGroup, .entryGroup: .group
         case .newTerm, .entryTerm: .term
         default: nil
         }
     }
 
     /// From the selection: "Make Story Bible Entry · Character" (the context menu nests the kinds instead).
-    var fromSelection: Bool { [.entryCharacter, .entryPlace, .entryFaction, .entryTerm].contains(self) }
+    var fromSelection: Bool { [.entryCharacter, .entryPlace, .entryGroup, .entryTerm].contains(self) }
 
     /// The key equivalent. Checked for clashes in Settings → Shortcuts (every one listed there once).
     var keys: KeyboardShortcut? {
@@ -230,7 +230,7 @@ enum AppCommand: CaseIterable {
         case .toggleExclude, .bold, .italic, .strike, .heading1, .heading2, .heading3, .body, .quote, .sceneBreak, .symbols,
              .textBigger, .textSmaller, .textReset: .edit
         case .statusDraft, .statusRevising, .statusScheduled, .statusPublished: .sheet
-        case .newCharacter, .newPlace, .newFaction, .newTerm, .entryCharacter, .entryPlace, .entryFaction, .entryTerm: entryKind!.icon
+        case .newCharacter, .newPlace, .newGroup, .newTerm, .entryCharacter, .entryPlace, .entryGroup, .entryTerm: entryKind!.icon
         case .addField: .add
         case .importBible: .folderOpen
         case .completeName, .entryCard: .entryCharacter
@@ -304,8 +304,8 @@ enum AppCommand: CaseIterable {
         case .textBigger: m.stepTextSize(1)
         case .textSmaller: m.stepTextSize(-1)
         case .textReset: m.stepTextSize(0)
-        case .newCharacter, .newPlace, .newFaction, .newTerm: m.newEntry(entryKind!)
-        case .entryCharacter, .entryPlace, .entryFaction, .entryTerm: m.makeEntryFromSelection(entryKind!)
+        case .newCharacter, .newPlace, .newGroup, .newTerm: m.newEntry(entryKind!)
+        case .entryCharacter, .entryPlace, .entryGroup, .entryTerm: m.makeEntryFromSelection(entryKind!)
         case .addField: m.editor?.showAddFieldMenu()
         case .importBible: m.importBible()
         case .completeName: m.editor?.completeName()

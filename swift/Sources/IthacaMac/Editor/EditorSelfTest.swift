@@ -618,6 +618,11 @@ enum EditorSelfTest {
         let pid = model.projectId!, folder = model.folders[0].id
         // Start from no entries: the entry-sheet checks before this leave some behind.
         for s in model.folders.flatMap(\.sheets) where s.entry != nil { try? lib.deleteSheetForever(project: pid, sheet: s.id) }
+        // The ＋ picker: template fields without summary and notes; 0.6.0's `세력` reads as a group.
+        check(NewSheetPicker.templateFields(.character, .ko) == ["성격", "말투", "호칭", "반응"], "picker fields \(NewSheetPicker.templateFields(.character, .ko))")
+        check(NewSheetPicker.templateFields(.term, .ko) == ["뜻"], "picker fields (term)")
+        check(IthacaCore.parseEntry(text: "---\n종류: 세력\n---\n# 해무회\n")?.kind == .group, "old 세력 kind is a group")
+        check(model.nextEpisodeNumber(in: folder) != nil && model.folders.count > 1 && model.nextEpisodeNumber(in: model.folders[1].id) == nil, "episode number only in the serial folder")
         func make(_ text: String) -> String { (try? lib.createSheet(project: pid, folder: folder, text: text))!.id }
         let seoyun = make("---\n종류: 인물\n별칭: 윤이, 등대지기의 딸\n상태: 실종\n---\n# 서윤\n\n## 한 줄 소개\n불빛 횟수를 세는 아이.\n\n## 말투\n짧게 끊어 말한다.\n\n## 호칭\n오빠를 '진아'라고 부른다.\n\n## 변화\n- 3화부터: 말이 늘었다.\n- 20화부터: 등대를 떠난다.\n")
         let seojin = make("---\n종류: 인물\n---\n# 서진\n\n## 한 줄 소개\n서윤의 오빠.\n")

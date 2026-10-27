@@ -383,10 +383,10 @@ Entries are sheets whose front matter has `종류`/`kind` (ADR-0010 §1). Nothin
 below is computed from live sheet text on request. Offsets are UTF-16 (NSTextView).
 Swift: `parseEntry(text:)` · `entryTemplate(kind:name:language:)` · `bibleImportPreview(path:kind:language:)` (free
 functions) and `Library.bible(project:)` · `mentionsIn(project:text:)` · `appearances(project:entry:)` ·
-`importBible(project:folder:entries:)`. `EntryKind` cases `.character .place .faction .term`.
+`importBible(project:folder:entries:)`. `EntryKind` cases `.character .place .group .term`.
 
 ```rust
-// EntryKind { Character, Place, Faction, Term }
+// EntryKind { Character, Place, Group, Term }
 // BibleEntry { sheet, folder, kind: EntryKind, name: String, aliases: Vec<String>,
 //              fields: Vec<EntryField> /* front matter except 종류/별칭/본문에서 찾지 않음, in order */,
 //              sections: Vec<EntrySection> /* `## ` sections in order; text trimmed */,
@@ -410,7 +410,7 @@ fn parse_entry(text: String) -> Option<ParsedEntry>;   // ParsedEntry { kind, na
                                                         //               body_start: u32 /* UTF-16 offset after the front matter */ }
 /// Model-level: the text of a new entry. `language` picks Korean or English keys and section titles.
 /// Character: 별칭 나이 소속 능력 상태 외모 / 한 줄 소개 · 성격 · 말투 · 호칭 · 반응 · 메모
-/// Place: 별칭 속한 곳 / 한 줄 소개 · 감각 · 규칙 · 메모     Faction: 별칭 우두머리 / 한 줄 소개 · 구성원 · 목표 · 관계 · 메모
+/// Place: 별칭 속한 곳 / 한 줄 소개 · 감각 · 규칙 · 메모     Group: 별칭 대표 / 한 줄 소개 · 구성원 · 목표 · 관계 · 메모
 /// Term: 별칭 / 뜻 · 메모.   Empty values and empty sections; `name` under `# `.
 fn entry_template(kind: EntryKind, name: String, language: Language) -> String;
 

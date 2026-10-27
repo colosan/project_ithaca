@@ -66,7 +66,7 @@ public enum IthacaIcon: String, CaseIterable, Sendable {
     case moveDown
     case entryCharacter
     case entryPlace
-    case entryFaction
+    case entryGroup
     case entryTerm
 
     /** The Lucide vector this use draws. */
@@ -135,7 +135,7 @@ public enum IthacaIcon: String, CaseIterable, Sendable {
         case .moveDown: "arrow-down"
         case .entryCharacter: "user"
         case .entryPlace: "map-pin"
-        case .entryFaction: "flag"
+        case .entryGroup: "users"
         case .entryTerm: "book-a"
         }
     }

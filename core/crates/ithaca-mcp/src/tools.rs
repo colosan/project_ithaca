@@ -208,7 +208,7 @@ pub const TOOLS: &[Tool] = &[
     Tool {
         name: "bible",
         title: "Story bible",
-        description: "The project's story-bible entries (characters, places, factions, terms): \
+        description: "The project's story-bible entries (characters, places, groups, terms): \
             sheets whose front matter has `종류`/`kind`. Each entry has its name, aliases, the \
             front-matter fields (age, affiliation, status …), its `##` sections (summary, voice, \
             forms of address …) and where it was last mentioned (episode, mention count, up to 3 \
@@ -445,7 +445,7 @@ fn kind_name(k: EntryKind) -> &'static str {
     match k {
         EntryKind::Character => "character",
         EntryKind::Place => "place",
-        EntryKind::Faction => "faction",
+        EntryKind::Group => "group",
         EntryKind::Term => "term",
     }
 }

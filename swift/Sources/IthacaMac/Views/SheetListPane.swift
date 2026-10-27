@@ -25,6 +25,7 @@ struct SheetListPane: View {
     /// The editor takes the keyboard whenever it loads a sheet; a switch made from the list (click, ↑↓, type-select)
     /// hands it back to the list afterwards.
     @State private var keepFocus = false
+    @State private var picking = false
 
     var body: some View {
         let trash = model.showingTrash
@@ -50,13 +51,16 @@ struct SheetListPane: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     if sheets.isEmpty {
-                        VStack(spacing: T.Space.s150) {
-                            Caption(trash ? model.t(.trashEmptyState) : model.t(.sheetListEmpty))
-                            if !trash, let f = model.folder, !model.readOnly {
-                                KitButton(model.t(.sheetNew), icon: .add) { model.newSheet(in: f.id) }
+                        if !trash, let f = model.folder, !model.readOnly {
+                            // An empty folder shows the choices right away instead of a lone button.
+                            VStack(alignment: .leading, spacing: T.Space.s100) {
+                                Caption(model.t(.sheetListEmpty)).padding(.horizontal, T.Space.s200)
+                                NewSheetPicker(folder: f.id)
                             }
+                            .padding(.vertical, T.Space.s150)
+                        } else {
+                            Caption(trash ? model.t(.trashEmptyState) : model.t(.sheetListEmpty)).padding(T.Space.s300)
                         }
-                        .padding(T.Space.s300)
                     }
                     ForEach(sheets) { s in
                         SheetRow(sheet: s, trash: trash, active: !trash && s.id == model.sheetId, listFocused: listFocused) {
@@ -187,18 +191,15 @@ struct SheetListPane: View {
             Spacer(minLength: 0)
             IconButton(.search, label: model.t(.searchTitle)) { model.show(.palette(search: true)) }
             if !trash && model.folder != nil && !model.readOnly {
-                IconButton(.add, label: model.t(.sheetNew)) { model.newSheet() }
-                // The arrow beside ＋: a new story bible entry in this folder (story-bible §1).
-                Menu {
-                    ForEach(EntryKind.all, id: \.self) { k in Button(model.t(k.newLabel)) { model.newEntry(k) } }
-                } label: {
-                    EmptyView()
-                }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.visible)
-                .fixedSize()
-                .help(model.t(.entryNewMenu))
-                .accessibilityLabel(model.t(.entryNewMenu))
+                // ＋ asks what to make (blank sheet or a story bible kind); ⌘N is still the instant blank sheet.
+                IconButton(.add, label: model.t(.newSheetTitle), active: picking) { picking = true }
+                    .popover(isPresented: $picking, arrowEdge: .bottom) {
+                        if let f = model.folder {
+                            NewSheetPicker(folder: f.id, done: { picking = false }, autofocus: true)
+                                .frame(width: 320)
+                                .environment(model)
+                        }
+                    }
             }
         }
         .padding(.leading, T.Space.s200)

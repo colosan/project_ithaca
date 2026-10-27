@@ -66,6 +66,6 @@ enum class IthacaIcon(val asset: String) {
     MoveDown("arrow-down"),
     EntryCharacter("user"),
     EntryPlace("map-pin"),
-    EntryFaction("flag"),
+    EntryGroup("users"),
     EntryTerm("book-a"),
 }

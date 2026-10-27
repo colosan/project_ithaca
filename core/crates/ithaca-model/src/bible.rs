@@ -21,8 +21,8 @@ pub enum EntryKind {
     Character,
     /// `장소` / `place`
     Place,
-    /// `세력` / `faction`
-    Faction,
+    /// `집단` / `group` (`세력` / `faction` from 0.6.0 still read as this)
+    Group,
     /// `용어` / `term`
     Term,
 }
@@ -31,7 +31,7 @@ impl EntryKind {
     pub const ALL: [EntryKind; 4] = [
         EntryKind::Character,
         EntryKind::Place,
-        EntryKind::Faction,
+        EntryKind::Group,
         EntryKind::Term,
     ];
 
@@ -41,7 +41,7 @@ impl EntryKind {
         Some(match v.as_str() {
             "인물" | "character" => EntryKind::Character,
             "장소" | "place" => EntryKind::Place,
-            "세력" | "faction" => EntryKind::Faction,
+            "집단" | "group" | "세력" | "faction" => EntryKind::Group,
             "용어" | "term" => EntryKind::Term,
             _ => return None,
         })
@@ -52,11 +52,11 @@ impl EntryKind {
         match (self, language) {
             (EntryKind::Character, Language::Ko) => "인물",
             (EntryKind::Place, Language::Ko) => "장소",
-            (EntryKind::Faction, Language::Ko) => "세력",
+            (EntryKind::Group, Language::Ko) => "집단",
             (EntryKind::Term, Language::Ko) => "용어",
             (EntryKind::Character, Language::En) => "character",
             (EntryKind::Place, Language::En) => "place",
-            (EntryKind::Faction, Language::En) => "faction",
+            (EntryKind::Group, Language::En) => "group",
             (EntryKind::Term, Language::En) => "term",
         }
     }
@@ -106,7 +106,7 @@ pub fn field_keys(kind: EntryKind, language: Language) -> &'static [&'static str
     match (kind, language) {
         (EntryKind::Character, Language::Ko) => &["별칭", "나이", "소속", "능력", "상태", "외모"],
         (EntryKind::Place, Language::Ko) => &["별칭", "속한 곳"],
-        (EntryKind::Faction, Language::Ko) => &["별칭", "우두머리"],
+        (EntryKind::Group, Language::Ko) => &["별칭", "대표"],
         (EntryKind::Term, Language::Ko) => &["별칭"],
         (EntryKind::Character, Language::En) => &[
             "aliases",
@@ -117,7 +117,7 @@ pub fn field_keys(kind: EntryKind, language: Language) -> &'static [&'static str
             "appearance",
         ],
         (EntryKind::Place, Language::En) => &["aliases", "part of"],
-        (EntryKind::Faction, Language::En) => &["aliases", "leader"],
+        (EntryKind::Group, Language::En) => &["aliases", "leader"],
         (EntryKind::Term, Language::En) => &["aliases"],
     }
 }
@@ -129,7 +129,7 @@ pub fn section_titles(kind: EntryKind, language: Language) -> &'static [&'static
             &["한 줄 소개", "성격", "말투", "호칭", "반응", "메모"]
         }
         (EntryKind::Place, Language::Ko) => &["한 줄 소개", "감각", "규칙", "메모"],
-        (EntryKind::Faction, Language::Ko) => &["한 줄 소개", "구성원", "목표", "관계", "메모"],
+        (EntryKind::Group, Language::Ko) => &["한 줄 소개", "구성원", "목표", "관계", "메모"],
         (EntryKind::Term, Language::Ko) => &["뜻", "메모"],
         (EntryKind::Character, Language::En) => &[
             "Summary",
@@ -140,7 +140,7 @@ pub fn section_titles(kind: EntryKind, language: Language) -> &'static [&'static
             "Notes",
         ],
         (EntryKind::Place, Language::En) => &["Summary", "Senses", "Rules", "Notes"],
-        (EntryKind::Faction, Language::En) => {
+        (EntryKind::Group, Language::En) => {
             &["Summary", "Members", "Goals", "Relations", "Notes"]
         }
         (EntryKind::Term, Language::En) => &["Meaning", "Notes"],
@@ -828,6 +828,14 @@ mod tests {
     }
 
     #[test]
+    fn reads_the_old_group_label() {
+        for v in ["집단", "Group", "세력", "faction"] {
+            assert_eq!(EntryKind::parse(v), Some(EntryKind::Group), "{v}");
+        }
+        assert_eq!(EntryKind::Group.label(Language::Ko), "집단");
+    }
+
+    #[test]
     fn parses_an_entry() {
         let e = parse_entry(SEOYUN).unwrap();
         assert_eq!(e.kind, EntryKind::Character);
@@ -908,7 +916,7 @@ mod tests {
         assert_eq!(e.body_start, 14);
         assert_eq!(body_of(t), "");
         // No `# ` title: the first non-empty line names it.
-        let e = parse_entry("---\n종류: 세력\n---\n\n등대회\n## 목표\n").unwrap();
+        let e = parse_entry("---\n종류: 집단\n---\n\n등대회\n## 목표\n").unwrap();
         assert_eq!(e.name, "등대회");
         // Lines without a colon are ignored; aliases accumulate and dedup.
         let e = parse_entry("---\n종류: 인물\n아무 줄\n별칭: 윤이,, 윤이\n---\n# 서윤").unwrap();

@@ -617,12 +617,22 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case symbolTriangle = "symbol.triangle"
     case entryKindCharacter = "entry.kindCharacter"
     case entryKindPlace = "entry.kindPlace"
-    case entryKindFaction = "entry.kindFaction"
+    case entryKindGroup = "entry.kindGroup"
     case entryKindTerm = "entry.kindTerm"
     case entryNewCharacter = "entry.newCharacter"
     case entryNewPlace = "entry.newPlace"
-    case entryNewFaction = "entry.newFaction"
+    case entryNewGroup = "entry.newGroup"
     case entryNewTerm = "entry.newTerm"
+    case newSheetTitle = "newSheet.title"
+    case newSheetBlank = "newSheet.blank"
+    case newSheetBlankHint = "newSheet.blankHint"
+    case newSheetEpisodeHint = "newSheet.episodeHint"
+    case newSheetBible = "newSheet.bible"
+    case newSheetHintCharacter = "newSheet.hintCharacter"
+    case newSheetHintPlace = "newSheet.hintPlace"
+    case newSheetHintGroup = "newSheet.hintGroup"
+    case newSheetHintTerm = "newSheet.hintTerm"
+    case newSheetShortcut = "newSheet.shortcut"
     case entryFromSelection = "entry.fromSelection"
     case entryFromSelectionAs = "entry.fromSelectionAs"
     case entryCreated = "entry.created"
@@ -643,7 +653,6 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case importBibleEmpty = "importBible.empty"
     case importBibleImport = "importBible.import"
     case importBibleDone = "importBible.done"
-    case entryNewMenu = "entry.newMenu"
     case bibleCompleteName = "bible.completeName"
     case bibleCardTitle = "bible.card.title"
     case bibleEpisode = "bible.episode"
@@ -1298,12 +1307,22 @@ public enum L10n {
             .symbolTriangle: .text("세모"),
             .entryKindCharacter: .text("인물"),
             .entryKindPlace: .text("장소"),
-            .entryKindFaction: .text("세력"),
+            .entryKindGroup: .text("집단"),
             .entryKindTerm: .text("용어"),
             .entryNewCharacter: .text("새 인물"),
             .entryNewPlace: .text("새 장소"),
-            .entryNewFaction: .text("새 세력"),
+            .entryNewGroup: .text("새 집단"),
             .entryNewTerm: .text("새 용어"),
+            .newSheetTitle: .text("새로 만들기"),
+            .newSheetBlank: .text("빈 시트"),
+            .newSheetBlankHint: .text("원고 · 메모 · 무엇이든"),
+            .newSheetEpisodeHint: .text("{number}화로 이어서 써요"),
+            .newSheetBible: .text("설정 항목"),
+            .newSheetHintCharacter: .text("등장인물 — 성격과 말투"),
+            .newSheetHintPlace: .text("무대가 되는 곳"),
+            .newSheetHintGroup: .text("가문 · 길드 · 회사 · 나라"),
+            .newSheetHintTerm: .text("작품 속 낱말과 뜻"),
+            .newSheetShortcut: .text("⌘N 은 고르지 않고 바로 빈 시트를 만들어요."),
             .entryFromSelection: .text("설정 항목으로 만들기"),
             .entryFromSelectionAs: .text("설정 항목으로 만들기 · {kind}"),
             .entryCreated: .text("{folder}에 ‘{name}’ 항목을 만들었어요"),
@@ -1324,7 +1343,6 @@ public enum L10n {
             .importBibleEmpty: .text("이 위치에는 가져올 .md 파일이 없어요."),
             .importBibleImport: .text("가져오기"),
             .importBibleDone: .text("{folder}에 설정 항목 {count}개를 가져왔어요"),
-            .entryNewMenu: .text("새 설정 항목"),
             .bibleCompleteName: .text("이름 넣기"),
             .bibleCardTitle: .text("설정 카드"),
             .bibleEpisode: .text("{number}화"),
@@ -1958,12 +1976,22 @@ public enum L10n {
             .symbolTriangle: .text("Triangle"),
             .entryKindCharacter: .text("Character"),
             .entryKindPlace: .text("Place"),
-            .entryKindFaction: .text("Faction"),
+            .entryKindGroup: .text("Group"),
             .entryKindTerm: .text("Term"),
             .entryNewCharacter: .text("New Character"),
             .entryNewPlace: .text("New Place"),
-            .entryNewFaction: .text("New Faction"),
+            .entryNewGroup: .text("New Group"),
             .entryNewTerm: .text("New Term"),
+            .newSheetTitle: .text("Create"),
+            .newSheetBlank: .text("Blank sheet"),
+            .newSheetBlankHint: .text("Manuscript, notes, anything"),
+            .newSheetEpisodeHint: .text("Continues as episode {number}"),
+            .newSheetBible: .text("Story bible"),
+            .newSheetHintCharacter: .text("People — personality and voice"),
+            .newSheetHintPlace: .text("Where things happen"),
+            .newSheetHintGroup: .text("Families, guilds, companies, nations"),
+            .newSheetHintTerm: .text("Words of your world"),
+            .newSheetShortcut: .text("⌘N skips this and makes a blank sheet."),
             .entryFromSelection: .text("Make Story Bible Entry"),
             .entryFromSelectionAs: .text("Make Story Bible Entry · {kind}"),
             .entryCreated: .text("Created “{name}” in {folder}"),
@@ -1984,7 +2012,6 @@ public enum L10n {
             .importBibleEmpty: .text("There are no .md files to import here."),
             .importBibleImport: .text("Import"),
             .importBibleDone: .plural(one: "Imported {count} entry into {folder}", other: "Imported {count} entries into {folder}"),
-            .entryNewMenu: .text("New Story Bible Entry"),
             .bibleCompleteName: .text("Insert Name"),
             .bibleCardTitle: .text("Story Bible Card"),
             .bibleEpisode: .text("Ep. {number}"),

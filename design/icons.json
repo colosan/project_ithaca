@@ -70,7 +70,7 @@
     "moveDown": "arrow-down",
     "entryCharacter": "user",
     "entryPlace": "map-pin",
-    "entryFaction": "flag",
+    "entryGroup": "users",
     "entryTerm": "book-a"
   }
 }
