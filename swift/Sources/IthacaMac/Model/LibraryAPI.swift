@@ -318,6 +318,13 @@ protocol LibraryAPI: AnyObject {
     // Story bible (ADR-0010). The preview is the core's free function `bibleImportPreview` (StoryBible.swift).
     /// The previewed entry texts appended to `folder`, in order. All or nothing. Returns the new sheet ids.
     func importBible(project: String, folder: String, entries: [String]) throws -> [String]
+    // Story bible (core/API.md §Story bible, ADR-0010): computed from live sheet text on request, nothing stored.
+    /// Every live entry, most recently seen first (never seen last, by name).
+    func bible(project: String) throws -> [BibleEntry]
+    /// Mentions of matchable entries in `text` (the editor's text, may be unsaved), in order. UTF-16 offsets.
+    func mentionsIn(project: String, text: String) throws -> [Mention]
+    /// Every live non-entry sheet that mentions the entry, in reading order.
+    func appearances(project: String, entry: String) throws -> [Appearance]
 }
 
 extension Int64 {

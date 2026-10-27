@@ -19,6 +19,7 @@ enum PerfSelfTest {
     static func run() {
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.prohibited)
+        Headless.enable()
         // A background, windowless-looking process gets App Nap / efficiency cores; the real editor is a foreground app.
         let activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiated, .latencyCritical, .idleSystemSleepDisabled], reason: "perf self-test")
         defer { ProcessInfo.processInfo.endActivity(activity) }
@@ -29,6 +30,7 @@ enum PerfSelfTest {
         model.createProject(title: "Perf", language: .ko, folders: ["연재"], goal: nil)
         let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 1100, height: 800), styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = NSHostingView(rootView: ShellView().environment(model))
+        Headless.hide(window)  // invisible and click-through: tests must not cover the owner's screen
         window.makeKeyAndOrderFront(nil)
         pump(0.5)
         guard let tv = findTextView(window.contentView) else { fail("no text view") }
@@ -112,6 +114,7 @@ enum PerfSelfTest {
     static func runMem() {
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.prohibited)
+        Headless.enable()
         let lib = MockLibrary(seeded: false)
         let suite = "io.github.colosan.ithaca.memtest"
         UserDefaults().removePersistentDomain(forName: suite)
@@ -119,6 +122,7 @@ enum PerfSelfTest {
         model.createProject(title: "Mem", language: .ko, folders: ["연재"], goal: nil)
         let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 1100, height: 800), styleMask: [.titled], backing: .buffered, defer: false)
         window.contentView = NSHostingView(rootView: ShellView().environment(model))
+        Headless.hide(window)  // invisible and click-through: tests must not cover the owner's screen
         window.makeKeyAndOrderFront(nil)
         pump(0.5)
         guard let tv = findTextView(window.contentView) else { fail("no text view") }

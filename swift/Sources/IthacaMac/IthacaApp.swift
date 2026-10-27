@@ -560,6 +560,8 @@ struct IthacaCommands: Commands {
             item(.findNext, off: noSheet)
             item(.findPrevious, off: noSheet)
             item(.search, t(.searchTitle) + "…")
+            Divider()
+            item(.completeName, off: noSheet || ro)
         }
         // The system Format menu (fonts, rich-text bold) does nothing in a plain-text manuscript: Markdown marks instead.
         CommandGroup(replacing: .textFormatting) {
@@ -596,6 +598,8 @@ struct IthacaCommands: Commands {
             item(.inspector)
             item(.focus)
             item(.palette)
+            Divider()
+            item(.entryCard, off: noSheet)
             Divider()
         }
         CommandMenu(t(.shortcutsGroupSheet)) {

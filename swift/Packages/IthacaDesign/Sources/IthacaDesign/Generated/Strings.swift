@@ -644,6 +644,29 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case importBibleImport = "importBible.import"
     case importBibleDone = "importBible.done"
     case entryNewMenu = "entry.newMenu"
+    case bibleCompleteName = "bible.completeName"
+    case bibleCardTitle = "bible.card.title"
+    case bibleEpisode = "bible.episode"
+    case bibleCompleteLabel = "bible.complete.label"
+    case bibleCompleteOpened = "bible.complete.opened"
+    case bibleCompleteClosed = "bible.complete.closed"
+    case bibleCompleteInserted = "bible.complete.inserted"
+    case bibleCardLastSeen = "bible.card.lastSeen"
+    case bibleCardVoice = "bible.card.voice"
+    case bibleCardAddress = "bible.card.address"
+    case bibleCardChange = "bible.card.change"
+    case bibleCardOpen = "bible.card.open"
+    case inspectorMentionsTitle = "inspector.mentions.title"
+    case inspectorMentionsNone = "inspector.mentions.none"
+    case infoAppearances = "info.appearances"
+    case infoAppearanceRow = "info.appearanceRow"
+    case infoAppearancesNone = "info.appearancesNone"
+    case infoAppearancesNoMatch = "info.appearancesNoMatch"
+    case prefsEditorBible = "prefs.editor.bible"
+    case prefsEditorUnderlineNames = "prefs.editor.underlineNames"
+    case prefsEditorUnderlineNamesHint = "prefs.editor.underlineNamesHint"
+    case prefsEditorHoverCard = "prefs.editor.hoverCard"
+    case prefsEditorHoverCardHint = "prefs.editor.hoverCardHint"
 }
 
 enum L10nValue: Sendable {
@@ -1302,6 +1325,29 @@ public enum L10n {
             .importBibleImport: .text("가져오기"),
             .importBibleDone: .text("{folder}에 설정 항목 {count}개를 가져왔어요"),
             .entryNewMenu: .text("새 설정 항목"),
+            .bibleCompleteName: .text("이름 넣기"),
+            .bibleCardTitle: .text("설정 카드"),
+            .bibleEpisode: .text("{number}화"),
+            .bibleCompleteLabel: .text("이름 후보"),
+            .bibleCompleteOpened: .text("이름 후보 {count}개."),
+            .bibleCompleteClosed: .text("이름 후보를 닫았어요."),
+            .bibleCompleteInserted: .text("{name} 넣음."),
+            .bibleCardLastSeen: .text("마지막 등장 · {episode}"),
+            .bibleCardVoice: .text("말투"),
+            .bibleCardAddress: .text("호칭"),
+            .bibleCardChange: .text("최신 변화"),
+            .bibleCardOpen: .text("항목 열기"),
+            .inspectorMentionsTitle: .text("이 시트에 나온 항목"),
+            .inspectorMentionsNone: .text("이 시트에는 아직 설정 항목의 이름이 없어요."),
+            .infoAppearances: .text("나온 회차"),
+            .infoAppearanceRow: .text("{episode} · {count}번"),
+            .infoAppearancesNone: .text("아직 본문에 나오지 않았어요."),
+            .infoAppearancesNoMatch: .text("본문에서 찾지 않는 항목이에요."),
+            .prefsEditorBible: .text("설정 항목"),
+            .prefsEditorUnderlineNames: .text("본문의 설정 이름에 밑줄"),
+            .prefsEditorUnderlineNamesHint: .text("점선 밑줄로 보이기만 해요. 원고 글자는 그대로예요."),
+            .prefsEditorHoverCard: .text("마우스를 올리면 설정 카드"),
+            .prefsEditorHoverCardHint: .text("이름 위에 1초 머물면 카드가 떠요. 타자를 친 뒤 3초 동안은 안 떠요."),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -1939,6 +1985,29 @@ public enum L10n {
             .importBibleImport: .text("Import"),
             .importBibleDone: .plural(one: "Imported {count} entry into {folder}", other: "Imported {count} entries into {folder}"),
             .entryNewMenu: .text("New Story Bible Entry"),
+            .bibleCompleteName: .text("Insert Name"),
+            .bibleCardTitle: .text("Story Bible Card"),
+            .bibleEpisode: .text("Ep. {number}"),
+            .bibleCompleteLabel: .text("Name suggestions"),
+            .bibleCompleteOpened: .plural(one: "{count} name.", other: "{count} names."),
+            .bibleCompleteClosed: .text("Name suggestions closed."),
+            .bibleCompleteInserted: .text("Inserted {name}."),
+            .bibleCardLastSeen: .text("Last seen · {episode}"),
+            .bibleCardVoice: .text("Voice"),
+            .bibleCardAddress: .text("Forms of address"),
+            .bibleCardChange: .text("Latest change"),
+            .bibleCardOpen: .text("Open Entry"),
+            .inspectorMentionsTitle: .text("In This Sheet"),
+            .inspectorMentionsNone: .text("No story bible names in this sheet yet."),
+            .infoAppearances: .text("Appearances"),
+            .infoAppearanceRow: .plural(one: "{episode} · {count} mention", other: "{episode} · {count} mentions"),
+            .infoAppearancesNone: .text("Not in the manuscript yet."),
+            .infoAppearancesNoMatch: .text("This entry isn't looked for in the text."),
+            .prefsEditorBible: .text("Story bible"),
+            .prefsEditorUnderlineNames: .text("Underline story bible names"),
+            .prefsEditorUnderlineNamesHint: .text("A dotted line, drawn only. The text itself stays as it is."),
+            .prefsEditorHoverCard: .text("Show the card on hover"),
+            .prefsEditorHoverCardHint: .text("Rest the pointer on a name for a second. Never within 3 seconds of typing."),
         ],
     ]
 }

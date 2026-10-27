@@ -11,13 +11,14 @@ enum EditorSelfTest {
     static func run() {
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.prohibited)
+        Headless.enable()
         let lib = MockLibrary(seeded: false)
         let suite = "io.github.colosan.ithaca.editortest"
         UserDefaults().removePersistentDomain(forName: suite)
         let model = AppModel(library: lib, defaults: UserDefaults(suiteName: suite)!)
         model.createProject(title: "IME", language: .ko, folders: ["연재"], goal: nil)
         let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 900, height: 700), styleMask: [.titled], backing: .buffered, defer: false)
-        window.setFrameOrigin(NSPoint(x: -20000, y: -20000))  // off screen: tests must not show over the owner's work
+        Headless.hide(window)  // invisible and click-through: tests must not cover the owner's screen
         window.contentView = NSHostingView(rootView: ShellView().environment(model))
         window.makeKeyAndOrderFront(nil)
         pump(0.5)
@@ -601,6 +602,8 @@ enum EditorSelfTest {
         let sub = (tv.string as NSString).range(of: "소제목").location
         check(color(at: sub) == resolved(.token(T.Color.inkSecondary)), "becoming an entry restyles its ## lines")
         model.flushSave()
+        // 24. Story bible in the editor (story-bible spec §2–§5): `@` names, ⌥Esc, the card, mentions, underline.
+        bibleChecks(model: model, lib: lib, tv: tv, coord: coord, check: check, setText: setText, type: type, undo: undo)
 
         pb.clearContents()
         pb.writeObjects(clip.map { pairs in let i = NSPasteboardItem(); pairs.forEach { i.setData($0.1, forType: $0.0) }; return i })
@@ -609,7 +612,204 @@ enum EditorSelfTest {
         exit(failures.isEmpty ? 0 : 1)
     }
 
-    private static func pump(_ seconds: Double) { RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
+    // swiftlint:disable:next function_body_length
+    private static func bibleChecks(model: AppModel, lib: MockLibrary, tv: ManuscriptTextView, coord: ManuscriptView.Coordinator,
+                                    check: (Bool, String) -> Void, setText: (String, Int?) -> Void, type: (String) -> Void, undo: () -> Void) {
+        let pid = model.projectId!, folder = model.folders[0].id
+        // Start from no entries: the entry-sheet checks before this leave some behind.
+        for s in model.folders.flatMap(\.sheets) where s.entry != nil { try? lib.deleteSheetForever(project: pid, sheet: s.id) }
+        func make(_ text: String) -> String { (try? lib.createSheet(project: pid, folder: folder, text: text))!.id }
+        let seoyun = make("---\n종류: 인물\n별칭: 윤이, 등대지기의 딸\n상태: 실종\n---\n# 서윤\n\n## 한 줄 소개\n불빛 횟수를 세는 아이.\n\n## 말투\n짧게 끊어 말한다.\n\n## 호칭\n오빠를 '진아'라고 부른다.\n\n## 변화\n- 3화부터: 말이 늘었다.\n- 20화부터: 등대를 떠난다.\n")
+        let seojin = make("---\n종류: 인물\n---\n# 서진\n\n## 한 줄 소개\n서윤의 오빠.\n")
+        let island = make("---\n종류: 장소\n별칭: 섬\n---\n# 벼리섬\n\n## 한 줄 소개\n등대가 있는 섬.\n")
+        _ = make("---\n종류: 인물\n---\n# 벼리\n")
+        _ = make("---\nkind: term\n---\n# 한서\n\n## 뜻\n옛 기록.\n")
+        let ep1 = make("1화\n\n서진이 왔다.\n\"서윤아, 가자.\"\n벼리섬에 비가 왔다.")
+        let ep2 = make("2화\n\n서진은 혼자 남았다.")
+        _ = try? lib.setEpisode(project: pid, sheet: ep1, info: EpisodeInfo(number: 1, status: .published))
+        _ = try? lib.setEpisode(project: pid, sheet: ep2, info: EpisodeInfo(number: 2, status: .draft))
+        let page = make("")
+        model.reloadOutline()
+        model.openSheet(page)
+        pump(0.6)
+        check(model.bible.count == 5, "bible cache refreshed after the outline reload (\(model.bible.map(\.name)))")
+        check(model.bible.first?.name == "서진" && model.bible.first?.lastSeen?.number == 2, "bible sorted by last seen (\(model.bible.map(\.name)))")
+        let names = coord.names
+        func rows() -> [String] { names.state.rows.map { $0.alias ? "\($0.text)·\($0.entry.name)" : $0.text } }
+        func fresh(_ s: String) { names.close(); coord.card.close(); setText(s, nil) }
+        func marked(_ s: String) {
+            tv.setMarkedText(s, selectedRange: NSRange(location: (s as NSString).length, length: 0), replacementRange: NSRange(location: NSNotFound, length: 0))
+            pump(0.05)
+        }
+        let returnKey = #selector(NSResponder.insertNewline(_:))
+
+        // Trigger positions.
+        for (before, opens) in [("", true), ("말 ", true), ("「", true), ("\"", true), ("(", true), ("말\n", true), ("메일me", false), ("가", false)] {
+            fresh(before)
+            type("@")
+            check(names.isOpen == opens, "@ after '\(before.debugDescription)' \(opens ? "opens" : "does not open") the list")
+        }
+        fresh("")
+        type("@")
+        type("@")
+        check(tv.string == "@" && !names.isOpen, "@@ leaves a single @ and no list ('\(tv.string)')")
+        check(names.panelFrame == nil, "no panel on screen after @@")
+        fresh("")
+        type("@")
+        check(names.panelFrame.map { $0.width > 0 } == true && tv.window?.childWindows?.contains { $0 is NamePanel } == true && !(NSApp.keyWindow is NamePanel),
+              "panel shown as a child window that never becomes key")
+        check(tv.window?.firstResponder === tv, "the editor keeps the keyboard while the list is up")
+
+        // Filtering: prefix, initial consonants, alias, substring; ordering.
+        check(rows() == ["서진", "벼리섬", "서윤", "벼리", "한서"], "empty query: most recently seen first, then by name (\(rows()))")
+        type("ㅅ")
+        check(rows() == ["서진", "벼리섬", "서윤", "한서"], "ㅅ: 초성 at the start or inside, recent first (\(rows()))")
+        type("ㅇ")
+        check(rows() == ["서윤"], "ㅅㅇ → 서윤 only (\(rows()))")
+        fresh("")
+        type("@")
+        for s in ["윤", "이"] { type(s) }
+        check(rows() == ["윤이·서윤"], "alias match shows 'alias · name' (\(rows()))")
+        fresh("")
+        type("@")
+        for s in ["벼", "리"] { type(s) }
+        check(rows() == ["벼리", "벼리섬"], "exact match first (\(rows()))")
+        type("섬")
+        check(rows() == ["벼리섬"], "longer query narrows (\(rows()))")
+        type("ㅋ")
+        check(!names.isOpen, "no match closes the list")
+        fresh("")
+        type("@")
+        type("서")
+        type(" ")
+        check(!names.isOpen && tv.string == "@서 ", "a space closes the list, text kept")
+
+        // Return / Tab insert as one undo step; ⇧Return and Esc keep the text.
+        fresh("말 ")
+        type("@")
+        for s in ["서", "진"] { type(s) }
+        tv.doCommand(by: returnKey)
+        check(tv.string == "말 서진" && !names.isOpen && tv.selectedRange().location == 4, "Return inserts the name ('\(tv.string)')")
+        undo()
+        check(tv.string == "말 @서진", "one undo gives back @ and the query ('\(tv.string)')")
+        fresh("")
+        type("@")
+        type("윤")
+        tv.doCommand(by: #selector(NSResponder.insertTab(_:)))
+        check(tv.string == "서윤", "Tab inserts the name matched by its middle ('\(tv.string)')")
+        fresh("")
+        type("@")
+        for s in ["윤", "이"] { type(s) }
+        tv.doCommand(by: returnKey)
+        check(tv.string == "윤이", "an alias match inserts the alias ('\(tv.string)')")
+        fresh("")
+        type("@")
+        type("ㅅ")
+        tv.doCommand(by: #selector(NSResponder.moveDown(_:)))
+        check(names.state.selected == 1, "↓ moves the selection")
+        tv.doCommand(by: returnKey)
+        check(tv.string == "벼리섬", "Return inserts the selected row ('\(tv.string)')")
+        fresh("")
+        type("@")
+        type("서")
+        check(names.doCommand(returnKey, shift: true) && tv.string == "@서" && !names.isOpen, "⇧Return closes and keeps '@서' ('\(tv.string)')")
+        fresh("")
+        type("@")
+        type("서")
+        model.focusMode = true
+        tv.cancelOperation(nil)
+        check(tv.string == "@서" && !names.isOpen && model.focusMode, "Esc closes the list first, text kept, focus mode stays")
+        tv.cancelOperation(nil)
+        check(!model.focusMode, "the next Esc leaves focus mode")
+
+        // Composition: the syllable being composed filters too, and Return inserts the up-to-date name.
+        fresh("말 ")
+        type("@")
+        type("서")
+        marked("ㅇ")
+        check(rows().first == "서윤", "composing ㅇ filters (\(rows()))")
+        marked("유")
+        check(rows() == ["서윤"], "composing 유 matches 윤 (\(rows()))")
+        tv.doCommand(by: returnKey)
+        check(tv.string == "말 서윤" && !tv.hasMarkedText(), "marked syllable + Return inserts the right name ('\(tv.string)')")
+        fresh("")
+        type("@")
+        marked("ㅅ"); marked("서"); marked("성")
+        check(rows().contains("서윤"), "'성' while composing still finds 서윤 (ㅇ goes on to the next syllable) (\(rows()))")
+        // What the input method really sends for Return: commit the syllable, then insertNewline.
+        tv.insertText("서", replacementRange: tv.markedRange())
+        marked("ㅈ"); marked("지"); marked("진")
+        tv.insertText("진", replacementRange: tv.markedRange())
+        tv.doCommand(by: returnKey)
+        check(tv.string == "서진", "IME commit then Return inserts 서진 ('\(tv.string)')")
+
+        // ⌥Esc: names first, then the system's words; a particle after the word is cut.
+        fresh("서")
+        var index = -1
+        let comps = tv.completions(forPartialWordRange: NSRange(location: 0, length: 1), indexOfSelectedItem: &index) ?? []
+        check(comps.prefix(2) == ["서진", "서윤"] && index == 0, "⌥Esc completions put names first (\(comps.prefix(4)))")
+        fresh("벼리에")
+        check(tv.rangeForUserCompletion == NSRange(location: 0, length: 2), "⌥Esc ignores the particle after 벼리 (\(tv.rangeForUserCompletion))")
+        check(AppCommand.completeName.keysLabel == "⌥⎋" && AppCommand.entryCard.keysLabel == "⌥⌘R", "commands: Insert Name ⌥⎋, card ⌥⌘R")
+
+        // The card: the name at (or right before) the caret.
+        fresh("그때 서윤이가 벼리섬에 갔다")
+        tv.setSelectedRange(NSRange(location: 5, length: 0))
+        check(coord.showEntryCard() && coord.card.shown?.entry == seoyun, "⌥⌘R right after 서윤 opens its card")
+        check(tv.window?.firstResponder === tv, "the card leaves the keyboard in the editor")
+        tv.cancelOperation(nil)
+        check(!coord.card.isOpen && tv.string == "그때 서윤이가 벼리섬에 갔다", "Esc closes the card")
+        tv.setSelectedRange(NSRange(location: 10, length: 0))
+        check(coord.showEntryCard() && coord.card.shown?.entry == island, "inside 벼리섬: the longest name wins")
+        type("!")
+        check(!coord.card.isOpen && tv.string.contains("벼리!섬"), "typing closes the card, the key goes to the text")
+        tv.setSelectedRange(NSRange(location: 1, length: 0))
+        check(!coord.showEntryCard(), "not on a name: no card")
+        fresh("윤이는")
+        tv.setSelectedRange(NSRange(location: 1, length: 0))
+        check(coord.showEntryCard() && coord.card.shown?.entry == seoyun, "an alias opens the entry's card")
+        let last = model.lastAppearance(of: model.entry(seoyun)!)
+        check(last?.number == 1 && last?.lines.first == "\"서윤아, 가자.\"", "card: last seen 1화 with its line (\(String(describing: last)))")
+        let e = model.entry(seoyun)!
+        check(e.summary == "불빛 횟수를 세는 아이." && e.status == "실종" && e.section(.voice) == "짧게 끊어 말한다." && e.latestChange == "20화부터: 등대를 떠난다.",
+              "card fields: summary, status, voice, latest change")
+        tv.doCommand(by: returnKey)
+        pump(0.2)
+        check(model.sheetId == seoyun, "Return on the card opens the entry")
+        check(model.openEntry?.sheet == seoyun && model.appearances(seoyun).compactMap(\.number) == [1], "entry sheet: appearances (\(model.appearances(seoyun).map(\.number)))")
+        let numbered = model.appearances(seoyun).first { $0.number != nil }
+        check(numbered.map(model.appearanceLabel) == "1화", "appearance row label (\(numbered.map(model.appearanceLabel) ?? "-"))")
+        model.openSheet(page)
+        pump(0.3)
+
+        // Inspector "이 시트에 나온 항목": 1 s after typing stops, each entry once, in order; not while composing.
+        fresh("벼리섬에 서윤이 갔다. 서윤은 웃었다. 서진")
+        pump(1.3)
+        check(model.mentionedEntries.map(\.name) == ["벼리섬", "서윤", "서진"], "mentions in this sheet, once each (\(model.mentionedEntries.map(\.name)))")
+        tv.setSelectedRange(NSRange(location: 0, length: 0))
+        let gen = model.mentionsGeneration
+        marked("ㅎ")
+        pump(1.3)
+        check(model.mentionsGeneration == gen && tv.hasMarkedText(), "no mention refresh while composing")
+        tv.unmarkText()
+        pump(1.3)
+        check(model.mentionsGeneration > gen, "refreshed once the composition ended")
+
+        // Underline: rendering attributes only.
+        fresh("서윤이 벼리섬에 갔다")
+        pump(1.3)
+        check(coord.marks.debugUnderlined() == 0, "underline off by default")
+        model.underlineNames = true
+        pump(0.3)
+        check(coord.marks.debugUnderlined() == 2, "underline on: both names (\(coord.marks.debugUnderlined()))")
+        check(tv.string == "서윤이 벼리섬에 갔다" && tv.textStorage?.attribute(.underlineStyle, at: 0, effectiveRange: nil) == nil, "underline never touches the text or its attributes")
+        model.underlineNames = false
+        pump(0.3)
+        check(coord.marks.debugUnderlined() == 0, "underline off again")
+        model.flushSave()
+    }
+
+    private static func pump(_ seconds: Double) { NSApp.windows.forEach(Headless.hide); RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
 
     private static func findTextView(_ v: NSView?) -> ManuscriptTextView? {
         guard let v else { return nil }

@@ -241,6 +241,35 @@ final class CoreLibrary: LibraryAPI {
         try call { try lib.importBible(project: project, folder: folder, entries: entries) }
     }
 
+    // MARK: Story bible (core/API.md §Story bible)
+
+    func bible(project: String) throws -> [BibleEntry] {
+        try call { try lib.bible(project: project).map(Self.entry) }
+    }
+
+    func mentionsIn(project: String, text: String) throws -> [Mention] {
+        try call { try lib.mentionsIn(project: project, text: text).map { Mention(entry: $0.entry, offset: Int($0.offset), length: Int($0.length), alias: $0.alias) } }
+    }
+
+    func appearances(project: String, entry: String) throws -> [Appearance] {
+        try call { try lib.appearances(project: project, entry: entry).map(Self.appearance) }
+    }
+
+    static func entryKind(_ k: IthacaCore.EntryKind) -> IthacaCore.EntryKind {
+        k
+    }
+
+    private static func entry(_ e: IthacaCore.BibleEntry) -> BibleEntry {
+        BibleEntry(sheet: e.sheet, folder: e.folder, kind: entryKind(e.kind), name: e.name, aliases: e.aliases,
+                   fields: e.fields.map { EntryField(key: $0.key, value: $0.value) }, sections: e.sections.map { EntrySection(title: $0.title, body: $0.body) },
+                   matchable: e.matchable, lastSeen: e.lastSeen.map(appearance))
+    }
+
+    private static func appearance(_ a: IthacaCore.Appearance) -> Appearance {
+        Appearance(sheet: a.sheet, title: a.title, folder: a.folder, number: a.number.map { Int($0) }, count: Int(a.count),
+                   offset: Int(a.offset), length: Int(a.length), lines: a.lines)
+    }
+
     // MARK: Mapping
 
     private func call<T>(_ f: () throws -> T) throws -> T {

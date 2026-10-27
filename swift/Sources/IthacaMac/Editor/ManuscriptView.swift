@@ -50,6 +50,11 @@ struct ManuscriptView: NSViewRepresentable {
         context.coordinator.textView = tv
         // Story bible items on top of the context menu (EditorEntries.swift).
         tv.extraMenuItems = { [weak c = context.coordinator] in c?.entryMenuItems() ?? [] }
+        // Story bible: `@` completion, the summary card, ⌥Esc names (NameCompletion.swift, EntryCardPresenter.swift).
+        tv.names = context.coordinator.names
+        tv.card = context.coordinator.card
+        tv.marks = context.coordinator.marks
+        tv.bibleEntries = { [weak model] in model?.bible ?? [] }
         tv.onEscape = { [weak model] in
             guard let model, model.panesHidden else { return false }
             model.showPanes()
@@ -71,6 +76,7 @@ struct ManuscriptView: NSViewRepresentable {
         c.configure(sizeClass: sizeClass, force: false)
         if c.loadedToken != model.loadToken { c.load() }
         c.updateFocusDim()
+        c.marks.update()
     }
 
     @MainActor
@@ -85,6 +91,11 @@ struct ManuscriptView: NSViewRepresentable {
         private var loading = false
 
         init(model: AppModel) { self.model = model }
+
+        // Story bible in the editor (spec §2–§5).
+        lazy var names = NameCompletion(coordinator: self)
+        lazy var card = EntryCardPresenter(coordinator: self)
+        lazy var marks = NameMarks(coordinator: self)
 
         // MARK: EditorBridge
 
@@ -274,6 +285,8 @@ struct ManuscriptView: NSViewRepresentable {
             if tv.hasMarkedText() { tv.unmarkText() }
             loadedToken = model.loadToken
             tv.conveniences.reset()
+            names.close()
+            card.close()
             tv.string = model.text
             tv.undoManager?.removeAllActions()
             tv.isEditable = !model.editorLocked && model.sheetId != nil
@@ -287,6 +300,7 @@ struct ManuscriptView: NSViewRepresentable {
             DispatchQueue.main.async { [weak self] in
                 self?.reveal(center: true)
                 self?.updateFocusDim(force: true)
+                self?.marks.update(force: true)
             }
         }
 
@@ -300,6 +314,7 @@ struct ManuscriptView: NSViewRepresentable {
             if tv.isAutomaticTextReplacementEnabled != model.textReplacement { tv.isAutomaticTextReplacementEnabled = model.textReplacement }
             tv.padX = T.Layout.Editor.paddingX(sizeClass)
             tv.typewriter = model.typewriter
+            card.updateTracking()
             tv.measure = (T.Layout.Editor.measure * model.lineWidth.scale).rounded()
             // Cheap and guarded: typewriter scrolling changes the room below the last line without a restyle.
             tv.updateInsets()
@@ -318,12 +333,14 @@ struct ManuscriptView: NSViewRepresentable {
         func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions, range editedRange: NSRange, changeInLength delta: Int) {
             guard editedMask.contains(.editedCharacters), !loading else { return }
             dirtyRange = dirtyRange.map { NSUnionRange($0, editedRange) } ?? editedRange
+            marks.edited(editedRange, delta: delta, in: textStorage.string as NSString)
         }
 
         func textDidChange(_ notification: Notification) {
             guard let tv = textView, !loading, let storage = tv.textStorage else { return }
             // No copy of the text per keystroke: the model takes one when it needs it (save, counts).
             model.textDidChange(token: loadedToken) { Self.nativeCopy(storage.string as NSString) }
+            names.textDidChange()
             if breakAfterChange { breakAfterChange = false; tv.breakUndoCoalescing() }
             scheduleStyle()
             schedulePauseBreak()
@@ -345,7 +362,15 @@ struct ManuscriptView: NSViewRepresentable {
             return true
         }
 
+        /// Keys after the input method: the `@` list and the card get them first.
+        func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
+            let shift = NSApp.currentEvent.map { $0.type == .keyDown && $0.modifierFlags.contains(.shift) } ?? false
+            if names.doCommand(selector, shift: shift) { return true }
+            return card.doCommand(selector)
+        }
+
         func textViewDidChangeSelection(_ notification: Notification) {
+            if !loading { names.selectionChanged() }
             guard let tv = textView, !loading, !tv.hasMarkedText() else { return }
             model.rememberCaret(tv.selectedRange().location)
             updateFocusDim()
@@ -449,7 +474,7 @@ struct ManuscriptView: NSViewRepresentable {
             }
         }
 
-        private static func textRange(_ r: NSRange, in tcs: NSTextContentStorage) -> NSTextRange? {
+        static func textRange(_ r: NSRange, in tcs: NSTextContentStorage) -> NSTextRange? {
             guard let s = tcs.location(tcs.documentRange.location, offsetBy: r.location),
                   let e = tcs.location(s, offsetBy: r.length) else { return nil }
             return NSTextRange(location: s, end: e)
@@ -521,11 +546,29 @@ final class ManuscriptTextView: NSTextView {
     /// Pairs and `...` while typing (EditorConveniences.swift).
     let conveniences = EditorConveniences()
 
+    /// Story bible hooks (NameCompletion.swift, EntryCardPresenter.swift); the coordinator owns them.
+    weak var names: NameCompletion?
+    weak var card: EntryCardPresenter?
+    weak var marks: NameMarks?
+    var bibleEntries: () -> [BibleEntry] = { [] }
+    /// Last key input (typing or composing): hover cards stay away for a while after it.
+    private(set) var lastTyped = Date.distantPast
+
     /// Committed input from the keyboard / input method. Composition (marked text) passes straight through.
     override func insertText(_ string: Any, replacementRange: NSRange) {
-        if let s = (string as? String) ?? (string as? NSAttributedString)?.string,
-           conveniences.insert(s, replacementRange: replacementRange, in: self) { return }
+        lastTyped = Date()
+        card?.close()
+        if let s = (string as? String) ?? (string as? NSAttributedString)?.string {
+            if names?.willInsert(s, replacementRange: replacementRange) == true { return }
+            if conveniences.insert(s, replacementRange: replacementRange, in: self) { return }
+        }
         super.insertText(string, replacementRange: replacementRange)
+    }
+
+    override func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        lastTyped = Date()
+        card?.close()
+        super.setMarkedText(string, selectedRange: selectedRange, replacementRange: replacementRange)
     }
 
     override func deleteBackward(_ sender: Any?) {
@@ -626,11 +669,60 @@ final class ManuscriptTextView: NSTextView {
         super.keyDown(with: event)
     }
 
-    /// Esc first leaves focus mode (returns true when it did); otherwise the standard behavior (word completion).
+    /// Esc, in order (spec §2): the input method's composition (it never reaches us while marked) → the `@` list →
+    /// the card → focus mode / editor only (`onEscape`, true when it did something) → the standard word completion.
     var onEscape: (() -> Bool)?
     override func cancelOperation(_ sender: Any?) {
-        if !hasMarkedText(), onEscape?() == true { return }
+        if !hasMarkedText() {
+            if let names, names.isOpen { names.close(); return }
+            if card?.close() == true { return }
+            if onEscape?() == true { return }
+        }
         super.cancelOperation(sender)
+    }
+
+    /// ⌥Esc / F5: the story bible's names and aliases that start with the word first, the system's words after.
+    override func completions(forPartialWordRange charRange: NSRange, indexOfSelectedItem index: UnsafeMutablePointer<Int>) -> [String]? {
+        let system = super.completions(forPartialWordRange: charRange, indexOfSelectedItem: index) ?? []
+        let ns = string as NSString
+        guard NSMaxRange(charRange) <= ns.length else { return system }
+        let ours = NameMatcher.completions(ns.substring(with: charRange), in: bibleEntries())
+        guard !ours.isEmpty else { return system }
+        index.pointee = 0
+        return ours + system.filter { !ours.contains($0) }
+    }
+
+    /// The word before the caret without a particle after it ("벼리에" → "벼리"), when only the bare word starts a name.
+    override var rangeForUserCompletion: NSRange {
+        let r = super.rangeForUserCompletion
+        let ns = string as NSString
+        guard r.location != NSNotFound, r.length > 1, NSMaxRange(r) <= ns.length else { return r }
+        let entries = bibleEntries()
+        guard !entries.isEmpty else { return r }
+        let word = ns.substring(with: r)
+        guard NameMatcher.completions(word, in: entries).isEmpty else { return r }
+        for j in NameMatcher.josa where word.hasSuffix(j) && word.count > j.count {
+            let stem = String(word.dropLast(j.count))
+            if !NameMatcher.completions(stem, in: entries).isEmpty { return NSRange(location: r.location, length: (stem as NSString).length) }
+        }
+        return r
+    }
+
+    /// Force click on a name: its card. Anywhere else: the system's Look Up.
+    override func quickLook(with event: NSEvent) {
+        if let window, let card, card.show(at: characterIndex(for: window.convertPoint(toScreen: event.locationInWindow)), asked: true) { return }
+        super.quickLook(with: event)
+    }
+
+    /// Story bible names underlined (Settings › Editor): drawn on top, the text and its attributes untouched.
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        marks?.draw(in: self, dirtyRect: dirtyRect)
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        super.mouseMoved(with: event)
+        card?.mouseMoved(event)
     }
 
     override func pasteAsRichText(_ sender: Any?) { paste(sender) }

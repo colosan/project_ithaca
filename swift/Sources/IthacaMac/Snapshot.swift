@@ -20,11 +20,14 @@ enum Snapshot {
         /// Before the model exists (what info() reports: read-only, problems…).
         var info: LibraryInfo? = nil
         var view: (AppModel) -> AnyView = { _ in AnyView(ShellView()) }
+        /// After the first layout (the editor exists): open the `@` list, a card… Child windows and popovers are drawn in.
+        var after: ((AppModel) -> Void)? = nil
     }
 
     static func run(to dir: URL) {
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.prohibited)
+        Headless.enable()
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let only = ProcessInfo.processInfo.environment["ITHACA_SNAPSHOT_ONLY"]
         for s in scenes where only == nil || s.name.contains(only!) {
@@ -166,6 +169,67 @@ enum Snapshot {
                   view: { _ in AnyView(BibleImportView(path: Self.notionFixture())) }),
             Scene(name: "bible-import-missing", size: CGSize(width: 720, height: 640), titled: false, fit: true,
                   view: { _ in AnyView(BibleImportView(path: "/nonexistent/노션 내보내기")) }),
+        ] + bibleScenes
+    }
+
+    // MARK: Story bible (story-bible spec §2–§5)
+
+    /// Entries in the lore folder that the seeded manuscript mentions; episodes numbered so "last seen" reads `N화`.
+    static func bibleNamesSeed(_ m: AppModel) {
+        guard let pid = m.projectId, let lore = m.folders.first(where: { $0.name == "설정" })?.id ?? m.folders.last?.id else { return }
+        let texts = [
+            "---\n종류: 인물\n별칭: 윤이\n상태: 등대를 지키는 중\n---\n# 서윤\n\n## 한 줄 소개\n불빛 횟수를 세는 아이.\n\n## 말투\n짧게 끊어 말한다. 어른에게도 반말이 섞인다.\n\n## 호칭\n엘리엇을 '선장님'이라 부른다.\n\n## 변화\n- 3화부터: 아버지의 logbook을 몰래 읽는다.\n",
+            "---\n종류: 인물\n별칭: Elliot\n---\n# 엘리엇\n\n## 한 줄 소개\n난파선에서 살아남은 지도 제작자.\n",
+            "---\n종류: 장소\n---\n# 벼리섬\n\n## 한 줄 소개\n등대가 있는 작은 섬.\n",
+            "---\n종류: 용어\n---\n# 열한 번째 신호\n\n## 뜻\n등대 불빛이 열한 번 깜박이는 밤.\n",
+        ]
+        for t in texts { _ = try? m.library.createSheet(project: pid, folder: lore, text: t) }
+        if let serial = m.folders.first?.id { _ = try? m.library.renumberEpisodes(project: pid, folder: serial) }
+        m.reloadOutline()
+        m.refreshBible()
+        m.refreshMentions()
+    }
+
+    /// Types `@` + `query` at the end of the manuscript's second paragraph, as the keyboard would.
+    static func typeAt(_ m: AppModel, after needle: String, _ input: [String]) {
+        guard let coord = m.editor as? ManuscriptView.Coordinator, let tv = coord.textView else { return }
+        let r = (tv.string as NSString).range(of: needle)
+        guard r.location != NSNotFound else { return }
+        tv.setSelectedRange(NSRange(location: NSMaxRange(r), length: 0))
+        for s in input { tv.insertText(s, replacementRange: tv.selectedRange()) }
+    }
+
+    static func cardAt(_ m: AppModel, _ needle: String) {
+        guard let coord = m.editor as? ManuscriptView.Coordinator, let tv = coord.textView else { return }
+        let r = (tv.string as NSString).range(of: needle)
+        guard r.location != NSNotFound else { return }
+        tv.setSelectedRange(NSRange(location: NSMaxRange(r), length: 0))
+        coord.showEntryCard()
+    }
+
+    static var bibleScenes: [Scene] {
+        let wide = CGSize(width: 1240, height: 800)
+        func complete(_ name: String, dark: Bool = false, locale: LocalePref = .ko) -> Scene {
+            Scene(name: name, size: wide, dark: dark, locale: locale, setup: { m, _ in bibleNamesSeed(m) },
+                  after: { m in typeAt(m, after: "횟수를 셌다.", ["\n", "\"", "@", "ㅅ"]) })
+        }
+        func card(_ name: String, dark: Bool = false, locale: LocalePref = .ko) -> Scene {
+            Scene(name: name, size: wide, dark: dark, locale: locale, setup: { m, _ in bibleNamesSeed(m) }, after: { m in cardAt(m, "서윤") })
+        }
+        return [
+            complete("bible-complete"), complete("bible-complete-dark", dark: true),
+            card("bible-card"), card("bible-card-dark", dark: true), card("bible-card-en", locale: .en),
+            Scene(name: "bible-inspector-reference", size: wide, setup: { m, d in
+                bibleNamesSeed(m); m.underlineNames = true; m.inspectorOpen = true; d.set("reference", forKey: "ithaca.inspectorTab")
+            }),
+            Scene(name: "bible-inspector-reference-dark", size: wide, dark: true, setup: { m, d in
+                bibleNamesSeed(m); m.underlineNames = true; m.inspectorOpen = true; d.set("reference", forKey: "ithaca.inspectorTab")
+            }),
+            Scene(name: "bible-entry-info", size: wide, setup: { m, d in
+                bibleNamesSeed(m)
+                if let e = m.bible.first(where: { $0.name == "서윤" }) { m.openSheet(e.sheet) }
+                m.inspectorOpen = true; d.set("info", forKey: "ithaca.inspectorTab")
+            }),
         ]
     }
 
@@ -275,18 +339,44 @@ enum Snapshot {
             .frame(width: size.width, height: size.height, alignment: .top)
             .background(Color.surfaceCanvas)
         let window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: s.titled ? [.titled, .fullSizeContentView] : [.borderless], backing: .buffered, defer: false)
-        window.setFrameOrigin(NSPoint(x: -20000, y: -20000))  // off screen: tests must not show over the owner's work
+        Headless.hide(window)  // invisible and click-through: tests must not cover the owner's screen
         window.appearance = appearance
         let host = NSHostingView(rootView: root)
         host.frame = CGRect(origin: .zero, size: size)
         window.contentView = host
-        window.setFrameOrigin(NSPoint(x: -10_000, y: -10_000))
         window.orderFrontRegardless()
         // Let async work (text loading, tasks, layout passes) settle.
         for _ in 0..<6 { RunLoop.main.run(until: Date().addingTimeInterval(0.1)); host.layoutSubtreeIfNeeded() }
+        if let after = s.after {
+            after(model)
+            for _ in 0..<4 { RunLoop.main.run(until: Date().addingTimeInterval(0.1)); host.layoutSubtreeIfNeeded() }
+        }
         guard let rep = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { return }
         host.cacheDisplay(in: host.bounds, to: rep)
-        try? rep.representation(using: .png, properties: [:])?.write(to: url)
+        // Panels and popovers over the window (the `@` list, the card) are windows of their own: draw them in.
+        let extra = NSApp.windows.filter { $0 !== window && $0.isVisible && ($0 is NamePanel || String(describing: type(of: $0)).contains("Popover")) }
+        if extra.isEmpty {
+            try? rep.representation(using: .png, properties: [:])?.write(to: url)
+        } else {
+            let image = NSImage(size: host.bounds.size)
+            image.lockFocus()
+            rep.draw(in: host.bounds)
+            for w in extra {
+                // The content only: a popover's frame (arrow, translucent edge) caches as black.
+                guard let v = w.contentView, let r = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { continue }
+                v.cacheDisplay(in: v.bounds, to: r)
+                let f = v.convert(v.bounds, to: nil)
+                let at = NSRect(x: w.frame.minX + f.minX - window.frame.minX, y: w.frame.minY + f.minY - window.frame.minY, width: f.width, height: f.height)
+                // The cache has no alpha: clip to the panel's rounded shape so its corners don't come out black.
+                NSGraphicsContext.saveGraphicsState()
+                NSBezierPath(roundedRect: at, xRadius: T.Radius.panel, yRadius: T.Radius.panel).addClip()
+                r.draw(in: at)
+                NSGraphicsContext.restoreGraphicsState()
+            }
+            image.unlockFocus()
+            if let tiff = image.tiffRepresentation, let out = NSBitmapImageRep(data: tiff) { try? out.representation(using: .png, properties: [:])?.write(to: url) }
+            for w in extra { w.orderOut(nil) }
+        }
         window.orderOut(nil)
         print("  \(url.lastPathComponent)")
     }

@@ -148,6 +148,11 @@ private struct EditorSettings: View {
                 .pickerStyle(.segmented)
                 Toggle(isOn: $m.textReplacement) { labeled(.prefsEditorTextReplacement, .prefsEditorTextReplacementHint) }.toggleStyle(KitSwitchStyle())
             }
+            // Story bible in the text (spec §3 · §5): both off by default.
+            Section(model.t(.prefsEditorBible)) {
+                Toggle(isOn: $m.underlineNames) { labeled(.prefsEditorUnderlineNames, .prefsEditorUnderlineNamesHint) }.toggleStyle(KitSwitchStyle())
+                Toggle(isOn: $m.hoverCard) { labeled(.prefsEditorHoverCard, .prefsEditorHoverCardHint) }.toggleStyle(KitSwitchStyle())
+            }
             SymbolListSettings()
         }
         .formStyle(.grouped)

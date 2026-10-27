@@ -639,6 +639,29 @@ export type StringKey =
   | "importBible.import"
   | "importBible.done"
   | "entry.newMenu"
+  | "bible.completeName"
+  | "bible.card.title"
+  | "bible.episode"
+  | "bible.complete.label"
+  | "bible.complete.opened"
+  | "bible.complete.closed"
+  | "bible.complete.inserted"
+  | "bible.card.lastSeen"
+  | "bible.card.voice"
+  | "bible.card.address"
+  | "bible.card.change"
+  | "bible.card.open"
+  | "inspector.mentions.title"
+  | "inspector.mentions.none"
+  | "info.appearances"
+  | "info.appearanceRow"
+  | "info.appearancesNone"
+  | "info.appearancesNoMatch"
+  | "prefs.editor.bible"
+  | "prefs.editor.underlineNames"
+  | "prefs.editor.underlineNamesHint"
+  | "prefs.editor.hoverCard"
+  | "prefs.editor.hoverCardHint"
   ;
 
 type Value = string | { one: string; other: string };
@@ -1279,7 +1302,30 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "importBible.empty": "이 위치에는 가져올 .md 파일이 없어요.",
     "importBible.import": "가져오기",
     "importBible.done": "{folder}에 설정 항목 {count}개를 가져왔어요",
-    "entry.newMenu": "새 설정 항목"
+    "entry.newMenu": "새 설정 항목",
+    "bible.completeName": "이름 넣기",
+    "bible.card.title": "설정 카드",
+    "bible.episode": "{number}화",
+    "bible.complete.label": "이름 후보",
+    "bible.complete.opened": "이름 후보 {count}개.",
+    "bible.complete.closed": "이름 후보를 닫았어요.",
+    "bible.complete.inserted": "{name} 넣음.",
+    "bible.card.lastSeen": "마지막 등장 · {episode}",
+    "bible.card.voice": "말투",
+    "bible.card.address": "호칭",
+    "bible.card.change": "최신 변화",
+    "bible.card.open": "항목 열기",
+    "inspector.mentions.title": "이 시트에 나온 항목",
+    "inspector.mentions.none": "이 시트에는 아직 설정 항목의 이름이 없어요.",
+    "info.appearances": "나온 회차",
+    "info.appearanceRow": "{episode} · {count}번",
+    "info.appearancesNone": "아직 본문에 나오지 않았어요.",
+    "info.appearancesNoMatch": "본문에서 찾지 않는 항목이에요.",
+    "prefs.editor.bible": "설정 항목",
+    "prefs.editor.underlineNames": "본문의 설정 이름에 밑줄",
+    "prefs.editor.underlineNamesHint": "점선 밑줄로 보이기만 해요. 원고 글자는 그대로예요.",
+    "prefs.editor.hoverCard": "마우스를 올리면 설정 카드",
+    "prefs.editor.hoverCardHint": "이름 위에 1초 머물면 카드가 떠요. 타자를 친 뒤 3초 동안은 안 떠요."
   },
   "en": {
     "app.name": "Ithaca",
@@ -2009,7 +2055,36 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
       "one": "Imported {count} entry into {folder}",
       "other": "Imported {count} entries into {folder}"
     },
-    "entry.newMenu": "New Story Bible Entry"
+    "entry.newMenu": "New Story Bible Entry",
+    "bible.completeName": "Insert Name",
+    "bible.card.title": "Story Bible Card",
+    "bible.episode": "Ep. {number}",
+    "bible.complete.label": "Name suggestions",
+    "bible.complete.opened": {
+      "one": "{count} name.",
+      "other": "{count} names."
+    },
+    "bible.complete.closed": "Name suggestions closed.",
+    "bible.complete.inserted": "Inserted {name}.",
+    "bible.card.lastSeen": "Last seen · {episode}",
+    "bible.card.voice": "Voice",
+    "bible.card.address": "Forms of address",
+    "bible.card.change": "Latest change",
+    "bible.card.open": "Open Entry",
+    "inspector.mentions.title": "In This Sheet",
+    "inspector.mentions.none": "No story bible names in this sheet yet.",
+    "info.appearances": "Appearances",
+    "info.appearanceRow": {
+      "one": "{episode} · {count} mention",
+      "other": "{episode} · {count} mentions"
+    },
+    "info.appearancesNone": "Not in the manuscript yet.",
+    "info.appearancesNoMatch": "This entry isn't looked for in the text.",
+    "prefs.editor.bible": "Story bible",
+    "prefs.editor.underlineNames": "Underline story bible names",
+    "prefs.editor.underlineNamesHint": "A dotted line, drawn only. The text itself stays as it is.",
+    "prefs.editor.hoverCard": "Show the card on hover",
+    "prefs.editor.hoverCardHint": "Rest the pointer on a name for a second. Never within 3 seconds of typing."
   }
 };
 

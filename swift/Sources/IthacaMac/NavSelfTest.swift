@@ -12,6 +12,7 @@ enum NavSelfTest {
     static func run() {
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.prohibited)
+        Headless.enable()
         let lib = MockLibrary(seeded: true)
         let suite = "io.github.colosan.ithaca.navtest"
         UserDefaults().removePersistentDomain(forName: suite)
@@ -27,7 +28,7 @@ enum NavSelfTest {
 
         // Offscreen window (far off any display) with the real shell, 1240 pt: everything docked.
         let window = NSWindow(contentRect: CGRect(x: -30000, y: -30000, width: 1240, height: 800), styleMask: [.titled], backing: .buffered, defer: false)
-        window.setFrameOrigin(NSPoint(x: -20000, y: -20000))  // off screen: tests must not show over the owner's work
+        Headless.hide(window)  // invisible and click-through: tests must not cover the owner's screen
         window.contentView = NSHostingView(rootView: ShellView().environment(model))
         window.orderFrontRegardless()
         pump(0.5)
@@ -175,7 +176,7 @@ enum NavSelfTest {
         try? "not an entry".write(to: dir.appendingPathComponent("메모.txt"), atomically: true, encoding: .utf8)
     }
 
-    private static func pump(_ seconds: Double) { RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
+    private static func pump(_ seconds: Double) { NSApp.windows.forEach(Headless.hide); RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
 
     private static func findTextView(_ v: NSView) -> ManuscriptTextView? {
         if let t = v as? ManuscriptTextView { return t }

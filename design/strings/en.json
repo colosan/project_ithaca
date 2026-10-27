@@ -726,5 +726,34 @@
     "one": "Imported {count} entry into {folder}",
     "other": "Imported {count} entries into {folder}"
   },
-  "entry.newMenu": "New Story Bible Entry"
+  "entry.newMenu": "New Story Bible Entry",
+  "bible.completeName": "Insert Name",
+  "bible.card.title": "Story Bible Card",
+  "bible.episode": "Ep. {number}",
+  "bible.complete.label": "Name suggestions",
+  "bible.complete.opened": {
+    "one": "{count} name.",
+    "other": "{count} names."
+  },
+  "bible.complete.closed": "Name suggestions closed.",
+  "bible.complete.inserted": "Inserted {name}.",
+  "bible.card.lastSeen": "Last seen · {episode}",
+  "bible.card.voice": "Voice",
+  "bible.card.address": "Forms of address",
+  "bible.card.change": "Latest change",
+  "bible.card.open": "Open Entry",
+  "inspector.mentions.title": "In This Sheet",
+  "inspector.mentions.none": "No story bible names in this sheet yet.",
+  "info.appearances": "Appearances",
+  "info.appearanceRow": {
+    "one": "{episode} · {count} mention",
+    "other": "{episode} · {count} mentions"
+  },
+  "info.appearancesNone": "Not in the manuscript yet.",
+  "info.appearancesNoMatch": "This entry isn't looked for in the text.",
+  "prefs.editor.bible": "Story bible",
+  "prefs.editor.underlineNames": "Underline story bible names",
+  "prefs.editor.underlineNamesHint": "A dotted line, drawn only. The text itself stays as it is.",
+  "prefs.editor.hoverCard": "Show the card on hover",
+  "prefs.editor.hoverCardHint": "Rest the pointer on a name for a second. Never within 3 seconds of typing."
 }

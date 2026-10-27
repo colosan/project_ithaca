@@ -16,6 +16,8 @@ enum AppCommand: CaseIterable {
     case showLibrary, showList, editorOnly, inspector, palette, textBigger, textSmaller, textReset
     // Story bible (design/screens/story-bible §1 · §6): new entries, an entry from the selection, a field, the import.
     case newCharacter, newPlace, newFaction, newTerm, entryCharacter, entryPlace, entryFaction, entryTerm, addField, importBible
+    // Story bible (story-bible spec §2 · §3).
+    case completeName, entryCard
 
     var label: L10nKey {
         switch self {
@@ -70,6 +72,8 @@ enum AppCommand: CaseIterable {
         case .entryCharacter, .entryPlace, .entryFaction, .entryTerm: .entryFromSelection
         case .addField: .entryAddField
         case .importBible: .importBibleTitle
+        case .completeName: .bibleCompleteName
+        case .entryCard: .bibleCardTitle
         }
     }
 
@@ -128,6 +132,9 @@ enum AppCommand: CaseIterable {
         case .trashSheet: KeyboardShortcut(.delete, modifiers: .command)
         // The Settings scene's own menu item; listed here for the palette row and the shortcut list.
         case .settings: KeyboardShortcut(",")
+        // NSTextView's own `complete:` key; the menu item makes it findable (Edit › Insert Name).
+        case .completeName: KeyboardShortcut(.escape, modifiers: .option)
+        case .entryCard: KeyboardShortcut("r", modifiers: [.command, .option])
         default: nil
         }
     }
@@ -146,6 +153,7 @@ enum AppCommand: CaseIterable {
         case .delete: s += "⌫"
         case .upArrow: s += "↑"
         case .downArrow: s += "↓"
+        case .escape: s += "⎋"
         default: s += String(k.key.character).uppercased()
         }
         return s
@@ -156,7 +164,7 @@ enum AppCommand: CaseIterable {
     var typedOnly: Bool {
         if status != nil || format != nil || entryKind != nil { return true }
         return switch self {
-        case .symbols, .findNext, .findPrevious, .textBigger, .textSmaller, .textReset, .showLibrary, .showList, .editorOnly: true
+        case .symbols, .findNext, .findPrevious, .textBigger, .textSmaller, .textReset, .showLibrary, .showList, .editorOnly, .completeName: true
         default: false
         }
     }
@@ -187,7 +195,7 @@ enum AppCommand: CaseIterable {
     }
 
     /// Commands that act on the manuscript view (it needs the focus back when run from the palette).
-    var editing: Bool { format != nil || [.symbols, .findInSheet, .findNext, .findPrevious, .addField].contains(self) }
+    var editing: Bool { format != nil || [.symbols, .findInSheet, .findNext, .findPrevious, .addField, .completeName, .entryCard].contains(self) }
 
     /// What the palette shows (some labels depend on the open sheet).
     @MainActor func title(_ m: AppModel) -> String {
@@ -225,6 +233,7 @@ enum AppCommand: CaseIterable {
         case .newCharacter, .newPlace, .newFaction, .newTerm, .entryCharacter, .entryPlace, .entryFaction, .entryTerm: entryKind!.icon
         case .addField: .add
         case .importBible: .folderOpen
+        case .completeName, .entryCard: .entryCharacter
         }
     }
 
@@ -238,7 +247,8 @@ enum AppCommand: CaseIterable {
         if entryKind != nil { return m.projectId != nil }
         if m.readOnly, status != nil { return false }
         if let status { return m.sheetId != nil && m.sheet?.episode?.status != status }
-        if format != nil || self == .symbols { return m.sheetId != nil && !m.editorLocked }
+        if format != nil || self == .symbols || self == .completeName { return m.sheetId != nil && !m.editorLocked }
+        if self == .entryCard { return m.sheetId != nil && !m.bible.isEmpty }
         return switch self {
         case .sheetInfo, .history, .moveUp, .moveDown, .trashSheet, .copyForPaste, .saveNow, .previousSheet, .nextSheet,
              .findInSheet, .findNext, .findPrevious: m.sheetId != nil
@@ -298,6 +308,8 @@ enum AppCommand: CaseIterable {
         case .entryCharacter, .entryPlace, .entryFaction, .entryTerm: m.makeEntryFromSelection(entryKind!)
         case .addField: m.editor?.showAddFieldMenu()
         case .importBible: m.importBible()
+        case .completeName: m.editor?.completeName()
+        case .entryCard: m.editor?.showEntryCard()
         }
     }
 
@@ -313,8 +325,8 @@ enum AppCommand: CaseIterable {
     /// Settings → Shortcuts: every key equivalent once, grouped like the menus.
     static let shortcutGroups: [(L10nKey, [AppCommand])] = [
         (.shortcutsGroupGeneral, [.newSheet, .newProject, .palette, .search, .saveNow, .export, .history, .settings]),
-        (.shortcutsGroupView, [.showLibrary, .showList, .editorOnly, .focus, .inspector, .textBigger, .textSmaller, .textReset]),
-        (.shortcutsGroupFormat, [.bold, .italic, .strike, .heading1, .heading2, .heading3, .body, .quote, .sceneBreak, .symbols]),
+        (.shortcutsGroupView, [.showLibrary, .showList, .editorOnly, .focus, .inspector, .entryCard, .textBigger, .textSmaller, .textReset]),
+        (.shortcutsGroupFormat, [.bold, .italic, .strike, .heading1, .heading2, .heading3, .body, .quote, .sceneBreak, .symbols, .completeName]),
         (.shortcutsGroupSheet, [.previousSheet, .nextSheet, .moveUp, .moveDown, .findInSheet, .findNext, .findPrevious, .copyForPaste, .trashSheet]),
     ]
 }
