@@ -91,6 +91,7 @@ struct ShellView: View {
                 case .newProject(let firstRun): NewProjectView(firstRun: firstRun)
                 case .projectSettings: ProjectSettingsView()
                 case .importSkipped: ImportSkippedView()
+                case .importBible(let path): BibleImportView(path: path)
                 case .palette: EmptyView()
                 }
             }
@@ -230,7 +231,7 @@ struct ToastBar: View {
             if let undo = toast.undo {
                 // A real button (ghost on the dark toast), not just bold text.
                 Button { undo(); model.toast = nil } label: {
-                    Text(model.t(.actionUndo))
+                    Text(toast.action ?? model.t(.actionUndo))
                         .font(Fonts.swiftUI(.label, weight: T.Typography.heading.weight))
                         .padding(.horizontal, T.Space.s100)
                         .padding(.vertical, T.Space.s25)

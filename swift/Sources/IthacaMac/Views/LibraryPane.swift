@@ -1,5 +1,6 @@
 // Library pane: projects → folders (open project only), new folder, trash, new project, settings.
 // Folders and projects are managed here only: rename in place (double-click a folder, or the context menu), delete, new.
+import IthacaCore
 import IthacaDesign
 import SwiftUI
 
@@ -175,7 +176,12 @@ private struct FolderRow: View {
         .simultaneousGesture(TapGesture(count: 2).onEnded { if !model.readOnly { rename() } })
         .help(f.name)
         .contextMenu {
-            if !model.readOnly { Button(model.t(.sheetNew)) { model.newSheet(in: f.id) } }
+            if !model.readOnly {
+                Button(model.t(.sheetNew)) { model.newSheet(in: f.id) }
+                // Story bible entries straight into this folder (story-bible §1).
+                ForEach(EntryKind.all, id: \.self) { k in Button(model.t(k.newLabel)) { model.newEntry(k, in: f.id) } }
+                Divider()
+            }
             Button(model.t(.folderInfo)) { model.showFolderInfo(f.id) }
             if !model.readOnly {
                 Divider()

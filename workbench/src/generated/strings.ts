@@ -610,6 +610,35 @@ export type StringKey =
   | "symbol.diamond"
   | "symbol.square"
   | "symbol.triangle"
+  | "entry.kindCharacter"
+  | "entry.kindPlace"
+  | "entry.kindFaction"
+  | "entry.kindTerm"
+  | "entry.newCharacter"
+  | "entry.newPlace"
+  | "entry.newFaction"
+  | "entry.newTerm"
+  | "entry.fromSelection"
+  | "entry.fromSelectionAs"
+  | "entry.created"
+  | "entry.addField"
+  | "entry.addFieldCustom"
+  | "entry.addFieldPrompt"
+  | "entry.addFieldPlaceholder"
+  | "entry.addFieldAdd"
+  | "action.open"
+  | "importBible.title"
+  | "importBible.hint"
+  | "importBible.kind"
+  | "importBible.colSource"
+  | "importBible.colName"
+  | "importBible.colFields"
+  | "importBible.colSections"
+  | "importBible.into"
+  | "importBible.empty"
+  | "importBible.import"
+  | "importBible.done"
+  | "entry.newMenu"
   ;
 
 type Value = string | { one: string; other: string };
@@ -1221,7 +1250,36 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "symbol.circleFilled": "동그라미(채움)",
     "symbol.diamond": "마름모",
     "symbol.square": "네모",
-    "symbol.triangle": "세모"
+    "symbol.triangle": "세모",
+    "entry.kindCharacter": "인물",
+    "entry.kindPlace": "장소",
+    "entry.kindFaction": "세력",
+    "entry.kindTerm": "용어",
+    "entry.newCharacter": "새 인물",
+    "entry.newPlace": "새 장소",
+    "entry.newFaction": "새 세력",
+    "entry.newTerm": "새 용어",
+    "entry.fromSelection": "설정 항목으로 만들기",
+    "entry.fromSelectionAs": "설정 항목으로 만들기 · {kind}",
+    "entry.created": "{folder}에 ‘{name}’ 항목을 만들었어요",
+    "entry.addField": "칸 더하기",
+    "entry.addFieldCustom": "직접 이름 짓기…",
+    "entry.addFieldPrompt": "새 칸 이름을 적어 주세요",
+    "entry.addFieldPlaceholder": "예: 버릇",
+    "entry.addFieldAdd": "더하기",
+    "action.open": "열기",
+    "importBible.title": "설정 가져오기",
+    "importBible.hint": "노션에서 내보낸 .md 파일이나 폴더를 설정 항목으로 가져와요. 파일 하나가 항목 하나가 돼요.",
+    "importBible.kind": "종류",
+    "importBible.colSource": "원본",
+    "importBible.colName": "이름",
+    "importBible.colFields": "짝지은 키",
+    "importBible.colSections": "칸",
+    "importBible.into": "{folder} 폴더에 항목 {count}개를 만들어요. 전부 되거나 전부 안 돼요.",
+    "importBible.empty": "이 위치에는 가져올 .md 파일이 없어요.",
+    "importBible.import": "가져오기",
+    "importBible.done": "{folder}에 설정 항목 {count}개를 가져왔어요",
+    "entry.newMenu": "새 설정 항목"
   },
   "en": {
     "app.name": "Ithaca",
@@ -1916,7 +1974,42 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "symbol.circleFilled": "Circle (filled)",
     "symbol.diamond": "Diamond",
     "symbol.square": "Square",
-    "symbol.triangle": "Triangle"
+    "symbol.triangle": "Triangle",
+    "entry.kindCharacter": "Character",
+    "entry.kindPlace": "Place",
+    "entry.kindFaction": "Faction",
+    "entry.kindTerm": "Term",
+    "entry.newCharacter": "New Character",
+    "entry.newPlace": "New Place",
+    "entry.newFaction": "New Faction",
+    "entry.newTerm": "New Term",
+    "entry.fromSelection": "Make Story Bible Entry",
+    "entry.fromSelectionAs": "Make Story Bible Entry · {kind}",
+    "entry.created": "Created “{name}” in {folder}",
+    "entry.addField": "Add Field",
+    "entry.addFieldCustom": "Custom Name…",
+    "entry.addFieldPrompt": "Name the new field",
+    "entry.addFieldPlaceholder": "e.g. Habits",
+    "entry.addFieldAdd": "Add",
+    "action.open": "Open",
+    "importBible.title": "Import Story Bible",
+    "importBible.hint": "Brings a Markdown file or folder exported from Notion in as story bible entries, one entry per file.",
+    "importBible.kind": "Kind",
+    "importBible.colSource": "Source",
+    "importBible.colName": "Name",
+    "importBible.colFields": "Fields",
+    "importBible.colSections": "Sections",
+    "importBible.into": {
+      "one": "Creates {count} entry in {folder}. All or nothing.",
+      "other": "Creates {count} entries in {folder}. All or nothing."
+    },
+    "importBible.empty": "There are no .md files to import here.",
+    "importBible.import": "Import",
+    "importBible.done": {
+      "one": "Imported {count} entry into {folder}",
+      "other": "Imported {count} entries into {folder}"
+    },
+    "entry.newMenu": "New Story Bible Entry"
   }
 };
 

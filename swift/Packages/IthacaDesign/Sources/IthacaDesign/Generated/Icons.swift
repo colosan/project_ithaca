@@ -64,6 +64,10 @@ public enum IthacaIcon: String, CaseIterable, Sendable {
     case branched
     case moveUp
     case moveDown
+    case entryCharacter
+    case entryPlace
+    case entryFaction
+    case entryTerm
 
     /** The Lucide vector this use draws. */
     public var asset: String {
@@ -129,6 +133,10 @@ public enum IthacaIcon: String, CaseIterable, Sendable {
         case .branched: "git-branch"
         case .moveUp: "arrow-up"
         case .moveDown: "arrow-down"
+        case .entryCharacter: "user"
+        case .entryPlace: "map-pin"
+        case .entryFaction: "flag"
+        case .entryTerm: "book-a"
         }
     }
 }

@@ -3,6 +3,7 @@
 // Checks: list keyboard (↑↓ · Return · Delete · type-select), ⌘⌫ in text, Esc on overlays, sheet drag payload,
 // and the model actions behind the context menus (duplicate, status, folders, projects).
 import AppKit
+import IthacaCore
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -26,6 +27,7 @@ enum NavSelfTest {
 
         // Offscreen window (far off any display) with the real shell, 1240 pt: everything docked.
         let window = NSWindow(contentRect: CGRect(x: -30000, y: -30000, width: 1240, height: 800), styleMask: [.titled], backing: .buffered, defer: false)
+        window.setFrameOrigin(NSPoint(x: -20000, y: -20000))  // off screen: tests must not show over the owner's work
         window.contentView = NSHostingView(rootView: ShellView().environment(model))
         window.orderFrontRegardless()
         pump(0.5)
@@ -126,6 +128,29 @@ enum NavSelfTest {
         model.deleteFolder(model.folders[0].id)
         check(model.folders.count == 1 && model.toast == nil, "the last folder is never deleted (no error toast)")
 
+        // Story bible (story-bible §1 · §6): a new entry from a folder's menu, then a Notion import into the lore folder.
+        let loreBefore = model.loreFolder
+        model.newEntry(.place, in: model.folders[0].id)
+        check(model.sheet?.entry == .place && model.sheet?.folder == model.folders[0].id, "new place from a folder's menu goes into that folder")
+        let fixture = FileManager.default.temporaryDirectory.appendingPathComponent("ithaca-navtest-notion-\(UUID().uuidString)")
+        Self.notionFixture(fixture)
+        let preview = (try? StoryBible.importPreview(path: fixture.path, kind: .character, language: .ko)) ?? []
+        check(preview.map(\.name) == ["서윤", "하람"], "import preview: one entry per .md, Notion id cut (\(preview.map(\.name)))")
+        check(preview.first?.fields ?? 0 >= 2 && preview.first?.sections ?? 0 >= 1 && preview.allSatisfy { IthacaCore.parseEntry(text: $0.text)?.kind == .character },
+              "import preview: properties → fields, sections kept, texts are character entries")
+        var missing = false
+        do { _ = try StoryBible.importPreview(path: fixture.appendingPathComponent("없음").path, kind: .place, language: .ko) } catch let e as LibraryError { missing = e == .notFound } catch {}
+        check(missing, "import preview: a missing path is notFound")
+        guard let lore = loreBefore else { print("✗ no lore folder"); exit(1) }
+        let loreCount = model.folders.first { $0.id == lore.id }?.sheets.count ?? 0
+        check(model.importBible(preview), "import: all entries in")
+        let imported = model.folders.first { $0.id == lore.id }?.sheets ?? []
+        check(imported.count == loreCount + 2 && imported.suffix(2).map(\.title) == ["서윤", "하람"] && imported.suffix(2).allSatisfy { $0.entry == .character },
+              "import: appended to the lore folder '\(lore.name)' as character entries")
+        check(model.toast?.action == model.t(.actionOpen), "import: toast with [열기]")
+        model.toast = nil
+        try? FileManager.default.removeItem(at: fixture)
+
         // Projects from the library's context menu.
         let openProject = model.projectId!
         guard let other = model.projects.first(where: { $0.id != openProject }) else { print("✗ seed has one project"); exit(1) }
@@ -138,6 +163,16 @@ enum NavSelfTest {
 
         print(failures == 0 ? "✓ nav selftest passed" : "✗ \(failures) failed")
         exit(failures == 0 ? 0 : 1)
+    }
+
+    /// A small Notion export: two pages (one with Notion's id suffix and properties), a sub folder, a file to skip.
+    static func notionFixture(_ dir: URL) {
+        let fm = FileManager.default
+        try? fm.createDirectory(at: dir.appendingPathComponent("하위"), withIntermediateDirectories: true)
+        try? "# 서윤\n\n별칭: 윤이\n나이: 17\n소속: 등대\n\n등대지기의 딸.\n\n## 말투\n짧게 끊어 말한다.\n"
+            .write(to: dir.appendingPathComponent("서윤 0123456789abcdef0123456789abcdef.md"), atomically: true, encoding: .utf8)
+        try? "# 하람\n\n## Voice\n느릿하게 말한다.\n".write(to: dir.appendingPathComponent("하위/하람.md"), atomically: true, encoding: .utf8)
+        try? "not an entry".write(to: dir.appendingPathComponent("메모.txt"), atomically: true, encoding: .utf8)
     }
 
     private static func pump(_ seconds: Double) { RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }

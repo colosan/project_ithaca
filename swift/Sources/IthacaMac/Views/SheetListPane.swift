@@ -1,6 +1,7 @@
 // Sheet list: the open folder's sheets in serial order (drag to reorder, ⌥⌘↑↓), or the trash.
 // Keyboard (once a row is clicked): ↑↓ open the sheet above/below, Return · Tab · → go to the editor,
 // Delete trashes, typing a title's first letters (or a Korean initial consonant) jumps to it.
+import IthacaCore
 import IthacaDesign
 import SwiftUI
 import UniformTypeIdentifiers
@@ -187,6 +188,17 @@ struct SheetListPane: View {
             IconButton(.search, label: model.t(.searchTitle)) { model.show(.palette(search: true)) }
             if !trash && model.folder != nil && !model.readOnly {
                 IconButton(.add, label: model.t(.sheetNew)) { model.newSheet() }
+                // The arrow beside ＋: a new story bible entry in this folder (story-bible §1).
+                Menu {
+                    ForEach(EntryKind.all, id: \.self) { k in Button(model.t(k.newLabel)) { model.newEntry(k) } }
+                } label: {
+                    EmptyView()
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.visible)
+                .fixedSize()
+                .help(model.t(.entryNewMenu))
+                .accessibilityLabel(model.t(.entryNewMenu))
             }
         }
         .padding(.leading, T.Space.s200)
@@ -220,6 +232,10 @@ struct SheetRow: View {
         HStack(alignment: .top, spacing: T.Space.s100) {
             VStack(alignment: .leading, spacing: T.Space.s25) {
                 HStack(spacing: T.Space.s50) {
+                    // Story bible entry: its kind before the title (user · map-pin · flag · book-a).
+                    if let k = sheet.entry {
+                        Icon(k.icon, size: T.Size.iconSm, color: .inkTertiary).help(model.t(k.label)).accessibilityLabel(model.t(k.label))
+                    }
                     Text(sheet.title.isEmpty ? model.t(.sheetUntitled) : sheet.title)
                         .textStyle(.body, weight: T.Typography.heading.weight)
                         .foregroundStyle(sheet.title.isEmpty ? Color.inkTertiary : .inkPrimary)

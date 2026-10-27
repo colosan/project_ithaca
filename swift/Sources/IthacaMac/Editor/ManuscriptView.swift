@@ -48,6 +48,8 @@ struct ManuscriptView: NSViewRepresentable {
         tv.delegate = context.coordinator
         tv.textStorage?.delegate = context.coordinator
         context.coordinator.textView = tv
+        // Story bible items on top of the context menu (EditorEntries.swift).
+        tv.extraMenuItems = { [weak c = context.coordinator] in c?.entryMenuItems() ?? [] }
         tv.onEscape = { [weak model] in
             guard let model, model.panesHidden else { return false }
             model.showPanes()
@@ -120,7 +122,7 @@ struct ManuscriptView: NSViewRepresentable {
         // MARK: Formatting (Markdown kept as typed: these only insert or remove marks)
 
         /// The text view, focused, with any composition committed — or nil when there's nothing to edit.
-        private var editable: ManuscriptTextView? {
+        var editable: ManuscriptTextView? {
             guard let tv = textView, tv.isEditable else { return nil }
             tv.window?.makeFirstResponder(tv)
             commitComposition()
@@ -128,7 +130,7 @@ struct ManuscriptView: NSViewRepresentable {
         }
 
         /// One undoable replacement, then the selection. Bypasses the typing conveniences (no pairs, no `...`).
-        private func replace(_ tv: NSTextView, _ range: NSRange, with text: String, select: NSRange) {
+        func replace(_ tv: NSTextView, _ range: NSRange, with text: String, select: NSRange) {
             tv.breakUndoCoalescing()
             if let mtv = tv as? ManuscriptTextView { mtv.rawInsert(text, replacementRange: range) } else { tv.insertText(text, replacementRange: range) }
             tv.breakUndoCoalescing()
@@ -387,6 +389,8 @@ struct ManuscriptView: NSViewRepresentable {
             return String(decoding: buf, as: UTF16.self)
         }
 
+        private var styledAsEntry = false
+
         /// `--selftest-perf`: what a markup-mode or text-size change costs.
         func debugRestyleAll() { restyle(NSRange(location: 0, length: (textView?.string as NSString?)?.length ?? 0)) }
 
@@ -396,7 +400,10 @@ struct ManuscriptView: NSViewRepresentable {
             let indent = model.firstLineIndent
             guard ns.length > 0 else { tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing, indent: indent); return }
             let start = min(range.location, ns.length)
-            let para = ns.paragraphRange(for: NSRange(location: start, length: min(range.length, ns.length - start)))
+            var para = ns.paragraphRange(for: NSRange(location: start, length: min(range.length, ns.length - start)))
+            // A sheet becoming (or no longer being) an entry restyles every line: its `## ` titles change look.
+            let entry = Styles.entryFrontMatterEnd(ns) > 0
+            if entry != styledAsEntry { styledAsEntry = entry; para = NSRange(location: 0, length: ns.length) }
             let selection = tv.selectedRanges
             storage.beginEditing()
             Styles.apply(to: storage, in: para, size: model.textSize, spacing: model.lineSpacing, markup: model.markup, indent: indent)
@@ -405,8 +412,10 @@ struct ManuscriptView: NSViewRepresentable {
             // New characters take the style of the line the caret is on.
             let caret = min(tv.selectedRange().location, ns.length)
             let line = ns.paragraphRange(for: NSRange(location: caret, length: 0))
-            let heading = TextMetrics.isHeading(Substring(ns.substring(with: line)))
-            tv.typingAttributes = heading ? Styles.heading(model.textSize, model.lineSpacing) : Styles.base(model.textSize, model.lineSpacing, indent: indent)
+            let lineText = ns.substring(with: line)
+            let heading = TextMetrics.isHeading(Substring(lineText))
+            tv.typingAttributes = heading && entry && lineText.hasPrefix("## ") ? Styles.entrySection(model.textSize, model.lineSpacing)
+                : heading ? Styles.heading(model.textSize, model.lineSpacing) : Styles.base(model.textSize, model.lineSpacing, indent: indent)
         }
 
         // MARK: Focus mode (rendering attributes: drawn on top, storage untouched)
@@ -639,8 +648,14 @@ final class ManuscriptTextView: NSTextView {
 
     /// The standard menu minus what breaks or means nothing in a plain-text manuscript:
     /// Font (font and color panels) and Layout Orientation (vertical text isn't supported).
+    /// Items put on top of the context menu (story bible: make an entry from the selection, add a field).
+    var extraMenuItems: (() -> [NSMenuItem])?
+
     override func menu(for event: NSEvent) -> NSMenu? {
         guard let menu = super.menu(for: event) else { return nil }
+        if let extra = extraMenuItems?(), !extra.isEmpty {
+            for (i, item) in (extra + [.separator()]).enumerated() { menu.insertItem(item, at: i) }
+        }
         let drop: Set<String> = ["orderFrontFontPanel:", "changeLayoutOrientation:"]
         for item in menu.items.reversed() {
             if let sub = item.submenu, sub.items.contains(where: { $0.action.map { drop.contains(NSStringFromSelector($0)) } ?? false }) {
@@ -735,8 +750,18 @@ enum Styles {
         // Lines that aren't prose keep a flush first line: the front matter block, scene breaks (headings use their own style).
         let flat = indent ? base(size, spacing)[.paragraphStyle] : nil
         let frontMatter = indent ? frontMatterEnd(ns) : 0
-        ns.enumerateSubstrings(in: range, options: [.byParagraphs, .substringNotRequired]) { _, line, _, _ in
+        // Story bible entries (EntryStyles.swift): 0 for every other sheet.
+        let entryEnd = entryFrontMatterEnd(ns)
+        ns.enumerateSubstrings(in: range, options: [.byParagraphs, .substringNotRequired]) { _, line, enclosing, _ in
+            if line.location < entryEnd {
+                styleFrontMatterLine(storage, ns, line: enclosing, blockEnd: entryEnd, size: size, spacing: spacing)
+                return
+            }
             if let m = headingRe.firstMatch(in: storage.string, range: line) {
+                if entryEnd > 0, isEntrySection(m.range(at: 1)) {
+                    styleEntrySection(storage, line: line, marks: m.range(at: 1), size: size, spacing: spacing, markColor: markColor)
+                    return
+                }
                 storage.setAttributes(heading(size, spacing), range: line)
                 storage.addAttribute(.foregroundColor, value: markColor, range: NSRange(location: m.range.location, length: m.range(at: 1).length))
                 return

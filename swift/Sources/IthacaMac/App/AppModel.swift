@@ -13,6 +13,8 @@ enum Overlay: Identifiable, Equatable {
     case projectSettings
     /// Files a text-folder import left out (`AppModel.importSkipped`).
     case importSkipped
+    /// File → Import Story Bible: the kind picker and preview of a Notion .md file or folder.
+    case importBible(path: String)
     var id: String {
         switch self {
         case .palette: "palette"
@@ -21,6 +23,7 @@ enum Overlay: Identifiable, Equatable {
         case .newProject: "newProject"
         case .projectSettings: "projectSettings"
         case .importSkipped: "importSkipped"
+        case .importBible: "importBible"
         }
     }
 }
@@ -37,6 +40,8 @@ struct Toast: Identifiable {
     var message: String
     var undo: (() -> Void)?
     var sticky = false
+    /// The button's label when it isn't "Undo" (e.g. "Open" for an entry made from the selection).
+    var action: String? = nil
 }
 
 enum TextSize: String, CaseIterable { case small, normal, large }
@@ -75,6 +80,13 @@ protocol EditorBridge: AnyObject {
     func insert(_ text: String, wrapping close: String?)
     func showSymbols()
     func findNext(_ forward: Bool)
+    // Story bible (EditorEntries.swift)
+    /// The selected text ("" when nothing is selected).
+    var selectedText: String { get }
+    /// Appends a `## title` section at the end of the sheet as one undo step, caret on the line below it.
+    func appendSection(_ title: String)
+    /// "Add Field" as a menu at the caret (the palette's command).
+    func showAddFieldMenu()
 }
 
 enum TextFormat { case bold, italic, strike, heading(Int), body, quote, sceneBreak }
@@ -1232,7 +1244,7 @@ final class AppModel {
         reloadOutline()
     }
 
-    private func fail(_ error: Error) {
+    func fail(_ error: Error) {
         // Corrupt from a change that isn't a damaged sheet's text → the project's table of contents is broken.
         if case .corrupt = error as? LibraryError, sheet?.damaged != true { tocDamagedProject = projectId }
         showToast(Toast(message: (error as? LibraryError) == .readOnly ? t(.libraryReadOnly) : error.localizedDescription, sticky: true))

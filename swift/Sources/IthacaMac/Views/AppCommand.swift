@@ -2,6 +2,7 @@
 // Each command has its label, its key equivalent (one place, so the menu, the palette row and the list can't disagree),
 // when it's available and what it does.
 import AppKit
+import IthacaCore
 import IthacaDesign
 import SwiftUI
 
@@ -13,6 +14,8 @@ enum AppCommand: CaseIterable {
     case importTextFolder, saveNow, previousSheet, nextSheet, findInSheet, findNext, findPrevious
     case bold, italic, strike, heading1, heading2, heading3, body, quote, sceneBreak, symbols
     case showLibrary, showList, editorOnly, inspector, palette, textBigger, textSmaller, textReset
+    // Story bible (design/screens/story-bible §1 · §6): new entries, an entry from the selection, a field, the import.
+    case newCharacter, newPlace, newFaction, newTerm, entryCharacter, entryPlace, entryFaction, entryTerm, addField, importBible
 
     var label: L10nKey {
         switch self {
@@ -63,8 +66,26 @@ enum AppCommand: CaseIterable {
         case .textBigger: .menuTextBigger
         case .textSmaller: .menuTextSmaller
         case .textReset: .menuTextReset
+        case .newCharacter, .newPlace, .newFaction, .newTerm: entryKind!.newLabel
+        case .entryCharacter, .entryPlace, .entryFaction, .entryTerm: .entryFromSelection
+        case .addField: .entryAddField
+        case .importBible: .importBibleTitle
         }
     }
+
+    /// The kind a story bible command creates (new entry, or one from the selection).
+    var entryKind: EntryKind? {
+        switch self {
+        case .newCharacter, .entryCharacter: .character
+        case .newPlace, .entryPlace: .place
+        case .newFaction, .entryFaction: .faction
+        case .newTerm, .entryTerm: .term
+        default: nil
+        }
+    }
+
+    /// From the selection: "Make Story Bible Entry · Character" (the context menu nests the kinds instead).
+    var fromSelection: Bool { [.entryCharacter, .entryPlace, .entryFaction, .entryTerm].contains(self) }
 
     /// The key equivalent. Checked for clashes in Settings → Shortcuts (every one listed there once).
     var keys: KeyboardShortcut? {
@@ -133,7 +154,7 @@ enum AppCommand: CaseIterable {
     /// Listed in the palette only once something is typed, so the empty list stays short: episode status, and the
     /// editing · view keys the writer already has under the fingers.
     var typedOnly: Bool {
-        if status != nil || format != nil { return true }
+        if status != nil || format != nil || entryKind != nil { return true }
         return switch self {
         case .symbols, .findNext, .findPrevious, .textBigger, .textSmaller, .textReset, .showLibrary, .showList, .editorOnly: true
         default: false
@@ -166,12 +187,14 @@ enum AppCommand: CaseIterable {
     }
 
     /// Commands that act on the manuscript view (it needs the focus back when run from the palette).
-    var editing: Bool { format != nil || [.symbols, .findInSheet, .findNext, .findPrevious].contains(self) }
+    var editing: Bool { format != nil || [.symbols, .findInSheet, .findNext, .findPrevious, .addField].contains(self) }
 
     /// What the palette shows (some labels depend on the open sheet).
     @MainActor func title(_ m: AppModel) -> String {
         if status != nil { return m.t(.paletteSetStatus, ["status": m.t(label)]) }
         if self == .toggleExclude, m.sheet?.episode?.excluded == true { return m.t(.episodeInclude) }
+        if fromSelection, let k = entryKind { return m.t(.entryFromSelectionAs, ["kind": m.t(k.label)]) }
+        if self == .addField || self == .importBible { return m.t(label) + "…" }
         return m.t(label)
     }
 
@@ -199,6 +222,9 @@ enum AppCommand: CaseIterable {
         case .toggleExclude, .bold, .italic, .strike, .heading1, .heading2, .heading3, .body, .quote, .sceneBreak, .symbols,
              .textBigger, .textSmaller, .textReset: .edit
         case .statusDraft, .statusRevising, .statusScheduled, .statusPublished: .sheet
+        case .newCharacter, .newPlace, .newFaction, .newTerm, .entryCharacter, .entryPlace, .entryFaction, .entryTerm: entryKind!.icon
+        case .addField: .add
+        case .importBible: .folderOpen
         }
     }
 
@@ -206,7 +232,10 @@ enum AppCommand: CaseIterable {
     @MainActor func available(_ m: AppModel) -> Bool {
         // Read-only library: nothing that writes.
         if m.readOnly, [.newSheet, .newProject, .moveUp, .moveDown, .trashSheet, .importWeb, .importTextFolder, .publishedThrough,
-                        .renumber, .toggleExclude, .saveNow].contains(self) { return false }
+                        .renumber, .toggleExclude, .saveNow, .addField, .importBible].contains(self) { return false }
+        if m.readOnly, entryKind != nil { return false }
+        if fromSelection { return m.sheetId != nil && !m.editorLocked && !StoryBible.name(fromSelection: m.editor?.selectedText ?? "").isEmpty }
+        if entryKind != nil { return m.projectId != nil }
         if m.readOnly, status != nil { return false }
         if let status { return m.sheetId != nil && m.sheet?.episode?.status != status }
         if format != nil || self == .symbols { return m.sheetId != nil && !m.editorLocked }
@@ -216,7 +245,8 @@ enum AppCommand: CaseIterable {
         case .publishedThrough: m.sheet?.episode != nil
         case .toggleExclude: m.sheet != nil && (m.sheet?.episode != nil || m.sheet?.folder == m.folders.first?.id)
         case .renumber: m.folder != nil
-        case .export, .projectSettings, .showTrash, .newSheet: m.projectId != nil
+        case .export, .projectSettings, .showTrash, .newSheet, .importBible: m.projectId != nil
+        case .addField: !m.editorLocked && m.openEntryKind != nil
         case .palette: false  // already open when the palette asks
         default: true
         }
@@ -264,6 +294,10 @@ enum AppCommand: CaseIterable {
         case .textBigger: m.stepTextSize(1)
         case .textSmaller: m.stepTextSize(-1)
         case .textReset: m.stepTextSize(0)
+        case .newCharacter, .newPlace, .newFaction, .newTerm: m.newEntry(entryKind!)
+        case .entryCharacter, .entryPlace, .entryFaction, .entryTerm: m.makeEntryFromSelection(entryKind!)
+        case .addField: m.editor?.showAddFieldMenu()
+        case .importBible: m.importBible()
         }
     }
 

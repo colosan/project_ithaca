@@ -615,6 +615,35 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case symbolDiamond = "symbol.diamond"
     case symbolSquare = "symbol.square"
     case symbolTriangle = "symbol.triangle"
+    case entryKindCharacter = "entry.kindCharacter"
+    case entryKindPlace = "entry.kindPlace"
+    case entryKindFaction = "entry.kindFaction"
+    case entryKindTerm = "entry.kindTerm"
+    case entryNewCharacter = "entry.newCharacter"
+    case entryNewPlace = "entry.newPlace"
+    case entryNewFaction = "entry.newFaction"
+    case entryNewTerm = "entry.newTerm"
+    case entryFromSelection = "entry.fromSelection"
+    case entryFromSelectionAs = "entry.fromSelectionAs"
+    case entryCreated = "entry.created"
+    case entryAddField = "entry.addField"
+    case entryAddFieldCustom = "entry.addFieldCustom"
+    case entryAddFieldPrompt = "entry.addFieldPrompt"
+    case entryAddFieldPlaceholder = "entry.addFieldPlaceholder"
+    case entryAddFieldAdd = "entry.addFieldAdd"
+    case actionOpen = "action.open"
+    case importBibleTitle = "importBible.title"
+    case importBibleHint = "importBible.hint"
+    case importBibleKind = "importBible.kind"
+    case importBibleColSource = "importBible.colSource"
+    case importBibleColName = "importBible.colName"
+    case importBibleColFields = "importBible.colFields"
+    case importBibleColSections = "importBible.colSections"
+    case importBibleInto = "importBible.into"
+    case importBibleEmpty = "importBible.empty"
+    case importBibleImport = "importBible.import"
+    case importBibleDone = "importBible.done"
+    case entryNewMenu = "entry.newMenu"
 }
 
 enum L10nValue: Sendable {
@@ -1244,6 +1273,35 @@ public enum L10n {
             .symbolDiamond: .text("마름모"),
             .symbolSquare: .text("네모"),
             .symbolTriangle: .text("세모"),
+            .entryKindCharacter: .text("인물"),
+            .entryKindPlace: .text("장소"),
+            .entryKindFaction: .text("세력"),
+            .entryKindTerm: .text("용어"),
+            .entryNewCharacter: .text("새 인물"),
+            .entryNewPlace: .text("새 장소"),
+            .entryNewFaction: .text("새 세력"),
+            .entryNewTerm: .text("새 용어"),
+            .entryFromSelection: .text("설정 항목으로 만들기"),
+            .entryFromSelectionAs: .text("설정 항목으로 만들기 · {kind}"),
+            .entryCreated: .text("{folder}에 ‘{name}’ 항목을 만들었어요"),
+            .entryAddField: .text("칸 더하기"),
+            .entryAddFieldCustom: .text("직접 이름 짓기…"),
+            .entryAddFieldPrompt: .text("새 칸 이름을 적어 주세요"),
+            .entryAddFieldPlaceholder: .text("예: 버릇"),
+            .entryAddFieldAdd: .text("더하기"),
+            .actionOpen: .text("열기"),
+            .importBibleTitle: .text("설정 가져오기"),
+            .importBibleHint: .text("노션에서 내보낸 .md 파일이나 폴더를 설정 항목으로 가져와요. 파일 하나가 항목 하나가 돼요."),
+            .importBibleKind: .text("종류"),
+            .importBibleColSource: .text("원본"),
+            .importBibleColName: .text("이름"),
+            .importBibleColFields: .text("짝지은 키"),
+            .importBibleColSections: .text("칸"),
+            .importBibleInto: .text("{folder} 폴더에 항목 {count}개를 만들어요. 전부 되거나 전부 안 돼요."),
+            .importBibleEmpty: .text("이 위치에는 가져올 .md 파일이 없어요."),
+            .importBibleImport: .text("가져오기"),
+            .importBibleDone: .text("{folder}에 설정 항목 {count}개를 가져왔어요"),
+            .entryNewMenu: .text("새 설정 항목"),
         ],
         .en: [
             .appName: .text("Ithaca"),
@@ -1852,6 +1910,35 @@ public enum L10n {
             .symbolDiamond: .text("Diamond"),
             .symbolSquare: .text("Square"),
             .symbolTriangle: .text("Triangle"),
+            .entryKindCharacter: .text("Character"),
+            .entryKindPlace: .text("Place"),
+            .entryKindFaction: .text("Faction"),
+            .entryKindTerm: .text("Term"),
+            .entryNewCharacter: .text("New Character"),
+            .entryNewPlace: .text("New Place"),
+            .entryNewFaction: .text("New Faction"),
+            .entryNewTerm: .text("New Term"),
+            .entryFromSelection: .text("Make Story Bible Entry"),
+            .entryFromSelectionAs: .text("Make Story Bible Entry · {kind}"),
+            .entryCreated: .text("Created “{name}” in {folder}"),
+            .entryAddField: .text("Add Field"),
+            .entryAddFieldCustom: .text("Custom Name…"),
+            .entryAddFieldPrompt: .text("Name the new field"),
+            .entryAddFieldPlaceholder: .text("e.g. Habits"),
+            .entryAddFieldAdd: .text("Add"),
+            .actionOpen: .text("Open"),
+            .importBibleTitle: .text("Import Story Bible"),
+            .importBibleHint: .text("Brings a Markdown file or folder exported from Notion in as story bible entries, one entry per file."),
+            .importBibleKind: .text("Kind"),
+            .importBibleColSource: .text("Source"),
+            .importBibleColName: .text("Name"),
+            .importBibleColFields: .text("Fields"),
+            .importBibleColSections: .text("Sections"),
+            .importBibleInto: .plural(one: "Creates {count} entry in {folder}. All or nothing.", other: "Creates {count} entries in {folder}. All or nothing."),
+            .importBibleEmpty: .text("There are no .md files to import here."),
+            .importBibleImport: .text("Import"),
+            .importBibleDone: .plural(one: "Imported {count} entry into {folder}", other: "Imported {count} entries into {folder}"),
+            .entryNewMenu: .text("New Story Bible Entry"),
         ],
     ]
 }

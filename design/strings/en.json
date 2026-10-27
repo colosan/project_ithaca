@@ -691,5 +691,40 @@
   "symbol.circleFilled": "Circle (filled)",
   "symbol.diamond": "Diamond",
   "symbol.square": "Square",
-  "symbol.triangle": "Triangle"
+  "symbol.triangle": "Triangle",
+  "entry.kindCharacter": "Character",
+  "entry.kindPlace": "Place",
+  "entry.kindFaction": "Faction",
+  "entry.kindTerm": "Term",
+  "entry.newCharacter": "New Character",
+  "entry.newPlace": "New Place",
+  "entry.newFaction": "New Faction",
+  "entry.newTerm": "New Term",
+  "entry.fromSelection": "Make Story Bible Entry",
+  "entry.fromSelectionAs": "Make Story Bible Entry · {kind}",
+  "entry.created": "Created “{name}” in {folder}",
+  "entry.addField": "Add Field",
+  "entry.addFieldCustom": "Custom Name…",
+  "entry.addFieldPrompt": "Name the new field",
+  "entry.addFieldPlaceholder": "e.g. Habits",
+  "entry.addFieldAdd": "Add",
+  "action.open": "Open",
+  "importBible.title": "Import Story Bible",
+  "importBible.hint": "Brings a Markdown file or folder exported from Notion in as story bible entries, one entry per file.",
+  "importBible.kind": "Kind",
+  "importBible.colSource": "Source",
+  "importBible.colName": "Name",
+  "importBible.colFields": "Fields",
+  "importBible.colSections": "Sections",
+  "importBible.into": {
+    "one": "Creates {count} entry in {folder}. All or nothing.",
+    "other": "Creates {count} entries in {folder}. All or nothing."
+  },
+  "importBible.empty": "There are no .md files to import here.",
+  "importBible.import": "Import",
+  "importBible.done": {
+    "one": "Imported {count} entry into {folder}",
+    "other": "Imported {count} entries into {folder}"
+  },
+  "entry.newMenu": "New Story Bible Entry"
 }

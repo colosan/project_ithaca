@@ -2,6 +2,7 @@
 // checks the IME rules: composition is never disturbed by styling/autosave, modeless replace-style input works,
 // autosave lands after the pause, and one ⌘Z undoes a word, not a jamo. In-memory library; nothing on disk.
 import AppKit
+import IthacaCore
 import IthacaDesign
 import SwiftUI
 
@@ -16,6 +17,7 @@ enum EditorSelfTest {
         let model = AppModel(library: lib, defaults: UserDefaults(suiteName: suite)!)
         model.createProject(title: "IME", language: .ko, folders: ["연재"], goal: nil)
         let window = NSWindow(contentRect: CGRect(x: 0, y: 0, width: 900, height: 700), styleMask: [.titled], backing: .buffered, defer: false)
+        window.setFrameOrigin(NSPoint(x: -20000, y: -20000))  // off screen: tests must not show over the owner's work
         window.contentView = NSHostingView(rootView: ShellView().environment(model))
         window.makeKeyAndOrderFront(nil)
         pump(0.5)
@@ -505,6 +507,99 @@ enum EditorSelfTest {
         check(Symbols.decode(model.defaults.array(forKey: "ithaca.symbols")) == model.symbols, "the stored list reads back the same (names kept)")
         model.symbols = Symbols.defaults
         check(model.defaults.object(forKey: "ithaca.symbols") == nil && coord.symbolMenu().items.count == Symbols.defaults.count + 1, "reset: defaults again (24 + separator)")
+        model.flushSave()
+
+        // 24. Story bible entries (story-bible spec §1): new entries, an entry from the selection, add field, rendering.
+        model.createFolder("자료")
+        model.createFolder("설정")
+        let serialId = model.folders[0].id
+        guard let loreId = model.folders.first(where: { $0.name == "설정" })?.id else { fail("no lore folder") }
+        check(model.loreFolder?.id == loreId, "lore folder: the one named 설정, not the second folder")
+        let fa = FolderInfo(id: "a", name: "연재", order: 0, sheets: []), fb = FolderInfo(id: "b", name: "자료", order: 1, sheets: [])
+        let fl = FolderInfo(id: "d", name: "Lore", order: 2, sheets: [])
+        check(StoryBible.loreFolder([fa, fb], current: "a")?.id == "b" && StoryBible.loreFolder([fa], current: "a")?.id == "a"
+              && StoryBible.loreFolder([fa, fb, fl], current: "a")?.id == "d", "lore folder rule: 설정/Lore, else the second, else the current")
+        var made: [EntryKind: String] = [:]
+        for kind in EntryKind.all {
+            model.newEntry(kind, in: loreId)
+            pump(0.3)
+            let parsed = IthacaCore.parseEntry(text: tv.string)
+            let ns = tv.string as NSString
+            let caretLine = ns.substring(with: ns.lineRange(for: NSRange(location: tv.selectedRange().location, length: 0)))
+            check(parsed?.kind == kind && parsed?.name == "" && model.sheet?.folder == loreId && model.sheet?.entry == kind,
+                  "new \(kind): a parseable entry in the current folder (\(parsed.map { "\($0.kind)" } ?? "nil"))")
+            check(caretLine == "# \n" && tv.selectedRange().location == StoryBible.nameCaret(tv.string), "new \(kind): caret on the empty name line")
+            made[kind] = model.sheetId
+        }
+        // Make from the selection: the entry lands in the lore folder, the editor stays on the prose.
+        let prose = (try? lib.createSheet(project: pid, folder: serialId, text: "서윤은 등대 계단을 올랐다."))!.id
+        model.reloadOutline()
+        model.openSheet(prose)
+        pump(0.3)
+        tv.setSelectedRange(NSRange(location: 0, length: 2))
+        check(AppCommand.entryCharacter.available(model) && !AppCommand.addField.available(model), "palette: make-from-selection on, add field off in prose")
+        let fromSel = model.makeEntryFromSelection(.character)
+        pump(0.2)
+        let madeText = fromSel.flatMap { try? lib.sheetText(project: pid, sheet: $0) } ?? ""
+        check(model.sheetId == prose && tv.string == "서윤은 등대 계단을 올랐다." && tv.selectedRange() == NSRange(location: 0, length: 2),
+              "make from selection: the editor stays on the original sheet")
+        check(IthacaCore.parseEntry(text: madeText)?.name == "서윤" && model.folders.first { $0.id == loreId }?.sheets.contains { $0.id == fromSel } == true,
+              "make from selection: '서윤' created in 설정")
+        check(model.toast?.action == model.t(.actionOpen) && model.toast?.message.contains("서윤") == true, "make from selection: toast with [열기] (\(model.toast?.message ?? "-"))")
+        model.toast?.undo?()
+        pump(0.3)
+        check(model.sheetId == fromSel, "[열기] opens the new entry")
+        model.toast = nil
+        model.openSheet(prose)
+        pump(0.3)
+        tv.setSelectedRange(NSRange(location: 0, length: 0))
+        check(!AppCommand.entryCharacter.available(model), "make from selection needs a selection")
+        // Add field: appended at the end as one undo step, caret under the new title; suggestions drop what's there.
+        model.openSheet(made[.term]!)
+        pump(0.3)
+        check(AppCommand.addField.available(model) && model.openEntryKind == .term, "add field available in an entry")
+        check(StoryBible.missingSections(tv.string, language: .ko) == ["예문"], "term suggestions: 예문")
+        let beforeAdd = tv.string
+        coord.appendSection("예문")
+        pump(0.1)
+        check(tv.string == beforeAdd + "\n## 예문\n" && tv.selectedRange().location == (tv.string as NSString).length, "add field appends '## 예문' with the caret below it")
+        check(StoryBible.missingSections(tv.string, language: .ko) == [], "suggestions drop a field that's there")
+        coord.appendSection("버릇")
+        pump(0.1)
+        check(tv.string.hasSuffix("## 예문\n\n## 버릇\n"), "a custom field after it, one blank line apart")
+        tv.undoManager?.undo()
+        check(tv.string == beforeAdd + "\n## 예문\n", "one undo removes the custom field")
+        tv.undoManager?.undo()
+        check(tv.string == beforeAdd, "a second undo removes the first")
+        check(coord.addFieldMenu()?.items.first?.title == "예문" && coord.entryMenuItems().map(\.title) == [model.t(.entryAddField)],
+              "context menu: add field (no selection → no make-from-selection)")
+        // Rendering: labels for keys and section titles; the text never changes.
+        model.openSheet(made[.character]!)
+        pump(0.4)
+        let entryText = tv.string
+        let ens = entryText as NSString
+        let keyAt = ens.range(of: "종류").location, valueAt = ens.range(of: "인물").location
+        let sectionAt = ens.range(of: "## 성격").location
+        check(color(at: keyAt) == resolved(.token(T.Color.inkTertiary)) && color(at: valueAt) == resolved(.token(T.Color.inkPrimary)),
+              "front matter: key in ink.tertiary, value in ink.primary")
+        check(color(at: 0) == resolved(.token(T.Color.inkMarkup)), "front matter: --- in ink.markup")
+        check(fontSize(at: keyAt) < fontSize(at: valueAt), "front matter: key label smaller (\(fontSize(at: keyAt)) < \(fontSize(at: valueAt)))")
+        check(color(at: sectionAt + 3) == resolved(.token(T.Color.inkSecondary)) && fontSize(at: sectionAt + 3) < fontSize(at: valueAt)
+              && color(at: sectionAt) == resolved(.token(T.Color.inkMarkup)), "section title: label in ink.secondary, ## dim")
+        check(tv.string == entryText && model.text == entryText && !model.dirty, "entry rendering leaves the text unchanged")
+        // A plain sheet starting with --- (a scene break, no kind key) keeps the ordinary look; ## stays a heading.
+        let plain = (try? lib.createSheet(project: pid, folder: serialId, text: "---\n키: 값\n---\n## 소제목\n본문"))!.id
+        model.reloadOutline()
+        model.openSheet(plain)
+        pump(0.4)
+        check(color(at: 4) != resolved(.token(T.Color.inkTertiary)) && fontSize(at: (tv.string as NSString).range(of: "소제목").location) > fontSize(at: 4),
+              "plain sheet with --- is not styled as an entry")
+        // Typing the kind key turns it into an entry: the ## line restyles too.
+        tv.setSelectedRange(NSRange(location: 4, length: 0))
+        tv.insertText("종류: 장소\n", replacementRange: tv.selectedRange())
+        pump(0.4)
+        let sub = (tv.string as NSString).range(of: "소제목").location
+        check(color(at: sub) == resolved(.token(T.Color.inkSecondary)), "becoming an entry restyles its ## lines")
         model.flushSave()
 
         pb.clearContents()

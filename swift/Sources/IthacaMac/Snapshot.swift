@@ -150,6 +150,22 @@ enum Snapshot {
                   info: Self.roInfo(locked: false, problems: ["library.json is missing but the folder holds projects. Opened read-only so nothing is overwritten."])),
             Scene(name: "shell-problems-only", size: wide, info: { var i = Self.roInfo(locked: false, problems: ["Project y could not be read."]); i.readOnly = false; return i }()),
             Scene(name: "icons", size: CGSize(width: 720, height: 300), view: { _ in AnyView(IconSheet()) }),
+            // Story bible (story-bible §1 · §6): an entry open in the editor, kind icons in the list; the import sheet.
+            Scene(name: "entry-sheet-ko", size: wide, setup: { m, _ in Self.bibleSeed(m) }),
+            Scene(name: "entry-sheet-ko-dark", size: wide, dark: true, setup: { m, _ in Self.bibleSeed(m) }),
+            Scene(name: "entry-sheet-ko-indent-large", size: wide, setup: { m, _ in Self.bibleSeed(m); m.firstLineIndent = true; m.textSize = .large }),
+            Scene(name: "entry-sheet-en", size: wide, locale: .en, setup: { m, _ in Self.bibleSeed(m) }),
+            Scene(name: "entry-toast", size: wide, setup: { m, _ in
+                Self.bibleSeed(m)
+                if let s = m.folders.first?.sheets.first { m.openSheet(s.id) }
+                m.showToast(Toast(message: m.t(.entryCreated, ["folder": "설정", "name": "서윤"]), undo: {}, action: m.t(.actionOpen)))
+            }),
+            Scene(name: "bible-import", size: CGSize(width: 720, height: 640), titled: false, fit: true,
+                  view: { _ in AnyView(BibleImportView(path: Self.notionFixture())) }),
+            Scene(name: "bible-import-en-dark", size: CGSize(width: 720, height: 640), dark: true, locale: .en, titled: false, fit: true,
+                  view: { _ in AnyView(BibleImportView(path: Self.notionFixture())) }),
+            Scene(name: "bible-import-missing", size: CGSize(width: 720, height: 640), titled: false, fit: true,
+                  view: { _ in AnyView(BibleImportView(path: "/nonexistent/노션 내보내기")) }),
         ]
     }
 
@@ -170,6 +186,61 @@ enum Snapshot {
         run(from: yesterday + 75 * minute, saves: 6, every: 3 * minute)
         run(from: now - 4 * 60 * minute, saves: 24, every: 2 * minute, trimEvery: 5)
         run(from: now - 40 * minute, saves: 9, every: 4 * minute, trimEvery: 4)
+    }
+
+    /// The seed's lore folder as story bible entries (a filled character, a place, a faction, a term), the character open.
+    static func bibleSeed(_ m: AppModel) {
+        guard let pid = m.projectId, let lore = m.folders.first(where: { $0.name == "설정" }) else { return }
+        let character = """
+        ---
+        종류: 인물
+        별칭: 윤이, 등대지기의 딸
+        나이: 19
+        소속: 벼리섬 등대
+        능력:
+        상태: 아버지가 사라진 뒤 혼자 등대를 지킨다
+        외모: 짧은 머리, 소매가 긴 비옷
+        ---
+        # 한서윤
+
+        ## 한 줄 소개
+        등대지기의 딸. 밤마다 불빛 신호를 기록한다.
+
+        ## 성격
+        말수가 적고 꼼꼼하다. 긴장하면 손끝으로 숫자를 센다.
+
+        ## 말투
+        짧고 단정함. 존댓말을 쓰지만 아버지 앞에서만 반말.
+
+        ## 호칭
+        아버지 → "아빠", 엘리엇 → "측량사님"
+
+        ## 반응
+
+        ## 메모
+        아버지의 logbook 마지막 장을 아직 아무에게도 보여주지 않았다.
+
+        """
+        let place = "---\n종류: 장소\n별칭: 벼리 등대\n속한 곳: 벼리섬\n---\n# 벼리섬 등대\n\n## 한 줄 소개\n백 년 된 등대. 렌즈가 한 번도 꺼진 적 없다고 전해진다.\n"
+        let sheets = lore.sheets
+        if sheets.count >= 3 {
+            _ = try? m.library.saveSheet(project: pid, sheet: sheets[0].id, text: character)
+            _ = try? m.library.saveSheet(project: pid, sheet: sheets[2].id, text: place)
+        }
+        _ = try? m.library.createSheet(project: pid, folder: lore.id, text: "---\n종류: 세력\n별칭:\n우두머리: 해무회장\n---\n# 해무회\n\n## 한 줄 소개\n섬의 항로를 쥔 선주들의 모임.\n")
+        _ = try? m.library.createSheet(project: pid, folder: lore.id, text: "---\n종류: 용어\n별칭: 불빛말\n---\n# 등대 신호\n\n## 뜻\n불빛의 횟수와 간격으로 주고받는 말.\n")
+        m.reloadOutline()
+        if let first = sheets.first { m.openSheet(first.id) }
+    }
+
+    /// A small Notion export in a temp folder (the same pages the selftests use).
+    static func notionFixture() -> String {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("ithaca-snapshot-notion")
+        try? FileManager.default.removeItem(at: dir)
+        NavSelfTest.notionFixture(dir)
+        try? "# Elliot Marsh 0123456789abcdef0123456789abcdef\n\nAge: 31\nRole: surveyor\n\nWashed ashore with a broken theodolite.\n"
+            .write(to: dir.appendingPathComponent("Elliot Marsh 0123456789abcdef0123456789abcdef.md"), atomically: true, encoding: .utf8)
+        return dir.path
     }
 
     static func roInfo(locked: Bool, problems: [String]) -> LibraryInfo {
@@ -204,6 +275,7 @@ enum Snapshot {
             .frame(width: size.width, height: size.height, alignment: .top)
             .background(Color.surfaceCanvas)
         let window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: s.titled ? [.titled, .fullSizeContentView] : [.borderless], backing: .buffered, defer: false)
+        window.setFrameOrigin(NSPoint(x: -20000, y: -20000))  // off screen: tests must not show over the owner's work
         window.appearance = appearance
         let host = NSHostingView(rootView: root)
         host.frame = CGRect(origin: .zero, size: size)

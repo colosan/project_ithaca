@@ -123,7 +123,7 @@ fn bible_lists_entries_by_last_seen() {
     let f = fixture(&mut s);
     let b = s.bible(&f.p).unwrap();
     let names: Vec<&str> = b.iter().map(|e| e.name.as_str()).collect();
-    // 2화: 서윤 · 해원 (by name), 1화: 벼리섬, never seen: 등불 · 하나 (by name).
+    // Episode 2: two characters (by name), episode 1: the island, never seen: two entries (by name).
     assert_eq!(names, ["서윤", "해원", "벼리섬", "등불", "하나"]);
     let seoyun = &b[0];
     assert_eq!(seoyun.sheet, f.seoyun);
@@ -168,7 +168,7 @@ fn appearances_in_reading_order() {
     // A dialogue line wins over narration.
     assert_eq!(a[0].lines, ["“윤이야, 어디 가?”"]);
     assert_eq!(a[1].sheet, f.ep[1]);
-    // Entry sheets themselves are not appearances (해원's sheet mentions nobody; 서윤's mentions 해원).
+    // Entry sheets themselves are not appearances (one entry sheet mentions nobody; the other mentions it).
     let h = s.appearances(&f.p, &f.haewon).unwrap();
     assert_eq!(
         h.iter().map(|x| x.sheet.as_str()).collect::<Vec<_>>(),
@@ -229,7 +229,7 @@ fn summaries_search_and_reopen() {
         assert_eq!(s.sheet_summary_of(&f.p, &f.ep[0]).unwrap().entry, None);
         // Search skips an entry's front matter: `윤이` is only an alias there.
         let hits = s.search("윤이", Some(&f.p));
-        assert_eq!(hits.len(), 2); // 서윤이가 · 윤이야
+        assert_eq!(hits.len(), 2); // name + particle, alias + vocative
         assert!(hits.iter().all(|h| h.sheet == f.ep[0]));
         // A hit in an entry's body keeps sheet-relative offsets.
         let hits = s.search("횟수", Some(&f.p));

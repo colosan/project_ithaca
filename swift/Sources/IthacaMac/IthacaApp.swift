@@ -198,6 +198,16 @@ enum SelfTest {
         while report == nil { RunLoop.main.run(until: Date().addingTimeInterval(0.05)) }
         if case .success(let r)? = report { check(r.sheets == 2 && r.skipped.count == 1, "text folder: \(r.sheets) sheets, skipped \(r.skipped)") }
         else { check(false, "text folder import: \(String(describing: report))") }
+        // Story bible import through the real core (ADR-0010 §6): preview, then all entries into one folder.
+        if let p = library.projects().first(where: { $0.title == "Selftest import" }), let f = try? library.outline(project: p.id).folders.first {
+            let notion = dir.appendingPathComponent("notion")
+            NavSelfTest.notionFixture(notion)
+            let preview = (try? StoryBible.importPreview(path: notion.path, kind: .character, language: .ko)) ?? []
+            let ids = (try? library.importBible(project: p.id, folder: f.id, entries: preview.map(\.text))) ?? []
+            let sheets = (try? library.outline(project: p.id).folders.first?.sheets) ?? []
+            check(preview.count == 2 && ids.count == 2 && sheets.filter { ids.contains($0.id) }.allSatisfy { $0.entry == .character && !$0.title.hasPrefix("-") },
+                  "story bible import: \(ids.count) character entries (\(sheets.filter { ids.contains($0.id) }.map(\.title)))")
+        }
         if let p = library.projects().first(where: { $0.title == "Selftest import" }) { try? library.deleteProject(id: p.id) }
         try? FileManager.default.removeItem(at: dir)
 
@@ -538,6 +548,7 @@ struct IthacaCommands: Commands {
             item(.export, t(.exportTitle) + "…", off: noProject)
             item(.importWeb, t(.importWeb) + "…", off: ro)
             item(.importTextFolder, t(.importTextFolder) + "…", off: ro)
+            item(.importBible, t(.importBibleTitle) + "…", off: noProject || ro)
         }
         CommandGroup(after: .saveItem) {
             // Saving is automatic; ⌘S saves right away instead of beeping.
@@ -598,6 +609,11 @@ struct IthacaCommands: Commands {
             Divider()
             item(.publishedThrough, off: noSheet || ro)
             item(.renumber, off: noProject || ro)
+            Divider()
+            item(.newCharacter, off: noProject || ro)
+            item(.newPlace, off: noProject || ro)
+            item(.newFaction, off: noProject || ro)
+            item(.newTerm, off: noProject || ro)
             Divider()
             item(.history, t(.historyTitle) + "…", off: noSheet)
             item(.sheetInfo, off: noSheet)

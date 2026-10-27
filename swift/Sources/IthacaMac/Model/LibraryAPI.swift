@@ -2,6 +2,7 @@
 // `MockLibrary` keeps everything in memory (previews, snapshots, and running before the core lands).
 // Value types are our own (not the generated ones) so the UI compiles with or without the core bindings.
 import Foundation
+import IthacaCore
 import IthacaDesign
 
 enum ManuscriptLanguage: String, Codable, Sendable, CaseIterable { case ko, en }
@@ -93,6 +94,8 @@ struct SheetSummary: Identifiable, Equatable, Sendable {
     /// (qa1) Part of the sheet's history couldn't be read: the summary/text are the last intact version.
     /// The app shows it read-only and offers `recoverSheetFromBackup`.
     var damaged = false
+    /// (bible) The sheet is a story bible entry (front matter `종류`, ADR-0010): its kind, for the list icon.
+    var entry: EntryKind? = nil
 }
 
 struct FolderInfo: Identifiable, Equatable, Sendable {
@@ -311,6 +314,10 @@ protocol LibraryAPI: AnyObject {
     func exportText(project: String, sheets: [String], options: ExportOptions) throws -> String
     /// (docx) The sheets as a .docx file's bytes (`sheets` as in exportText).
     func exportDocx(project: String, sheets: [String], options: DocxOptions) throws -> Data
+
+    // Story bible (ADR-0010). The preview is the core's free function `bibleImportPreview` (StoryBible.swift).
+    /// The previewed entry texts appended to `folder`, in order. All or nothing. Returns the new sheet ids.
+    func importBible(project: String, folder: String, entries: [String]) throws -> [String]
 }
 
 extension Int64 {

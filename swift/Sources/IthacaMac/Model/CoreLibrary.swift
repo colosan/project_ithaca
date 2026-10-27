@@ -237,13 +237,17 @@ final class CoreLibrary: LibraryAPI {
                     publishAt: e.publishAt, platform: e.platform, excluded: e.excluded)
     }
 
+    func importBible(project: String, folder: String, entries: [String]) throws -> [String] {
+        try call { try lib.importBible(project: project, folder: folder, entries: entries) }
+    }
+
     // MARK: Mapping
 
     private func call<T>(_ f: () throws -> T) throws -> T {
         do { return try f() } catch { throw Self.map(error) }
     }
 
-    private static func map(_ e: Error) -> LibraryError {
+    static func map(_ e: Error) -> LibraryError {
         guard let (kind, m) = coreErrorInfo(e) else { return .io("\(e)") }
         switch kind {
         case .notFound: return .notFound
@@ -291,6 +295,6 @@ final class CoreLibrary: LibraryAPI {
     private static func sheet(_ s: IthacaCore.SheetSummary) -> SheetSummary {
         SheetSummary(id: s.id, folder: s.folder, order: Int(s.order), title: s.title, excerpt: s.excerpt,
                      counts: Counts(chars: Int(s.counts.chars), charsNoSpace: Int(s.counts.charsNoSpace), words: Int(s.counts.words), paragraphs: Int(s.counts.paragraphs)),
-                     created: s.created, modified: s.modified, trashed: s.trashed, branched: s.branched, episode: s.episode.map(episode), damaged: s.damaged)
+                     created: s.created, modified: s.modified, trashed: s.trashed, branched: s.branched, episode: s.episode.map(episode), damaged: s.damaged, entry: s.entry)
     }
 }

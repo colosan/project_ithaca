@@ -1,6 +1,7 @@
 // In-memory LibraryAPI with the same behavior the core promises (core/API.md): soft deletes, trash that remembers
 // where a sheet was, a version list per sheet, search with UTF-16 offsets. Nothing touches the disk.
 import Foundation
+import IthacaCore
 
 @MainActor
 final class MockLibrary: LibraryAPI {
@@ -407,9 +408,19 @@ final class MockLibrary: LibraryAPI {
     }
 
     private func summary(_ s: Sheet) -> SheetSummary {
-        SheetSummary(id: s.id, folder: s.folder, order: s.order, title: TextMetrics.title(s.text), excerpt: TextMetrics.excerpt(s.text),
-                     counts: TextMetrics.counts(s.text), created: s.created, modified: s.modified, trashed: s.trashed, branched: s.branched, episode: s.episode,
-                     damaged: damagedSheets.contains(s.id))
+        // Entries: title and excerpt come from the text after the front matter (core rule, ADR-0010 §2).
+        let entry = IthacaCore.parseEntry(text: s.text)
+        let body = entry.map { String((s.text as NSString).substring(from: Int($0.bodyStart))) } ?? s.text
+        let excerpt = entry == nil ? TextMetrics.excerpt(body)
+            : body.split(separator: "\n").dropFirst().first { !$0.trimmingCharacters(in: .whitespaces).isEmpty && !TextMetrics.isHeading($0) }.map { String($0) } ?? ""
+        return SheetSummary(id: s.id, folder: s.folder, order: s.order, title: entry?.name ?? TextMetrics.title(s.text), excerpt: excerpt,
+                            counts: TextMetrics.counts(body), created: s.created, modified: s.modified, trashed: s.trashed, branched: s.branched, episode: s.episode,
+                            damaged: damagedSheets.contains(s.id), entry: entry?.kind)
+    }
+
+    func importBible(project: String, folder: String, entries: [String]) throws -> [String] {
+        guard folders.contains(where: { $0.id == folder }) else { throw LibraryError.notFound }
+        return try entries.map { try createSheet(project: project, folder: folder, text: $0).id }
     }
 
     private func version(_ text: String, previous: String, at: Int64 = .nowMillis, device: String? = nil, actor: Actor = .me) -> Version {
