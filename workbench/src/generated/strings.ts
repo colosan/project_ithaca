@@ -660,6 +660,15 @@ export type StringKey =
   | "bible.card.address"
   | "bible.card.change"
   | "bible.card.open"
+  | "entry.note"
+  | "entry.noteAsChange"
+  | "entry.noted"
+  | "entry.notedChange"
+  | "bible.card.firstLast"
+  | "reference.previousEnd"
+  | "reference.previousOpen"
+  | "info.appearanceSearch"
+  | "info.appearanceSearchNone"
   | "inspector.mentions.title"
   | "inspector.mentions.none"
   | "info.appearances"
@@ -1333,6 +1342,15 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "bible.card.address": "호칭",
     "bible.card.change": "최신 변화",
     "bible.card.open": "항목 열기",
+    "entry.note": "설정에 적기",
+    "entry.noteAsChange": "{name} — 변화로 적기",
+    "entry.noted": "‘{name}’ 메모에 적었어요",
+    "entry.notedChange": "‘{name}’ 변화에 적었어요",
+    "bible.card.firstLast": "처음 {first} · 마지막 {last}",
+    "reference.previousEnd": "지난 화 끝 · {episode}",
+    "reference.previousOpen": "지난 화의 이 자리로 가기",
+    "info.appearanceSearch": "나온 문장에서 찾기",
+    "info.appearanceSearchNone": "그런 문장이 없어요.",
     "inspector.mentions.title": "이 시트에 나온 항목",
     "inspector.mentions.none": "이 시트에는 아직 설정 항목의 이름이 없어요.",
     "info.appearances": "나온 회차",
@@ -2098,6 +2116,15 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "bible.card.address": "Forms of address",
     "bible.card.change": "Latest change",
     "bible.card.open": "Open Entry",
+    "entry.note": "Note in Story Bible",
+    "entry.noteAsChange": "{name} — as a change",
+    "entry.noted": "Noted in {name}",
+    "entry.notedChange": "Noted as a change in {name}",
+    "bible.card.firstLast": "First {first} · last {last}",
+    "reference.previousEnd": "End of {episode}",
+    "reference.previousOpen": "Go to the end of the previous episode",
+    "info.appearanceSearch": "Find in lines that mention them",
+    "info.appearanceSearchNone": "No such lines.",
     "inspector.mentions.title": "In This Sheet",
     "inspector.mentions.none": "No story bible names in this sheet yet.",
     "info.appearances": "Appearances",

@@ -48,6 +48,7 @@ private struct ReferenceTab: View {
         let candidates = model.folders.flatMap { f in f.sheets.filter { $0.id != model.sheetId }.map { (f, $0) } }
         let fallback = candidates.first { $0.0.order == 1 }?.1.id ?? candidates.first?.1.id ?? ""
         let id = candidates.contains { $0.1.id == picked } ? picked : fallback
+        PreviousEpisodeSection()
         BibleMentionsSection()
         if candidates.isEmpty {
             Caption(model.t(.referenceNone))

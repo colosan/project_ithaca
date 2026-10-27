@@ -62,6 +62,15 @@ extension EntryKind {
     }
 }
 
+/// A line found by "Find in lines that mention them": opens `sheet` with `range` selected.
+struct LineHit: Identifiable, Equatable {
+    var sheet: String
+    var label: String
+    var line: String
+    var range: NSRange
+    var id: String { "\(sheet):\(range.location)" }
+}
+
 extension ManuscriptLanguage {
     var core: IthacaCore.Language { self == .ko ? .ko : .en }
 }
@@ -81,6 +90,69 @@ enum StoryBible {
     static func name(fromSelection s: String) -> String {
         let one = s.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).joined(separator: " ")
         return String(one.prefix(80))
+    }
+
+    /// Selected text as one line: line breaks and runs of spaces become one space, cut at `limit` characters.
+    static func oneLine(_ s: String, limit: Int) -> String {
+        let one = s.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).joined(separator: " ")
+        return one.count > limit ? String(one.prefix(limit)) + "…" : one
+    }
+
+    enum NoteSection {
+        case notes, changes
+        var titles: Set<String> { self == .notes ? ["메모", "notes", "note"] : EntryPart.changes.titles }
+        func title(_ language: ManuscriptLanguage) -> String {
+            switch (self, language) {
+            case (.notes, .ko): "메모"
+            case (.notes, .en): "Notes"
+            case (.changes, .ko): "변화"
+            case (.changes, .en): "Changes"
+            }
+        }
+    }
+
+    /// `item` as the last line of the entry's section (after its last non-blank line, before the next `#`/`##` title);
+    /// when there is no such section, a new one at the end in the manuscript's language. Nothing else changes.
+    static func appendItem(_ item: String, to section: NoteSection, in text: String, language: ManuscriptLanguage) -> String {
+        var lines = text.components(separatedBy: "\n")
+        let bodyStart = text.isEmpty ? 0 : (text as NSString).substring(to: Styles.frontMatterEnd(text as NSString)).components(separatedBy: "\n").count - 1
+        func title(_ line: String) -> String? {
+            guard line.hasPrefix("## ") else { return nil }
+            return line.dropFirst(3).trimmingCharacters(in: .whitespaces).lowercased()
+        }
+        if let h = lines.indices.first(where: { $0 >= bodyStart && title(lines[$0]).map(section.titles.contains) == true }) {
+            let end = lines.indices.first { $0 > h && (lines[$0].hasPrefix("# ") || lines[$0].hasPrefix("## ")) } ?? lines.count
+            let last = (h..<end).last { !lines[$0].trimmingCharacters(in: .whitespaces).isEmpty } ?? h
+            lines.insert(item, at: last + 1)
+            return lines.joined(separator: "\n")
+        }
+        return text + sectionInsertion(after: text, title: section.title(language)) + item + "\n"
+    }
+
+    /// About `chars` characters from the end, cut at a paragraph (line) start; "…" in front when cut.
+    static func tail(_ text: String, about chars: Int) -> String {
+        let paras = text.components(separatedBy: "\n")
+        var out: [String] = [], count = 0
+        for p in paras.reversed() {
+            if count >= chars { break }
+            out.insert(p, at: 0)
+            count += p.count
+        }
+        let s = out.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        return out.count < paras.count && !s.isEmpty ? "…\n" + s : s
+    }
+
+    /// Lines of `text` that contain one of `names` and `query` (case-insensitive); the range is the query's, UTF-16.
+    static func lines(in text: String, with names: [String], containing query: String) -> [(line: String, range: NSRange)] {
+        let ns = text as NSString
+        var out: [(String, NSRange)] = []
+        ns.enumerateSubstrings(in: NSRange(location: 0, length: ns.length), options: .byLines) { line, r, _, _ in
+            guard let line, names.contains(where: { line.contains($0) }) else { return }
+            let q = (line as NSString).range(of: query, options: .caseInsensitive)
+            guard q.location != NSNotFound else { return }
+            out.append((line.trimmingCharacters(in: .whitespaces), NSRange(location: r.location + q.location, length: q.length)))
+        }
+        return out
     }
 
     /// UTF-16 offset of the end of the template's `# ` name line (the caret of a new entry).

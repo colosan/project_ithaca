@@ -665,6 +665,15 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case bibleCardAddress = "bible.card.address"
     case bibleCardChange = "bible.card.change"
     case bibleCardOpen = "bible.card.open"
+    case entryNote = "entry.note"
+    case entryNoteAsChange = "entry.noteAsChange"
+    case entryNoted = "entry.noted"
+    case entryNotedChange = "entry.notedChange"
+    case bibleCardFirstLast = "bible.card.firstLast"
+    case referencePreviousEnd = "reference.previousEnd"
+    case referencePreviousOpen = "reference.previousOpen"
+    case infoAppearanceSearch = "info.appearanceSearch"
+    case infoAppearanceSearchNone = "info.appearanceSearchNone"
     case inspectorMentionsTitle = "inspector.mentions.title"
     case inspectorMentionsNone = "inspector.mentions.none"
     case infoAppearances = "info.appearances"
@@ -1355,6 +1364,15 @@ public enum L10n {
             .bibleCardAddress: .text("호칭"),
             .bibleCardChange: .text("최신 변화"),
             .bibleCardOpen: .text("항목 열기"),
+            .entryNote: .text("설정에 적기"),
+            .entryNoteAsChange: .text("{name} — 변화로 적기"),
+            .entryNoted: .text("‘{name}’ 메모에 적었어요"),
+            .entryNotedChange: .text("‘{name}’ 변화에 적었어요"),
+            .bibleCardFirstLast: .text("처음 {first} · 마지막 {last}"),
+            .referencePreviousEnd: .text("지난 화 끝 · {episode}"),
+            .referencePreviousOpen: .text("지난 화의 이 자리로 가기"),
+            .infoAppearanceSearch: .text("나온 문장에서 찾기"),
+            .infoAppearanceSearchNone: .text("그런 문장이 없어요."),
             .inspectorMentionsTitle: .text("이 시트에 나온 항목"),
             .inspectorMentionsNone: .text("이 시트에는 아직 설정 항목의 이름이 없어요."),
             .infoAppearances: .text("나온 회차"),
@@ -2024,6 +2042,15 @@ public enum L10n {
             .bibleCardAddress: .text("Forms of address"),
             .bibleCardChange: .text("Latest change"),
             .bibleCardOpen: .text("Open Entry"),
+            .entryNote: .text("Note in Story Bible"),
+            .entryNoteAsChange: .text("{name} — as a change"),
+            .entryNoted: .text("Noted in {name}"),
+            .entryNotedChange: .text("Noted as a change in {name}"),
+            .bibleCardFirstLast: .text("First {first} · last {last}"),
+            .referencePreviousEnd: .text("End of {episode}"),
+            .referencePreviousOpen: .text("Go to the end of the previous episode"),
+            .infoAppearanceSearch: .text("Find in lines that mention them"),
+            .infoAppearanceSearchNone: .text("No such lines."),
             .inspectorMentionsTitle: .text("In This Sheet"),
             .inspectorMentionsNone: .text("No story bible names in this sheet yet."),
             .infoAppearances: .text("Appearances"),

@@ -231,6 +231,10 @@ enum Snapshot {
             Scene(name: "bible-inspector-reference-dark", size: wide, dark: true, setup: { m, d in
                 bibleNamesSeed(m); m.underlineNames = true; m.inspectorOpen = true; d.set("reference", forKey: "ithaca.inspectorTab")
             }),
+            Scene(name: "bible-inspector-previous", size: wide, setup: { m, d in
+                bibleNamesSeed(m); m.inspectorOpen = true; d.set("reference", forKey: "ithaca.inspectorTab")
+                if let s = m.folders.first?.sheets.dropFirst(2).first { m.openSheet(s.id) }
+            }),
             Scene(name: "bible-entry-info", size: wide, setup: { m, d in
                 bibleNamesSeed(m)
                 if let e = m.bible.first(where: { $0.name == "서윤" }) { m.openSheet(e.sheet) }

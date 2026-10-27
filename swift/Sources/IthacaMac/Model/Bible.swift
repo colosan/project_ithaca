@@ -85,10 +85,25 @@ extension BibleEntry {
     }
 
     /// The last item of `## 변화` ("20화부터: …"), its list mark dropped.
-    var latestChange: String? {
+    var latestChange: String? { latestChange(through: nil) }
+
+    /// The last change as of episode `episode` (v3 §1.3): items naming a later episode ("240화: …") are left out,
+    /// items without a number always count. nil `episode` = the very last item.
+    func latestChange(through episode: Int?) -> String? {
         guard let body = section(.changes) else { return nil }
         let items = body.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
-        return items.last.map { $0.replacingOccurrences(of: #"^([-*+]|\d+[.)])\s+"#, with: "", options: .regularExpression) }
+            .map { $0.replacingOccurrences(of: #"^([-*+]|\d+[.)])\s+"#, with: "", options: .regularExpression) }
+        guard let episode else { return items.last }
+        return items.last { Self.episodeNumber(in: $0).map { $0 <= episode } ?? true }
+    }
+
+    /// "20화부터: …" → 20 (also "20회", "ep 20", "Episode 20").
+    static func episodeNumber(in item: String) -> Int? {
+        for pattern in [#"(\d+)\s*[화회]"#, #"(?i)\b(?:ep|episode)\.?\s*(\d+)"#] {
+            if let r = item.range(of: pattern, options: .regularExpression),
+               let n = item[r].firstMatch(of: /\d+/).flatMap({ Int($0.output) }) { return n }
+        }
+        return nil
     }
 
     static func firstLine(_ s: String) -> String? {

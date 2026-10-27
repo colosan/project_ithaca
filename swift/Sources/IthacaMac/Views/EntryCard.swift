@@ -8,6 +8,7 @@ import SwiftUI
 struct EntryCardContent: View {
     let entry: BibleEntry
     let last: Appearance?
+    var first: Appearance? = nil
     let model: AppModel
     var header = true
     var onOpen: (() -> Void)?
@@ -27,7 +28,11 @@ struct EntryCardContent: View {
             }
             if let last {
                 VStack(alignment: .leading, spacing: T.Space.s50) {
-                    Caption(model.t(.bibleCardLastSeen, ["episode": model.appearanceLabel(last)]))
+                    if let first, first.sheet != last.sheet {
+                        Caption(model.t(.bibleCardFirstLast, ["first": model.appearanceLabel(first), "last": model.appearanceLabel(last)]))
+                    } else {
+                        Caption(model.t(.bibleCardLastSeen, ["episode": model.appearanceLabel(last)]))
+                    }
                     ForEach(Array(last.lines.prefix(3).enumerated()), id: \.offset) { _, line in
                         Text(line).textStyle(.label).foregroundStyle(Color.inkSecondary).lineLimit(2).fixedSize(horizontal: false, vertical: true)
                     }
@@ -35,7 +40,8 @@ struct EntryCardContent: View {
             }
             part(.bibleCardVoice, entry.section(.voice))
             part(.bibleCardAddress, entry.section(.address))
-            part(.bibleCardChange, entry.latestChange)
+            // As of the open episode: revising 120 doesn't show what changes in 238.
+            part(.bibleCardChange, entry.latestChange(through: model.currentEpisode))
             if let onOpen {
                 HStack(spacing: T.Space.s100) {
                     KitButton(model.t(.bibleCardOpen), icon: .open, action: onOpen)
@@ -60,12 +66,12 @@ struct EntryCardContent: View {
 /// The popover's content: the card at a fixed width.
 struct EntryCardPopover: View {
     let entry: BibleEntry
-    let last: Appearance?
+    let seen: (first: Appearance?, last: Appearance?)
     let model: AppModel
     let onOpen: () -> Void
 
     var body: some View {
-        EntryCardContent(entry: entry, last: last, model: model, onOpen: onOpen)
+        EntryCardContent(entry: entry, last: seen.last, first: seen.first, model: model, onOpen: onOpen)
             .padding(T.Space.s200)
             .frame(width: T.Layout.Pane.inspectorDefault)
             .background(Color.surfaceRaised)
@@ -79,8 +85,8 @@ struct EntryCardPopover: View {
 struct BibleMentionsSection: View {
     @Environment(AppModel.self) private var model
     @State private var expanded: String?
-    /// The expanded card's last appearance, looked up once when it opens (not on every redraw).
-    @State private var last: Appearance?
+    /// The expanded card's first and last appearance, looked up once when it opens (not on every redraw).
+    @State private var seen: (first: Appearance?, last: Appearance?) = (nil, nil)
 
     var body: some View {
         if !model.bible.isEmpty, model.sheetId != nil {
@@ -94,10 +100,10 @@ struct BibleMentionsSection: View {
                 ForEach(entries) { e in
                     MentionRow(entry: e, open: expanded == e.sheet) {
                         expanded = expanded == e.sheet ? nil : e.sheet
-                        last = expanded == nil ? nil : model.lastAppearance(of: e)
+                        seen = expanded == nil ? (nil, nil) : model.cardAppearances(of: e)
                     }
                     if expanded == e.sheet {
-                        EntryCardContent(entry: e, last: last, model: model, header: false) { model.openSheet(e.sheet) }
+                        EntryCardContent(entry: e, last: seen.last, first: seen.first, model: model, header: false) { model.openSheet(e.sheet) }
                             .padding(T.Space.s150)
                             .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.surfaceCanvas))
                             .padding(.bottom, T.Space.s100)
@@ -142,10 +148,32 @@ struct EntryAppearancesSection: View {
     @Environment(AppModel.self) private var model
     let entry: BibleEntry
     @State private var rows: [Appearance] = []
+    @State private var query = ""
+    @State private var hits: [LineHit] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: T.Space.s25) {
             Caption(model.t(.infoAppearances)).padding(.bottom, T.Space.s25)
+            if !rows.isEmpty {
+                // "서윤 … 눈": check an old description without searching every episode (v3 §1.5).
+                TextField(model.t(.infoAppearanceSearch), text: $query)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.bottom, T.Space.s50)
+                    .task(id: query) {
+                        try? await Task.sleep(for: .milliseconds(300))
+                        guard !Task.isCancelled else { return }
+                        hits = model.searchAppearances(entry, query)
+                    }
+                if !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                    if hits.isEmpty {
+                        Text(model.t(.infoAppearanceSearchNone)).textStyle(.label).foregroundStyle(Color.inkTertiary)
+                    }
+                    ForEach(hits) { h in
+                        LineHitRow(hit: h) { model.openSheet(h.sheet, at: h.range) }
+                    }
+                    Spacer().frame(height: T.Space.s100)
+                }
+            }
             if rows.isEmpty {
                 Text(model.t(entry.matchable ? .infoAppearancesNone : .infoAppearancesNoMatch)).textStyle(.label).foregroundStyle(Color.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -159,6 +187,79 @@ struct EntryAppearancesSection: View {
         .padding(.bottom, T.Space.s150)
         // Saved text is what the core reads: refresh when the bible does (after saves) or another entry opens.
         .task(id: "\(entry.sheet):\(model.bible.first { $0.sheet == entry.sheet }?.lastSeen?.sheet ?? "")") { rows = model.appearances(entry.sheet) }
+    }
+}
+
+private struct LineHitRow: View {
+    let hit: LineHit
+    let action: () -> Void
+    @State private var hover = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(hit.label).textStyle(.caption).foregroundStyle(Color.inkTertiary)
+            Text(hit.line).textStyle(.label).foregroundStyle(Color.inkPrimary).lineLimit(3).fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, T.Space.s100)
+        .padding(.vertical, T.Space.s50)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: T.Radius.control).fill(hover ? Color.surfaceSelected : .clear))
+        .contentShape(Rectangle())
+        .onHover { hover = $0 }
+        .onTapGesture(perform: action)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+    }
+}
+
+/// Reference tab, on top in an episode: the end of the one before (v3 §1.1) — where it broke off and who was there.
+struct PreviousEpisodeSection: View {
+    @Environment(AppModel.self) private var model
+    @State private var prev: (sheet: SheetSummary, tail: String)?
+    @State private var names: [BibleEntry] = []
+    @State private var hover = false
+
+    var body: some View {
+        // A stack, not a Group: `.task` on an empty Group never runs, and the section is empty until it loads.
+        VStack(alignment: .leading, spacing: 0) {
+            if let prev {
+                VStack(alignment: .leading, spacing: T.Space.s50) {
+                    Caption(model.t(.referencePreviousEnd, ["episode": prev.sheet.episode?.number.map { model.t(.bibleEpisode, ["number": $0]) } ?? prev.sheet.title]))
+                    if !names.isEmpty {
+                        // Who was on stage: a wrapped line of names (no chips row that clips in a narrow inspector).
+                        Text(names.map(\.name).joined(separator: " · ")).textStyle(.caption).foregroundStyle(Color.inkSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Text(prev.tail).textStyle(.label).foregroundStyle(Color.inkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(T.Space.s100)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: T.Radius.control).fill(hover ? Color.surfaceSelected : Color.surfaceCanvas))
+                        .contentShape(Rectangle())
+                        .onHover { hover = $0 }
+                        .onTapGesture { openEnd(prev.sheet) }
+                        .help(model.t(.referencePreviousOpen))
+                        .accessibilityAddTraits(.isButton)
+                }
+                .padding(.bottom, T.Space.s150)
+                .hairline(.bottom)
+                .padding(.bottom, T.Space.s150)
+            }
+        }
+        .task(id: model.sheetId) { load() }
+    }
+
+    private func load() {
+        prev = model.previousEpisode()
+        guard let prev, let p = model.projectId, !model.bible.isEmpty,
+              let text = try? model.library.sheetText(project: p, sheet: prev.sheet.id) else { names = []; return }
+        var seen = Set<String>()
+        names = ((try? model.library.mentionsIn(project: p, text: text)) ?? []).compactMap { seen.insert($0.entry).inserted ? model.entry($0.entry) : nil }
+    }
+
+    private func openEnd(_ s: SheetSummary) {
+        guard let p = model.projectId, let text = try? model.library.sheetText(project: p, sheet: s.id) else { return }
+        model.openSheet(s.id, at: NSRange(location: (text as NSString).length, length: 0))
     }
 }
 

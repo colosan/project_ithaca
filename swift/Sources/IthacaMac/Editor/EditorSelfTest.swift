@@ -787,6 +787,31 @@ enum EditorSelfTest {
         model.openSheet(page)
         pump(0.3)
 
+        // v3 §1: as-of-episode card, previous episode's end, noting a line, finding in appearance lines.
+        check(e.latestChange(through: 10) == "3화부터: 말이 늘었다." && e.latestChange(through: 2) == nil && e.latestChange(through: nil) == "20화부터: 등대를 떠난다.",
+              "latest change as of an episode")
+        check(BibleEntry.episodeNumber(in: "ep 12: left") == 12 && BibleEntry.episodeNumber(in: "120화: 사망") == 120 && BibleEntry.episodeNumber(in: "메모") == nil, "episode number in a change item")
+        let mid = "---\n종류: 인물\n---\n# 가\n\n## 메모\n- 하나\n\n## 말투\n짧게\n"
+        check(StoryBible.appendItem("- 둘", to: .notes, in: mid, language: .ko) == "---\n종류: 인물\n---\n# 가\n\n## 메모\n- 하나\n- 둘\n\n## 말투\n짧게\n", "note goes under the notes section's last line")
+        check(StoryBible.appendItem("- 둘", to: .changes, in: mid, language: .ko).hasSuffix("## 말투\n짧게\n\n## 변화\n- 둘\n"), "no changes section: a new one at the end")
+        check(StoryBible.tail(String(repeating: "가나다라마\n", count: 300), about: 600).hasPrefix("…\n") && StoryBible.tail("짧다", about: 600) == "짧다", "previous episode tail")
+        model.openSheet(ep2)
+        pump(0.3)
+        let asOf2 = model.cardAppearances(of: model.entry(seoyun)!)
+        check(asOf2.last?.number == 1 && asOf2.first?.number == 1, "card as of 2화: first and last 1화")
+        check(model.previousEpisode()?.tail.contains("벼리섬에 비가 왔다.") == true, "previous episode's end (\(model.previousEpisode()?.tail ?? "nil"))")
+        check(model.noteTargets(for: "서진은 혼자 남았다.").map(\.name) == ["서진"], "note targets: names in the selection")
+        let seojinBefore = (try? lib.sheetText(project: pid, sheet: seojin)) ?? ""
+        check(model.noteInEntry(model.entry(seojin)!, "서진은 혼자\n남았다.", asChange: false), "note in entry")
+        check((try? lib.sheetText(project: pid, sheet: seojin))?.hasSuffix("## 메모\n- 2화: 서진은 혼자 남았다.\n") == true, "noted as '- 2화: …' under 메모 (\((try? lib.sheetText(project: pid, sheet: seojin)) ?? ""))")
+        model.toast?.undo?()
+        check((try? lib.sheetText(project: pid, sheet: seojin)) == seojinBefore, "toast undo restores the entry")
+        model.toast = nil
+        let found = model.searchAppearances(model.entry(seoyun)!, "가자")
+        check(found.count == 1 && found.first?.sheet == ep1 && found.first?.label == "1화", "find in appearance lines (\(found))")
+        model.openSheet(page)
+        pump(0.3)
+
         // Inspector "이 시트에 나온 항목": 1 s after typing stops, each entry once, in order; not while composing.
         fresh("벼리섬에 서윤이 갔다. 서윤은 웃었다. 서진")
         pump(1.3)

@@ -47,7 +47,7 @@ final class EntryCardPresenter: NSObject, NSPopoverDelegate {
     func show(_ entry: BibleEntry, _ range: NSRange, asked: Bool) {
         guard let tv = textView, let window = tv.window else { return }
         close()
-        let content = EntryCardPopover(entry: entry, last: model.lastAppearance(of: entry), model: model) { [weak self] in self?.openEntry() }
+        let content = EntryCardPopover(entry: entry, seen: model.cardAppearances(of: entry), model: model) { [weak self] in self?.openEntry() }
         let host = NSHostingController(rootView: content)
         host.view.appearance = tv.effectiveAppearance
         let pop = NSPopover()

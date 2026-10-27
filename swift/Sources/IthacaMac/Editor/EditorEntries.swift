@@ -56,6 +56,22 @@ extension ManuscriptView.Coordinator {
             }
             make.submenu = sub
             items.append(make)
+            // "Note in Story Bible ▸ 서윤": the selection as a line of that entry's notes; hold ⌥ for its changes (v3 §1.4).
+            let targets = model.noteTargets(for: selectedText)
+            if !targets.isEmpty {
+                let note = NSMenuItem(title: model.t(.entryNote), action: nil, keyEquivalent: "")
+                let sub = NSMenu()
+                let text = selectedText
+                for e in targets {
+                    sub.addItem(ActionMenuItem(e.name) { [weak self] in self?.model.noteInEntry(e, text, asChange: false) })
+                    let change = ActionMenuItem(model.t(.entryNoteAsChange, ["name": e.name])) { [weak self] in self?.model.noteInEntry(e, text, asChange: true) }
+                    change.isAlternate = true
+                    change.keyEquivalentModifierMask = .option
+                    sub.addItem(change)
+                }
+                note.submenu = sub
+                items.append(note)
+            }
         }
         if let menu = addFieldMenu() {
             let add = NSMenuItem(title: model.t(.entryAddField), action: nil, keyEquivalent: "")
