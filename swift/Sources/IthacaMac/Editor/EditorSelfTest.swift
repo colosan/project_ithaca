@@ -174,6 +174,13 @@ enum EditorSelfTest {
             check(tv.selectedRange().location == (tv.string as NSString).length, "click below the text moves the caret to the end (\(tv.selectedRange().location))")
         }
 
+        // 11b. The toast over the editor takes its own clicks ([Undo] · ✕), not the text view underneath.
+        model.showToast(Toast(message: "Toast", sticky: true))
+        pump(0.3)
+        let onToast = NSPoint(x: window.frame.width - T.Space.s200 - 20, y: window.contentLayoutRect.maxY - T.Size.barTop - T.Space.s100 - 18)
+        check(!(window.contentView?.superview?.hitTest(onToast) is NSTextView), "a click on the toast reaches the toast")
+        model.toast = nil
+
         // 12. ⌘C / ⌘X / ⌘V through the text view (the writer's clipboard is put back afterwards).
         let pb = NSPasteboard.general
         let clip = pb.pasteboardItems?.map { item in item.types.compactMap { t in item.data(forType: t).map { (t, $0) } } } ?? []

@@ -63,7 +63,7 @@ struct ShellView: View {
                 // Top-right under the toolbar, inset: over the editor's margin, not over the line being written.
                 if let toast = model.toast {
                     VStack {
-                        HStack { Spacer(minLength: T.Space.s200); ToastBar(toast: toast) }
+                        HStack { Spacer(minLength: T.Space.s200); OverAppKit(model: model) { ToastBar(toast: toast) }.fixedSize() }
                         Spacer()
                     }
                     .padding(.top, T.Size.barTop + T.Space.s100)
@@ -222,6 +222,23 @@ struct BusyHUD: View {
             .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.surfaceRaised))
             .tokenShadow(T.Shadow.dialog)
         }
+    }
+}
+
+/// SwiftUI drawn over the editor doesn't get the clicks: the window hands them to the text view underneath
+/// (a plain SwiftUI button over an NSView is drawn, not hit). Hosting the content in its own NSView puts it on top for clicks too.
+struct OverAppKit<Content: View>: NSViewRepresentable {
+    let model: AppModel
+    @ViewBuilder let content: () -> Content
+
+    func makeNSView(context: Context) -> NSHostingView<AnyView> {
+        let host = NSHostingView(rootView: AnyView(content().environment(model)))
+        host.sizingOptions = [.intrinsicContentSize]
+        return host
+    }
+
+    func updateNSView(_ host: NSHostingView<AnyView>, context: Context) {
+        host.rootView = AnyView(content().environment(model))
     }
 }
 
