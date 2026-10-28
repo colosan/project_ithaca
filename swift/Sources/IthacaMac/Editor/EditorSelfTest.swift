@@ -388,6 +388,19 @@ enum EditorSelfTest {
             tv.undoManager?.removeAllActions()
             tv.conveniences.reset()
         }
+        // 22b. A space typed in front of a long run without spaces stays on its line: the run is not one word to wrap whole.
+        func lineY(_ i: Int) -> CGFloat { tv.firstRect(forCharacterRange: NSRange(location: i, length: 1), actualRange: nil).minY }
+        let run = "아이어른노인임산부청년이그곳에있었다한도시에자생하던모든생명이이곳에모여있었다아이어른노인임산부청년이그곳에있었다"
+        setText(run + "\n둘째 줄", caret: 0)
+        type(" ")
+        pump(0.6)
+        check(lineY(1) == lineY(0) && lineY(run.count) != lineY(0), "space before a long unspaced run doesn't push it to the next line")
+        let spaced = "서윤은 오늘도 불빛의 횟수를 셌다. 엘리엇의 지도에는 섬이 하나 더 있었다. 서윤은 그 점을 오래 바라보았다. 바다는 조용했고 등대는 꺼지지 않았다."
+        setText(spaced)
+        pump(0.6)
+        let words = spaced.indices.map { spaced.distance(from: spaced.startIndex, to: $0) }.filter { $0 > 0 && Array(spaced)[$0 - 1] != " " && Array(spaced)[$0] != " " }
+        check(words.allSatisfy { lineY($0) == lineY($0 - 1) }, "spaced prose still wraps between words")
+        setText("")
         check(!model.autoPairs && model.ellipsis == .off && !model.firstLineIndent && !model.textReplacement, "conveniences are off by default")
         for s in ["(", "「", ".", ".", "."] { type(s) }
         check(tv.string == "(「...", "off: no closing pair, no ellipsis ('\(tv.string)')")

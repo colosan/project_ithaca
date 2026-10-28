@@ -812,6 +812,8 @@ enum Styles {
 
     private static let headingRe = try! NSRegularExpression(pattern: #"^(#{1,6})([ \t]+)"#, options: [.anchorsMatchLines])
     private static let listRe = try! NSRegularExpression(pattern: #"^[ \t]*([-*+>]|\d+\.)[ \t]+"#, options: [.anchorsMatchLines])
+    /// Longer than any real word (Korean words run to about ten syllables).
+    private static let longRunRe = try! NSRegularExpression(pattern: #"[^\s]{16,}"#)
     private static let emphasisRe = try! NSRegularExpression(pattern: #"(\*\*|__|\*|_|~~|`)(?=\S)(.+?)(?<=\S)\1"#)
 
     /// End of the front matter block (a `---` first line through the next `---` line, ADR-0010), or 0 when there is none.
@@ -869,6 +871,14 @@ enum Styles {
             }
             if let flat, sceneBreak || line.location < frontMatter {
                 storage.addAttribute(.paragraphStyle, value: flat, range: line)
+            }
+            // Word wrap keeps Korean words whole, but a long run typed without spaces is not a word: wrapped whole it
+            // jumps to the next line and strands what came before (a space typed in front looked like a line break).
+            // Such a paragraph breaks between syllables instead.
+            if longRunRe.firstMatch(in: storage.string, range: line) != nil,
+               let p = (storage.attribute(.paragraphStyle, at: line.location, effectiveRange: nil) as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle {
+                p.lineBreakStrategy = []
+                storage.addAttribute(.paragraphStyle, value: p, range: enclosing)
             }
             for m in emphasisRe.matches(in: storage.string, range: line) {
                 let mark = m.range(at: 1).length
