@@ -1,5 +1,5 @@
-// The sticky-note window (⌘4, app-shell "작은 창"): the main window shrinks to a small editor at the screen's edge and
-// floats over other apps; ⌘4 or "Back to Full Window" puts it back where it was. One window, one buffer — nothing to sync.
+// The sticky-note window (⌘4, app-shell "작은 창"): the main window shrinks to a small editor at the screen's edge,
+// an ordinary window other apps can cover (owner, 0.6.5); ⌘4 or "Back to Full Window" puts it back where it was. One window, one buffer — nothing to sync.
 import AppKit
 
 @MainActor
@@ -23,13 +23,9 @@ enum MiniWindow {
         w.setFrame(target, display: true, animate: true)
     }
 
-    /// Level and minimum size only (launch in mini mode: the window already has the small frame).
+    /// Minimum size only (launch in mini mode: the window already has the small frame).
     static func apply(_ w: NSWindow, mini: Bool) {
-        w.level = mini ? .floating : .normal
         w.minSize = mini ? minSize : NSSize(width: 480, height: 560)
-        if mini { w.collectionBehavior.insert(.fullScreenAuxiliary) } else { w.collectionBehavior.remove(.fullScreenAuxiliary) }
-        // A floating window drops out of Mission Control and ⌘` unless it says it is managed.
-        w.collectionBehavior.formUnion([.managed, .participatesInCycle])
     }
 
     /// Top-right corner of the window's screen, inset like a note stuck to the edge.
