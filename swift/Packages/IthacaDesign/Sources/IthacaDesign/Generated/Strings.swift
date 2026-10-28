@@ -324,6 +324,7 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case focusExit = "focus.exit"
     case editorOnlyExit = "editorOnly.exit"
     case miniTitle = "mini.title"
+    case miniButton = "mini.button"
     case miniExit = "mini.exit"
     case inspectorTitle = "inspector.title"
     case inspectorReference = "inspector.reference"
@@ -1023,6 +1024,7 @@ public enum L10n {
             .focusExit: .text("집중 모드 끝내기"),
             .editorOnlyExit: .text("양옆 창 다시 보기"),
             .miniTitle: .text("작은 창으로 쓰기"),
+            .miniButton: .text("작은 창"),
             .miniExit: .text("크게 보기"),
             .inspectorTitle: .text("인스펙터"),
             .inspectorReference: .text("참조"),
@@ -1701,6 +1703,7 @@ public enum L10n {
             .focusExit: .text("Exit focus mode"),
             .editorOnlyExit: .text("Show side panes"),
             .miniTitle: .text("Write in a Small Window"),
+            .miniButton: .text("Small Window"),
             .miniExit: .text("Back to Full Window"),
             .inspectorTitle: .text("Inspector"),
             .inspectorReference: .text("Reference"),

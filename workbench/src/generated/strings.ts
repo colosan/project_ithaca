@@ -319,6 +319,7 @@ export type StringKey =
   | "focus.exit"
   | "editorOnly.exit"
   | "mini.title"
+  | "mini.button"
   | "mini.exit"
   | "inspector.title"
   | "inspector.reference"
@@ -1001,6 +1002,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "focus.exit": "집중 모드 끝내기",
     "editorOnly.exit": "양옆 창 다시 보기",
     "mini.title": "작은 창으로 쓰기",
+    "mini.button": "작은 창",
     "mini.exit": "크게 보기",
     "inspector.title": "인스펙터",
     "inspector.reference": "참조",
@@ -1709,6 +1711,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "focus.exit": "Exit focus mode",
     "editorOnly.exit": "Show side panes",
     "mini.title": "Write in a Small Window",
+    "mini.button": "Small Window",
     "mini.exit": "Back to Full Window",
     "inspector.title": "Inspector",
     "inspector.reference": "Reference",

@@ -344,6 +344,7 @@
   "focus.exit": "Exit focus mode",
   "editorOnly.exit": "Show side panes",
   "mini.title": "Write in a Small Window",
+  "mini.button": "Small Window",
   "mini.exit": "Back to Full Window",
   "inspector.title": "Inspector",
   "inspector.reference": "Reference",

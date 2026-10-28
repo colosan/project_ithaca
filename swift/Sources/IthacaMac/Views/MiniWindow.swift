@@ -28,6 +28,8 @@ enum MiniWindow {
         w.level = mini ? .floating : .normal
         w.minSize = mini ? minSize : NSSize(width: 480, height: 560)
         if mini { w.collectionBehavior.insert(.fullScreenAuxiliary) } else { w.collectionBehavior.remove(.fullScreenAuxiliary) }
+        // A floating window drops out of Mission Control and ⌘` unless it says it is managed.
+        w.collectionBehavior.formUnion([.managed, .participatesInCycle])
     }
 
     /// Top-right corner of the window's screen, inset like a note stuck to the edge.

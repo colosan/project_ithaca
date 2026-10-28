@@ -314,6 +314,7 @@
   "focus.exit": "집중 모드 끝내기",
   "editorOnly.exit": "양옆 창 다시 보기",
   "mini.title": "작은 창으로 쓰기",
+  "mini.button": "작은 창",
   "mini.exit": "크게 보기",
   "inspector.title": "인스펙터",
   "inspector.reference": "참조",

@@ -30,18 +30,20 @@ struct EditorPane: View {
                 Text(model.sheet.map { $0.title.isEmpty ? model.t(.sheetUntitled) : $0.title } ?? "")
                     .textStyle(.label).foregroundStyle(Color.inkSecondary).lineLimit(1).truncationMode(.tail)
                 Spacer(minLength: 0)
-                IconButton(.expand, label: model.t(.miniExit)) { model.toggleMini() }
+                KitButton(model.t(.miniExit), icon: .expand, variant: .ghost) { model.toggleMini() }
             } else if model.panesHidden {
                 Spacer(minLength: 0)
+                KitButton(model.t(.miniButton), icon: .mini, variant: .ghost) { model.toggleMini() }
                 KitButton(model.t(model.focusMode ? .focusExit : .editorOnlyExit), icon: .focus, variant: .ghost) { model.showPanes() }
             } else {
                 if !panes.list || panes.compact {
                     IconButton(.library, label: model.t(.libraryShow), active: model.libraryOverlay) { model.libraryOverlay.toggle() }
                 }
                 Spacer(minLength: 0)
+                // Labelled, not one more icon: the way into the small window has to be seen to be found.
+                KitButton(model.t(.miniButton), icon: .mini, variant: .ghost) { model.toggleMini() }
                 IconButton(.command, label: model.t(.paletteTitle)) { model.show(.palette(search: false)) }
                 IconButton(.focus, label: model.t(.focusTitle)) { model.toggleFocus() }
-                IconButton(.mini, label: model.t(.miniTitle)) { model.toggleMini() }
                 if model.sheetId != nil {
                     IconButton(.history, label: model.t(.historyTitle)) { model.show(.history) }
                     IconButton(.export, label: model.t(.exportTitle)) { model.show(.export) }
