@@ -43,7 +43,7 @@ extension AppModel {
         guard !bible.isEmpty || !sheetMentions.isEmpty else { return }
         mentionsTask?.cancel()
         mentionsTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(1))
+            try? await Task.sleep(for: Wait.ms(1000))
             guard let self, !Task.isCancelled else { return }
             if editor?.isComposing == true { scheduleMentions(); return }
             refreshMentions()

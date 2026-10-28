@@ -12,6 +12,7 @@ enum EditorSelfTest {
         _ = NSApplication.shared
         NSApp.setActivationPolicy(.prohibited)
         Headless.enable()
+        Wait.scale = 0.25  // the same pauses, a quarter as long (pump shortens its long waits to match)
         let lib = MockLibrary(seeded: false)
         let suite = "io.github.colosan.ithaca.editortest"
         UserDefaults().removePersistentDomain(forName: suite)
@@ -334,7 +335,7 @@ enum EditorSelfTest {
         for i in 0..<20 { tv.insertText(i == 10 ? "끝" : "\n", replacementRange: tv.selectedRange()); pump(0.02) }
         pump(0.1)
         check(caretVisible(), "caret stays in view while typing new lines at the bottom")
-        pump(0.5)
+        pump(0.2)  // before the (shortened) autosave
         check(model.liveCounts.chars == TextMetrics.counts(tv.string).chars && model.saveStatus == .pending, "footer counts follow the typing (\(model.liveCounts.chars)), status 저장 중")
 
         // 21. Focus mode dims everything but the caret's paragraph, and clears when it ends.
@@ -390,14 +391,14 @@ enum EditorSelfTest {
         }
         // 22b. A space typed in front of a long run without spaces stays on its line: the run is not one word to wrap whole.
         func lineY(_ i: Int) -> CGFloat { tv.firstRect(forCharacterRange: NSRange(location: i, length: 1), actualRange: nil).minY }
-        let run = "아이어른노인임산부청년이그곳에있었다한도시에자생하던모든생명이이곳에모여있었다아이어른노인임산부청년이그곳에있었다"
+        let run = String(repeating: "가나다라마바사아자차카타파하", count: 5)
         setText(run + "\n둘째 줄", caret: 0)
         type(" ")
-        pump(0.6)
+        pump(0.2)
         check(lineY(1) == lineY(0) && lineY(run.count) != lineY(0), "space before a long unspaced run doesn't push it to the next line")
         let spaced = "서윤은 오늘도 불빛의 횟수를 셌다. 엘리엇의 지도에는 섬이 하나 더 있었다. 서윤은 그 점을 오래 바라보았다. 바다는 조용했고 등대는 꺼지지 않았다."
         setText(spaced)
-        pump(0.6)
+        pump(0.2)
         let words = spaced.indices.map { spaced.distance(from: spaced.startIndex, to: $0) }.filter { $0 > 0 && Array(spaced)[$0 - 1] != " " && Array(spaced)[$0] != " " }
         check(words.allSatisfy { lineY($0) == lineY($0 - 1) }, "spaced prose still wraps between words")
         setText("")
@@ -865,7 +866,11 @@ enum EditorSelfTest {
         model.flushSave()
     }
 
-    private static func pump(_ seconds: Double) { NSApp.windows.forEach(Headless.hide); RunLoop.main.run(until: Date().addingTimeInterval(seconds)) }
+    /// Waits of a second or more stand for the app's own pauses: they shrink with them (`Wait.scale`).
+    private static func pump(_ seconds: Double) {
+        NSApp.windows.forEach(Headless.hide)
+        RunLoop.main.run(until: Date().addingTimeInterval(seconds >= 1 ? seconds * Wait.scale : seconds))
+    }
 
     private static func findTextView(_ v: NSView?) -> ManuscriptTextView? {
         guard let v else { return nil }

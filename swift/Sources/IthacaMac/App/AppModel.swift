@@ -35,6 +35,13 @@ enum SaveStatus: Equatable { case saved, pending, failed(String) }
 /// What to do when the open sheet can't be saved and something wants to replace it (switch, close, quit).
 enum SaveFailureChoice { case retry, copy, export, quitAnyway, cancel }
 
+/// The pauses the app waits for (autosave, retry, mention refresh, undo break). The editor self-test shortens them all
+/// alike so its checks wait for the same things in a fraction of the time.
+enum Wait {
+    nonisolated(unsafe) static var scale = 1.0
+    static func ms(_ n: Double) -> Duration { .milliseconds(n * scale) }
+}
+
 struct Toast: Identifiable {
     let id = UUID()
     var message: String
@@ -431,7 +438,7 @@ final class AppModel {
         // Every caret move while typing: write the defaults a moment later, not per keystroke.
         caretTask?.cancel()
         caretTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(1000))
+            try? await Task.sleep(for: Wait.ms(1000))
             guard let self, !Task.isCancelled else { return }
             persistCarets()
         }
@@ -521,7 +528,7 @@ final class AppModel {
     private func scheduleSave() {
         saveTask?.cancel()
         saveTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(1500))
+            try? await Task.sleep(for: Wait.ms(1500))
             guard let self, !Task.isCancelled else { return }
             if editor?.isComposing == true { scheduleSave(); return }
             save()
@@ -562,7 +569,7 @@ final class AppModel {
         let delay = Self.retryDelays[min(retryAttempt, Self.retryDelays.count - 1)]
         retryAttempt += 1
         saveTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(delay))
+            try? await Task.sleep(for: Wait.ms(delay * 1000))
             guard let self, !Task.isCancelled else { return }
             if editor?.isComposing == true { scheduleSave(); return }
             save()

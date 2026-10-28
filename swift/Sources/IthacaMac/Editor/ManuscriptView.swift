@@ -384,7 +384,7 @@ struct ManuscriptView: NSViewRepresentable {
         private func schedulePauseBreak() {
             pauseTask?.cancel()
             pauseTask = Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .milliseconds(1000))
+                try? await Task.sleep(for: Wait.ms(1000))
                 guard let self, !Task.isCancelled, let tv = textView, !tv.hasMarkedText() else { return }
                 tv.breakUndoCoalescing()
             }
