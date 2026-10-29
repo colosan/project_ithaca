@@ -35,7 +35,7 @@ export function loadDesign() {
     effects: readJson("design/tokens/effects.json"),
     layout: readJson("design/tokens/layout.json"),
   };
-  const locales = ["ko", "en"];
+  const locales = ["ko"];
   const strings = Object.fromEntries(locales.map((l) => [l, readJson(`design/strings/${l}.json`)]));
   const icons = readJson("design/icons.json");
   const vectors = loadLucideVectors(Object.values(icons.icons));

@@ -63,7 +63,6 @@ enum LineWidth: String, CaseIterable {
     var scale: Double { switch self { case .narrow: 0.85; case .normal: 1; case .wide: 1.2 } }
 }
 enum ThemePref: String, CaseIterable { case system, light, dark }
-enum LocalePref: String, CaseIterable { case system, ko, en }
 enum MarkupMode: String, CaseIterable { case show, dim, hide }
 enum FocusScope: String, CaseIterable { case sentence, paragraph }
 /// `...` typed in the manuscript: left alone, or turned into `…` / `……` (editor conveniences).
@@ -179,7 +178,6 @@ final class AppModel {
     var listFocusRequest = 0
 
     // MARK: Preferences (UserDefaults)
-    var localePref: LocalePref { didSet { defaults.set(localePref.rawValue, forKey: "ithaca.locale"); menu.locale = locale } }
     var theme: ThemePref { didSet { defaults.set(theme.rawValue, forKey: "ithaca.theme"); applyTheme() } }
     var textSize: TextSize { didSet { defaults.set(textSize.rawValue, forKey: "ithaca.textSize") } }
     var lineSpacing: LineSpacing { didSet { defaults.set(lineSpacing.rawValue, forKey: "ithaca.lineSpacing") } }
@@ -226,7 +224,6 @@ final class AppModel {
         self.defaults = defaults
         self.menu = menu
         info = library.info()
-        localePref = LocalePref(rawValue: defaults.string(forKey: "ithaca.locale") ?? "") ?? .system
         theme = ThemePref(rawValue: defaults.string(forKey: "ithaca.theme") ?? "") ?? .system
         textSize = TextSize(rawValue: defaults.string(forKey: "ithaca.textSize") ?? "") ?? .normal
         lineSpacing = LineSpacing(rawValue: defaults.string(forKey: "ithaca.lineSpacing") ?? "") ?? .normal
@@ -255,20 +252,8 @@ final class AppModel {
 
     // MARK: Locale
 
-    var locale: L10nLocale { Self.locale(localePref) }
-
-    nonisolated static func locale(_ pref: LocalePref) -> L10nLocale {
-        switch pref {
-        case .ko: .ko
-        case .en: .en
-        case .system: (Locale.preferredLanguages.first ?? "en").hasPrefix("ko") ? .ko : .en
-        }
-    }
-
-    /// Before a model exists (the library failed to open): the locale from the saved preference.
-    nonisolated static func locale(defaults: UserDefaults) -> L10nLocale {
-        locale(LocalePref(rawValue: defaults.string(forKey: "ithaca.locale") ?? "") ?? .system)
-    }
+    /// Korean only (ADR-0011).
+    var locale: L10nLocale { .ko }
 
     func t(_ key: L10nKey, _ args: [String: Any] = [:], count: Int? = nil) -> String {
         L10n.string(key, locale: locale, args.mapValues { v in (v as? Int).map(number) ?? "\(v)" }, count: count)
@@ -859,7 +844,7 @@ final class AppModel {
     func createProject(title: String, language: ManuscriptLanguage, folders names: [String], goal: Goal?) {
         guard !readOnly, ensureSaved() else { return }
         do {
-            let p = try library.createProject(title: title, language: language, folders: names.isEmpty ? [defaultFolderName(.folderDefaultSerial, language)] : names)
+            let p = try library.createProject(title: title, language: language, folders: names.isEmpty ? [defaultFolderName(.folderDefaultSerial)] : names)
             if let goal { _ = try library.updateProject(id: p.id, patch: ProjectPatch(goal: .some(goal))) }
             refreshProjects()
             selectProject(p.id)
@@ -874,9 +859,7 @@ final class AppModel {
         } catch { fail(error) }
     }
 
-    func defaultFolderName(_ key: L10nKey, _ language: ManuscriptLanguage) -> String {
-        L10n.string(key, locale: language == .ko ? .ko : .en)
-    }
+    func defaultFolderName(_ key: L10nKey) -> String { t(key) }
 
     /// Library context menu "Rename": any project, in place.
     func renameProject(_ id: String, _ title: String) {

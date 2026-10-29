@@ -122,7 +122,7 @@ export default function Search({ state }: { state: State }) {
       </div>
     );
   }
-  // Wide: results take the sheet list's place (Ulysses-style); the preview sits where the editor is.
+  // Wide: results take the sheet list's place; the preview sits where the editor is.
   return (
     <div style={{ display: "flex", height: "100%", background: color.surfaceCanvas, color: color.inkPrimary, ...type.body, ...safePadding(safeArea) }}>
       <section style={{ width: pane.sheetList, flex: "none", display: "flex", flexDirection: "column", background: color.surfaceList, borderRight: hairline(color.lineSubtle) }}>

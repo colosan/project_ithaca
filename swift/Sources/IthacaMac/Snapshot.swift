@@ -11,7 +11,6 @@ enum Snapshot {
         var name: String
         var size: CGSize
         var dark = false
-        var locale: LocalePref = .ko
         var setup: (AppModel, UserDefaults) -> Void = { _, _ in }
         /// Settings render as a pane without a window title bar (it showed as an empty strip above the form).
         var titled = true
@@ -40,18 +39,18 @@ enum Snapshot {
     static var scenes: [Scene] {
         let wide = CGSize(width: 1240, height: 800)
         let updater = UpdaterViewModel()
-        func settings(_ tab: SettingsSection, _ locale: LocalePref = .ko) -> Scene {
-            Scene(name: "settings-\(tab.rawValue)\(locale == .ko ? "" : "-\(locale.rawValue)")", size: CGSize(width: 640, height: 560), locale: locale,
+        func settings(_ tab: SettingsSection) -> Scene {
+            Scene(name: "settings-\(tab.rawValue)", size: CGSize(width: 640, height: 560),
                   setup: { _, d in d.set(tab.rawValue, forKey: "ithaca.settingsTab") }, titled: false,
                   view: { _ in AnyView(SettingsView(updater: updater, only: tab)) })
         }
-        func editorAll(_ locale: LocalePref) -> Scene {
-            Scene(name: "settings-editor-all-\(locale.rawValue)", size: CGSize(width: 640, height: 2240), locale: locale,
+        func editorAll() -> Scene {
+            Scene(name: "settings-editor-all-ko", size: CGSize(width: 640, height: 2240),
                   setup: { m, _ in m.autoPairs = true; m.ellipsis = .double; m.symbols.append(Symbols.make("〔", close: "〕")) }, titled: false,
                   view: { _ in AnyView(SettingsView(updater: updater, only: .editor)) })
         }
-        func claude(_ locale: LocalePref) -> Scene {
-            Scene(name: "settings-claude-on-\(locale.rawValue)", size: CGSize(width: 640, height: 760), locale: locale,
+        func claude() -> Scene {
+            Scene(name: "settings-claude-on-ko", size: CGSize(width: 640, height: 760),
                   setup: { m, d in
                       d.set(SettingsSection.claude.rawValue, forKey: "ithaca.settingsTab")
                       _ = try? m.library.setMcpSettings(McpSettings(enabled: true, projects: m.projects.prefix(1).map(\.id)))
@@ -62,7 +61,6 @@ enum Snapshot {
             Scene(name: "shell-ko-light", size: wide),
             Scene(name: "shell-ko-dark", size: wide, dark: true),
             Scene(name: "shell-ko-lines-wider-narrow", size: wide, setup: { m, _ in m.lineSpacing = .wider; m.lineWidth = .narrow }),
-            Scene(name: "shell-en-light", size: wide, locale: .en),
             Scene(name: "shell-900", size: CGSize(width: 900, height: 700)),
             Scene(name: "shell-700-library-overlay", size: CGSize(width: 700, height: 700), setup: { m, _ in m.libraryOverlay = true }),
             Scene(name: "shell-1240-inspector-info", size: wide, setup: { m, d in m.inspectorOpen = true; d.set("info", forKey: "ithaca.inspectorTab") }),
@@ -90,36 +88,21 @@ enum Snapshot {
             Scene(name: "shell-damaged", size: wide, setup: { m, _ in
                 if let mock = m.library as? MockLibrary, let id = m.sheetId { mock.damagedSheets.insert(id); m.reloadOutline(); m.openSheet(id) }
             }),
-            Scene(name: "shell-damaged-en-nobackup-900", size: CGSize(width: 900, height: 700), locale: .en, setup: { m, _ in
-                if let mock = m.library as? MockLibrary, let id = m.sheetId { mock.damagedSheets.insert(id); m.reloadOutline(); m.openSheet(id); m.noBackupForSheet = id }
-                m.tocDamagedProject = m.projectId
-            }),
-            Scene(name: "shell-en-trash", size: wide, locale: .en, setup: { m, _ in
-                if let s = m.folder?.sheets.last { m.trashSheet(s.id) }
-                m.toast = nil
-                m.showingTrash = true
-            }),
-            Scene(name: "shell-en-toast", size: wide, locale: .en, setup: { m, _ in if let s = m.folder?.sheets.first { m.trashSheet(s.id) } }),
             Scene(name: "shell-busy", size: wide, setup: { m, _ in m.busy = m.t(.busyRestoreBackup) }),
-            Scene(name: "export-en", size: CGSize(width: 940, height: 560), locale: .en, view: { _ in AnyView(ExportView()) }),
             Scene(name: "palette-empty", size: wide, setup: { m, _ in m.overlay = .palette(search: false) }),
             Scene(name: "palette-query", size: wide, setup: { m, _ in m.paletteSeed = "등대"; m.overlay = .palette(search: false) }),
             Scene(name: "export", size: CGSize(width: 940, height: 560), view: { _ in AnyView(ExportView()) }),
             Scene(name: "history", size: CGSize(width: 1040, height: 640), view: { _ in AnyView(HistoryView()) }),
-            Scene(name: "history-en-dark", size: CGSize(width: 1040, height: 640), dark: true, locale: .en, view: { _ in AnyView(HistoryView()) }),
             // 0.5.3: dozens of autosaves today and yesterday, grouped into sessions; the newest one expanded.
             Scene(name: "history-sessions", size: CGSize(width: 1040, height: 640), setup: { m, _ in Self.autosaves(m) },
                   view: { _ in AnyView(HistoryView(expandNewest: true)) }),
-            Scene(name: "history-sessions-en-dark", size: CGSize(width: 1040, height: 640), dark: true, locale: .en,
-                  setup: { m, _ in Self.autosaves(m) }, view: { _ in AnyView(HistoryView()) }),
             Scene(name: "new-project-first-run", size: CGSize(width: 560, height: 640), titled: false, fit: true, view: { _ in AnyView(NewProjectView(firstRun: true)) }),
             Scene(name: "new-project-first-run-dark", size: CGSize(width: 560, height: 640), dark: true, titled: false, fit: true, view: { _ in AnyView(NewProjectView(firstRun: true)) }),
-            Scene(name: "new-project-en", size: CGSize(width: 560, height: 480), locale: .en, titled: false, fit: true, view: { _ in AnyView(NewProjectView(firstRun: false)) }),
             Scene(name: "project-settings", size: CGSize(width: 560, height: 560), titled: false, fit: true, view: { _ in AnyView(ProjectSettingsView()) }),
-            settings(.general), settings(.editor), settings(.editor, .en), settings(.backup), settings(.about),
-            settings(.shortcuts), settings(.shortcuts, .en),
+            settings(.general), settings(.editor), settings(.backup), settings(.about),
+            settings(.shortcuts),
             // The whole editor tab (conveniences, the symbol list with a custom entry) on one tall canvas.
-            editorAll(.ko), editorAll(.en),
+            editorAll(),
             Scene(name: "settings-editor-dark", size: CGSize(width: 640, height: 560), dark: true, titled: false,
                   view: { _ in AnyView(SettingsView(updater: updater, only: .editor)) }),
             // The palette finds the editing commands by name, with their keys.
@@ -130,24 +113,18 @@ enum Snapshot {
                 if let s = m.folder?.sheets.first(where: { $0.episode?.status == .scheduled }) { m.openSheet(s.id) }
                 m.inspectorOpen = true; d.set("info", forKey: "ithaca.inspectorTab")
             }),
-            Scene(name: "shell-en-scheduled-sheet", size: wide, locale: .en, setup: { m, d in
-                if let s = m.folder?.sheets.first(where: { $0.episode?.status == .scheduled }) { m.openSheet(s.id) }
-                m.inspectorOpen = true; d.set("info", forKey: "ithaca.inspectorTab")
-            }),
             Scene(name: "shell-1240-folder-stats", size: wide, setup: { m, _ in
                 if let s = m.folder?.sheets.first { m.toggleExcluded(s.id) }
                 m.showFolderInfo()
             }),
-            Scene(name: "shell-en-folder-stats-1000", size: CGSize(width: 1000, height: 760), locale: .en, setup: { m, _ in m.showFolderInfo() }),
             Scene(name: "shell-goal-munpia", size: wide, setup: { m, _ in m.updateProject(ProjectPatch(goal: .some(Goal(count: 5000, basis: .munpia)))) }),
             Scene(name: "project-settings-munpia", size: CGSize(width: 560, height: 560), setup: { m, _ in m.updateProject(ProjectPatch(goal: .some(Goal(count: 5000, basis: .munpia)))) },
                   view: { _ in AnyView(ProjectSettingsView()) }),
-            claude(.ko), claude(.en), settings(.claude),
+            claude(), settings(.claude),
             // fix4: read-only causes, one compact notice bar.
             Scene(name: "shell-readonly-locked-damaged", size: wide,
                   setup: { m, _ in if let mock = m.library as? MockLibrary, let id = m.sheetId { mock.damagedSheets.insert(id); m.reloadOutline(); m.openSheet(id) } },
                   info: Self.roInfo(locked: true, problems: ["Another Ithaca has this library open. Opened read-only; close the other one and open again to edit.", "Project x could not be read."])),
-            Scene(name: "shell-readonly-newer-en", size: wide, locale: .en, info: Self.roInfo(locked: false, problems: [])),
             Scene(name: "shell-readonly-problems-expanded", size: wide,
                   setup: { _, d in d.set(true, forKey: "ithaca.noticeExpanded") },
                   info: Self.roInfo(locked: false, problems: ["library.json is missing but the folder holds projects. Opened read-only so nothing is overwritten."])),
@@ -157,15 +134,12 @@ enum Snapshot {
             Scene(name: "entry-sheet-ko", size: wide, setup: { m, _ in Self.bibleSeed(m) }),
             Scene(name: "entry-sheet-ko-dark", size: wide, dark: true, setup: { m, _ in Self.bibleSeed(m) }),
             Scene(name: "entry-sheet-ko-indent-large", size: wide, setup: { m, _ in Self.bibleSeed(m); m.firstLineIndent = true; m.textSize = .large }),
-            Scene(name: "entry-sheet-en", size: wide, locale: .en, setup: { m, _ in Self.bibleSeed(m) }),
             Scene(name: "entry-toast", size: wide, setup: { m, _ in
                 Self.bibleSeed(m)
                 if let s = m.folders.first?.sheets.first { m.openSheet(s.id) }
                 m.showToast(Toast(message: m.t(.entryCreated, ["folder": "설정", "name": "서윤"]), undo: {}, action: m.t(.actionOpen)))
             }),
             Scene(name: "bible-import", size: CGSize(width: 720, height: 640), titled: false, fit: true,
-                  view: { _ in AnyView(BibleImportView(path: Self.notionFixture())) }),
-            Scene(name: "bible-import-en-dark", size: CGSize(width: 720, height: 640), dark: true, locale: .en, titled: false, fit: true,
                   view: { _ in AnyView(BibleImportView(path: Self.notionFixture())) }),
             Scene(name: "bible-import-missing", size: CGSize(width: 720, height: 640), titled: false, fit: true,
                   view: { _ in AnyView(BibleImportView(path: "/nonexistent/노션 내보내기")) }),
@@ -175,8 +149,6 @@ enum Snapshot {
             // The ＋ picker (its popover content) and an empty folder showing the same choices.
             Scene(name: "new-sheet-picker", size: CGSize(width: 320, height: 600), titled: false, fit: true,
                   view: { m in AnyView(NewSheetPicker(folder: m.folders.first?.id ?? "", autofocus: true).frame(width: 320)) }),
-            Scene(name: "new-sheet-picker-en-dark", size: CGSize(width: 320, height: 600), dark: true, locale: .en, titled: false, fit: true,
-                  view: { m in AnyView(NewSheetPicker(folder: m.folders.last?.id ?? "").frame(width: 320)) }),
             Scene(name: "new-sheet-empty-folder", size: wide, setup: { m, _ in m.createFolder("인물 설정") }),
         ] + bibleScenes
     }
@@ -218,16 +190,16 @@ enum Snapshot {
 
     static var bibleScenes: [Scene] {
         let wide = CGSize(width: 1240, height: 800)
-        func complete(_ name: String, dark: Bool = false, locale: LocalePref = .ko) -> Scene {
-            Scene(name: name, size: wide, dark: dark, locale: locale, setup: { m, _ in bibleNamesSeed(m) },
+        func complete(_ name: String, dark: Bool = false) -> Scene {
+            Scene(name: name, size: wide, dark: dark, setup: { m, _ in bibleNamesSeed(m) },
                   after: { m in typeAt(m, after: "횟수를 셌다.", ["\n", "\"", "@", "ㅅ"]) })
         }
-        func card(_ name: String, dark: Bool = false, locale: LocalePref = .ko) -> Scene {
-            Scene(name: name, size: wide, dark: dark, locale: locale, setup: { m, _ in bibleNamesSeed(m) }, after: { m in cardAt(m, "서윤") })
+        func card(_ name: String, dark: Bool = false) -> Scene {
+            Scene(name: name, size: wide, dark: dark, setup: { m, _ in bibleNamesSeed(m) }, after: { m in cardAt(m, "서윤") })
         }
         return [
             complete("bible-complete"), complete("bible-complete-dark", dark: true),
-            card("bible-card"), card("bible-card-dark", dark: true), card("bible-card-en", locale: .en),
+            card("bible-card"), card("bible-card-dark", dark: true),
             Scene(name: "bible-inspector-reference", size: wide, setup: { m, d in
                 bibleNamesSeed(m); m.underlineNames = true; m.inspectorOpen = true; d.set("reference", forKey: "ithaca.inspectorTab")
             }),
@@ -328,7 +300,6 @@ enum Snapshot {
         let suite = "io.github.colosan.ithaca.snapshot"
         UserDefaults().removePersistentDomain(forName: suite)
         let defaults = UserDefaults(suiteName: suite)!
-        defaults.set(s.locale.rawValue, forKey: "ithaca.locale")
         let mock = MockLibrary(seeded: true, device: AppEnvironment.deviceName)
         mock.infoOverride = s.info
         let model = AppModel(library: mock, defaults: defaults)

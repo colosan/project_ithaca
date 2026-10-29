@@ -11,8 +11,8 @@ struct NewProjectView: View {
     @State private var goal: Goal?
     @FocusState private var titleFocused: Bool
 
-    /// Manuscript language follows the app language (Settings); folders are the defaults, changed later in the sidebar.
-    private var language: ManuscriptLanguage { model.locale == .ko ? .ko : .en }
+    /// Korean manuscripts only (ADR-0011); folders are the defaults, changed later in the sidebar.
+    private let language = ManuscriptLanguage.ko
 
     var body: some View {
         VStack(alignment: .leading, spacing: T.Space.s200) {
@@ -67,7 +67,7 @@ struct NewProjectView: View {
     }
 
     private func create() {
-        let folders = [L10nKey.folderDefaultSerial, .folderDefaultLore, .folderDefaultMaterial].map { model.defaultFolderName($0, language) }
+        let folders = [L10nKey.folderDefaultSerial, .folderDefaultLore, .folderDefaultMaterial].map { model.defaultFolderName($0) }
         model.createProject(title: title, language: language, folders: folders, goal: goal)
     }
 }

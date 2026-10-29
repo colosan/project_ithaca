@@ -77,12 +77,6 @@ private struct GeneralSettings: View {
     var body: some View {
         @Bindable var m = model
         Form {
-            // Language names in their own language (spec), switched instantly (ADR-0005).
-            Picker(model.t(.prefsUiLanguage), selection: $m.localePref) {
-                Text(model.t(.prefsLanguageSystem)).tag(LocalePref.system)
-                Text(model.t(.uiLanguageKo)).tag(LocalePref.ko)
-                Text(model.t(.uiLanguageEn)).tag(LocalePref.en)
-            }
             Picker(model.t(.prefsTheme), selection: $m.theme) {
                 Text(model.t(.themeSystem)).tag(ThemePref.system)
                 Text(model.t(.themeLight)).tag(ThemePref.light)

@@ -74,14 +74,14 @@ const DEFAULT_PREFS: Prefs = { locale: "system", theme: "system", textSize: "nor
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
 export function systemLocale(): Locale {
-  return navigator.language.toLowerCase().startsWith("ko") ? "ko" : "en";
+  return "ko";
 }
 
 /** A new project with the given (or default) folders and one empty sheet in the first. */
 export function makeProject(title: string, language: ManuscriptLanguage, folderNames?: string[]) {
   const now = Date.now();
   const project: Project = { id: uid(), title, language, goal: null, created: now };
-  const names = folderNames?.length ? folderNames : [format(language, "folder.defaultSerial"), format(language, "folder.defaultLore"), format(language, "folder.defaultMaterial")];
+  const names = folderNames?.length ? folderNames : [format("ko", "folder.defaultSerial"), format("ko", "folder.defaultLore"), format("ko", "folder.defaultMaterial")];
   const folders: Folder[] = names.map((name, order) => ({ id: uid(), projectId: project.id, name, order }));
   const sheet: Sheet = { id: uid(), folderId: folders[0].id, body: "", order: 0, created: now, modified: now };
   return { project, folders, sheet };
@@ -169,13 +169,13 @@ export function normalize(input: unknown): State | null {
   folders = folders.filter((f) => !f.deleted || used.has(f.id));
   // Every project keeps at least one live folder, so there is always somewhere to write.
   for (const p of projects) {
-    if (!folders.some((f) => f.projectId === p.id && !f.deleted)) folders.push({ id: uid(), projectId: p.id, name: format(p.language, "folder.defaultSerial"), order: 0 });
+    if (!folders.some((f) => f.projectId === p.id && !f.deleted)) folders.push({ id: uid(), projectId: p.id, name: format("ko", "folder.defaultSerial"), order: 0 });
   }
   folders = folders.map((f) => ({ ...f, name: typeof f.name === "string" ? f.name : String(f.name ?? ""), order: Number(f.order) || 0 }));
   const p = (raw.prefs ?? {}) as Partial<Prefs>;
   const pick = <T,>(v: unknown, ok: readonly T[], d: T) => (ok.includes(v as T) ? (v as T) : d);
   const prefs: Prefs = {
-    locale: pick(p.locale, ["system", "ko", "en"] as const, "system"),
+    locale: pick(p.locale, ["system", "ko"] as const, "system"),
     theme: pick(p.theme, ["system", "light", "dark"] as const, "system"),
     textSize: pick(p.textSize, ["small", "normal", "large"] as const, "normal"),
     confirmDelete: p.confirmDelete !== false,
@@ -306,7 +306,7 @@ function reduce(s: State, a: Action): State {
       // normalize() guarantees a live folder per project; do the same here.
       const projectId = s.folders.find((f) => f.id === a.id)?.projectId ?? s.ui.projectId;
       const project = s.projects.find((p) => p.id === projectId)!;
-      const withFolder = foldersOf(next, projectId).length ? next : { ...next, folders: [...next.folders, { id: uid(), projectId, name: format(project.language, "folder.defaultSerial"), order: 0 }] };
+      const withFolder = foldersOf(next, projectId).length ? next : { ...next, folders: [...next.folders, { id: uid(), projectId, name: format("ko", "folder.defaultSerial"), order: 0 }] };
       return withUI(withFolder, s.ui.folderId === a.id ? { folderId: "", sheetId: null } : {});
     }
     case "newProject": {

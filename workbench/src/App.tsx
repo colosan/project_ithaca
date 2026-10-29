@@ -136,7 +136,6 @@ export function App() {
 
         <div className="wb-spacer" />
         <Seg label="테마" value={theme} options={[["light", "라이트"], ["dark", "다크"], ["both", "둘 다"]]} onChange={setTheme} />
-        <Seg label="UI 언어" value={locale} options={[["ko", "한국어"], ["en", "English"]]} onChange={setLocale} />
       </header>
 
       {route.view === "home" &&

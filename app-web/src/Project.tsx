@@ -11,7 +11,7 @@ export function NewProject() {
   const [title, setTitle] = useState("");
   const [language, setLanguage] = useState<ManuscriptLanguage>(locale);
   // Default folder names follow the manuscript language, so an English novel starts with Episodes · Lore · Notes.
-  const defaults = (l: ManuscriptLanguage) => [format(l, "folder.defaultSerial"), format(l, "folder.defaultLore"), format(l, "folder.defaultMaterial")];
+  const defaults = (l: ManuscriptLanguage) => [format("ko", "folder.defaultSerial"), format("ko", "folder.defaultLore"), format("ko", "folder.defaultMaterial")];
   const [folders, setFolders] = useState(() => defaults(language).map((name) => ({ name, on: true })));
   const stacked = sizeClass === "compact";
   const create = () => {

@@ -81,7 +81,7 @@ function General({ stacked }: { stacked: boolean }) {
     <>
       <Group>
         <Row label={t("prefs.uiLanguage")} column={stacked}>
-          <Segmented label={t("prefs.uiLanguage")} items={[["system", t("prefs.languageSystem")], ["ko", t("uiLanguage.ko")], ["en", t("uiLanguage.en")]]} value={p.locale} onChange={(locale) => set({ locale })} full={stacked} />
+          <Segmented label={t("prefs.uiLanguage")} items={[["system", t("prefs.languageSystem")], ["ko", t("uiLanguage.ko")]]} value={p.locale} onChange={(locale) => set({ locale })} full={stacked} />
         </Row>
         <Row label={t("prefs.theme")} column={stacked} divided>
           <Segmented label={t("prefs.theme")} items={[["system", t("theme.system")], ["light", t("theme.light")], ["dark", t("theme.dark")]]} value={p.theme} onChange={(theme) => set({ theme })} full={stacked} />

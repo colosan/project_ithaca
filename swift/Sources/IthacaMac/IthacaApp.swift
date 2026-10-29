@@ -295,7 +295,7 @@ final class AppHost {
         }
     }
 
-    var locale: L10nLocale { model?.locale ?? AppModel.locale(defaults: AppEnvironment.defaults) }
+    var locale: L10nLocale { .ko }
     func t(_ key: L10nKey, _ args: [String: String] = [:]) -> String { L10n.string(key, locale: locale, args) }
 }
 

@@ -208,9 +208,8 @@ enum LibraryError: Error, LocalizedError, Equatable {
     case io(String)
     case corrupt(String)
 
-    /// In the app's language (ADR-0005): the core's English detail never reaches a Korean screen; it stays in `detail`.
+    /// In Korean (ADR-0011): the core's English detail never reaches the screen; it stays in `detail`.
     var errorDescription: String? {
-        let locale = AppModel.locale(defaults: AppEnvironment.defaults)
         let key: L10nKey = switch self {
         case .notFound: .errorNotFound
         case .readOnly: .errorReadOnly
@@ -218,10 +217,7 @@ enum LibraryError: Error, LocalizedError, Equatable {
         case .io: .errorIo
         case .corrupt: .errorCorrupt
         }
-        let text = L10n.string(key, locale: locale)
-        // English UI: the core's own sentence is already readable, add it.
-        guard locale == .en, !detail.isEmpty else { return text }
-        return text + " (" + detail + ")"
+        return L10n.string(key, locale: .ko)
     }
 
     /// The core's message (English), for tooltips and logs.

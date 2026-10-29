@@ -79,10 +79,6 @@ function Form({ title, setTitle, firstRun }: { title: string; setTitle: (v: stri
         <TextField value={title} placeholder={t("newProject.titlePlaceholder")} onChange={setTitle} autoFocus />
       </Section>
 
-      <Section label={t("projectSettings.language")}>
-        <Segmented items={[["ko", t("language.ko")], ["en", t("language.en")]] as const} value={lang} onChange={setLang} />
-      </Section>
-
       <Section label={t("projectSettings.goal")} hint={t("projectSettings.goalHint")}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: space[100] }}>
           <TextField value={goal} placeholder={t("projectSettings.goalNone")} onChange={setGoal} width={size.rowSheet} />
