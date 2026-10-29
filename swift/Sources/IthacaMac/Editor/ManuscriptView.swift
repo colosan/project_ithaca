@@ -172,6 +172,7 @@ struct ManuscriptView: NSViewRepresentable {
             let sel = tv.selectedRange()
             let m = (mark as NSString).length
             let inner = ns.substring(with: sel)
+            if inner.contains("\n") { return toggleWrapLines(tv, mark, sel) }
             // Marks inside the selection: "**word**" selected.
             if sel.length >= 2 * m, inner.hasPrefix(mark), inner.hasSuffix(mark), !(mark == "*" && inner.hasPrefix("**") && !inner.hasPrefix("***")) {
                 let bare = String(inner.dropFirst(mark.count).dropLast(mark.count))
@@ -187,6 +188,34 @@ struct ManuscriptView: NSViewRepresentable {
                 return
             }
             replace(tv, sel, with: mark + inner + mark, select: NSRange(location: sel.location + m, length: sel.length))
+        }
+
+        /// A selection over several paragraphs: emphasis can't cross a line, so each paragraph's text is wrapped
+        /// on its own (heading / quote / list marks and scene breaks stay outside). All already wrapped → unwrap all.
+        private func toggleWrapLines(_ tv: NSTextView, _ mark: String, _ sel: NSRange) {
+            let ns = tv.string as NSString
+            let atLineStart = sel.location == 0 || ns.character(at: sel.location - 1) == 0x0A
+            let lead = try! NSRegularExpression(pattern: #"^[ \t]*(#{1,6}[ \t]+|>[ \t]?|[-+][ \t]+|\d+\.[ \t]+)?"#)
+            // (head, body, tail) per line; body empty = leave the line alone.
+            let parts: [(String, String, String)] = ns.substring(with: sel).components(separatedBy: "\n").enumerated().map { i, l in
+                let t = l as NSString
+                if l.trimmingCharacters(in: .whitespaces).range(of: #"^(\* ?){3,}$|^(- ?){3,}$"#, options: .regularExpression) != nil { return (l, "", "") }
+                var h = 0
+                if i > 0 || atLineStart { h = lead.firstMatch(in: l, range: NSRange(location: 0, length: t.length))?.range.length ?? 0 }
+                var e = t.length
+                while e > h, let c = Unicode.Scalar(t.character(at: e - 1)), CharacterSet.whitespaces.contains(c) { e -= 1 }
+                return (t.substring(to: h), t.substring(with: NSRange(location: h, length: e - h)), t.substring(from: e))
+            }
+            let wrapped = { (b: String) in
+                b.count >= 2 * mark.count && b.hasPrefix(mark) && b.hasSuffix(mark) && !(mark == "*" && b.hasPrefix("**") && !b.hasPrefix("***"))
+            }
+            let bodies = parts.map(\.1).filter { !$0.isEmpty }
+            guard !bodies.isEmpty else { return }
+            let unwrap = bodies.allSatisfy(wrapped)
+            let out = parts.map { h, b, t in
+                b.isEmpty ? h + t : h + (unwrap ? String(b.dropFirst(mark.count).dropLast(mark.count)) : mark + b + mark) + t
+            }.joined(separator: "\n")
+            replace(tv, sel, with: out, select: NSRange(location: sel.location, length: (out as NSString).length))
         }
 
         /// Heading level or body for every line the selection touches; the same heading again turns it back to body.
