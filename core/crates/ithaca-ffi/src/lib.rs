@@ -53,6 +53,13 @@ pub fn goal_count(text: String, basis: GoalBasis) -> u32 {
     ithaca_model::goal_count(&text, basis.into())
 }
 
+/// (added: note) A sheet's `작가의 말` as pasted into the platform's own field (default paste rules);
+/// `None` when the sheet has no `## 작가의 말` heading.
+#[uniffi::export]
+pub fn author_note(text: String) -> Option<String> {
+    ithaca_model::author_note(&text)
+}
+
 /// (added: r3) What is pasted into a platform's body field: the default export rules without the
 /// title line.
 #[uniffi::export]

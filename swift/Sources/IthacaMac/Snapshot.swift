@@ -67,6 +67,16 @@ enum Snapshot {
             Scene(name: "shell-1240-inspector-reference-dark", size: wide, dark: true, setup: { m, d in m.inspectorOpen = true; d.set("reference", forKey: "ithaca.inspectorTab") }),
             Scene(name: "shell-inspector-outline-1000", size: CGSize(width: 1000, height: 700), setup: { m, d in m.inspectorOpen = true; d.set("outline", forKey: "ithaca.inspectorTab") }),
             Scene(name: "shell-focus", size: wide, setup: { m, _ in m.focusMode = true }),
+            Scene(name: "shell-note", size: wide, setup: { m, _ in
+                m.newSheet()
+                m.textDidChange("# 3화 · 불빛\n\n해원은 등대 계단을 올랐다. 불빛은 세 번 깜박이고 꺼졌다.\n\n“누가 거기 있어?”\n\n## 작가의 말\n오늘도 읽어 주셔서 감사합니다.\n다음 화는 금요일에 올라와요.", token: m.loadToken)
+                Self.reopen(m)
+            }),
+            Scene(name: "shell-note-add", size: wide, setup: { m, _ in
+                m.newSheet()
+                m.textDidChange("# 3화 · 불빛\n\n해원은 등대 계단을 올랐다. 불빛은 세 번 깜박이고 꺼졌다.", token: m.loadToken)
+                Self.reopen(m)
+            }),
             Scene(name: "shell-library-folded", size: wide, setup: { m, d in
                 for t in ["두 번째 작품", "세 번째 작품"] { _ = try? m.library.createProject(title: t, language: .ko, folders: ["연재"]) }
                 m.refreshProjects()
@@ -294,6 +304,14 @@ enum Snapshot {
 
     static func roInfo(locked: Bool, problems: [String]) -> LibraryInfo {
         LibraryInfo(format: 1, coreVersion: "mock", readOnly: !locked, migratedFrom: nil, backupPath: nil, inMemory: true, lockedByOther: locked, problems: problems)
+    }
+
+    /// The edited sheet saved and loaded again, so the editor shows the new text.
+    private static func reopen(_ m: AppModel) {
+        guard let id = m.sheetId else { return }
+        m.flushSave()
+        if let other = m.folders.flatMap(\.sheets).first(where: { $0.id != id }) { m.openSheet(other.id) }
+        m.openSheet(id)
     }
 
     private static func render(_ s: Scene, to url: URL) {

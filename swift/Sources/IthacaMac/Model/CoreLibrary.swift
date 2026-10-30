@@ -196,6 +196,7 @@ final class CoreLibrary: LibraryAPI {
 
     func goalCount(text: String, basis: GoalBasis) -> Int { Int(IthacaCore.goalCount(text: text, basis: Self.basis(basis))) }
     nonisolated func platformBody(text: String) -> String { IthacaCore.platformBody(text: text) }
+    nonisolated func authorNote(text: String) -> String? { IthacaCore.authorNote(text: text) }
 
     func nextRelease(project: String, folder: String) throws -> Int64? {
         try call { try lib.nextRelease(project: project, folder: folder) }

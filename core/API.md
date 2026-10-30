@@ -114,20 +114,27 @@ fn empty_trash(&self, project: String) -> Result<(), CoreError>;
 // EpisodeStatus { Draft /* 초고 */, Revising /* 퇴고 */, Scheduled /* 예약 */, Published /* 발행 */ }
 /// Sets (`Some`) or clears (`None`) a sheet's episode metadata; trashed sheets too. One toc block.
 fn set_episode(&self, project: String, sheet: String, info: Option<EpisodeInfo>) -> Result<SheetSummary, CoreError>;
-/// 비축분: live sheets of a live folder whose status is not Published. A sheet with no episode
-/// metadata counts as not published. Unknown/deleted folder → NotFound.
-/// (changed: r3) Excluded sheets are never stock.
+/// 비축분: live `원고` (sheets with episode metadata) of a live folder whose status is not Published.
+/// Unknown/deleted folder → NotFound. (changed: r3) Excluded sheets are never stock.
+/// (changed: note, ADR-0012) A sheet with no metadata is a `빈 페이지`: never stock (it used to count).
 fn stock(&self, project: String, folder: String) -> Result<u32, CoreError>;
 /// (changed: qa1) Numbers **every live sheet** of the folder 1..n in serial order; a sheet without
 /// metadata gets `EpisodeInfo { number, status: Draft }`. Status, date and platform are untouched; one
 /// toc block; returns n. Trashed sheets keep their old number. (Before qa1 sheets without metadata
 /// were skipped.) (changed: r3) Excluded sheets are skipped and their number cleared; n counts the rest.
+/// (changed: note, ADR-0012) Sheets without metadata (`빈 페이지`) are skipped again and stay without.
 fn renumber_episodes(&self, project: String, folder: String) -> Result<u32, CoreError>;
 /// (added: qa1) Sets `status` on every live sheet of `folder` up to and including `sheet`, in serial
-/// order ("여기까지 발행"); sheets without metadata get `EpisodeInfo { number: nil, status }`. Other fields
+/// order ("여기까지 발행"). (changed: note, ADR-0012) Sheets without metadata (`빈 페이지`) are left alone. Other fields
 /// untouched; one toc block; returns how many sheets that is. `sheet` not a live sheet of `folder`, or
 /// unknown/deleted folder → NotFound.
 fn set_status_through(&self, project: String, folder: String, sheet: String, status: EpisodeStatus) -> Result<u32, CoreError>;
+/// (added: note, ADR-0012) A sheet's `작가의 말` — the first `#`…`######` heading line titled `작가의 말` /
+/// `작가의말` (after an entry's front matter) and everything after it — as pasted into the platform's own
+/// field (default paste rules). `None` without that heading, `""` when it is empty. Free function.
+/// The note is not manuscript: titles, excerpts, counts, platform_body and every export leave it out
+/// (`body_of`); search still finds it.
+fn author_note(text: String) -> Option<String>;
 ```
 
 ## Serial stats (added: r3)

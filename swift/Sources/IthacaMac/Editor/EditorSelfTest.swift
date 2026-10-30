@@ -631,6 +631,41 @@ enum EditorSelfTest {
         let sub = (tv.string as NSString).range(of: "소제목").location
         check(color(at: sub) == resolved(.token(T.Color.inkSecondary)), "becoming an entry restyles its ## lines")
         model.flushSave()
+        // 25. manuscript sheet and blank page (app-shell spec): the author's note box, its copy button, the add-note button, counts without it.
+        model.newSheet(in: model.folders[0].id, .page)
+        pump(0.3)
+        check(model.sheet?.episode == nil, "new 빈 페이지 has no episode metadata")
+        check(!coord.note.debugAddVisible && !coord.note.debugCopyVisible, "빈 페이지: no [＋ 작가의 말]")
+        model.newSheet(in: model.folders[0].id)
+        pump(0.3)
+        check(model.sheet?.episode != nil, "new 원고 is an episode")
+        setText("# 1화\n\n그는 웃었다.")
+        pump(0.3)
+        check(coord.note.debugAddVisible && !coord.note.debugCopyVisible, "원고 without a note shows [＋ 작가의 말]")
+        coord.note.debugAdd()
+        type("감사합니다.")
+        pump(0.4)
+        check(tv.string == "# 1화\n\n그는 웃었다.\n\n## 작가의 말\n감사합니다.", "[＋ 작가의 말] adds the heading, the caret below it ('\(tv.string)')")
+        check(coord.note.debugCopyVisible && !coord.note.debugAddVisible, "the note's copy button shows")
+        check(coord.note.boxRect(in: tv) != nil, "the note's box is drawn")
+        let noteAt = (tv.string as NSString).range(of: "감사").location
+        check(color(at: noteAt) == resolved(.token(T.Color.inkSecondary)) && color(at: 6) == resolved(.token(T.Color.inkPrimary)), "note text in ink.secondary, the manuscript untouched")
+        model.flushSave()
+        pump(0.5)
+        check(model.livePostedCounts.chars == 7, "counts leave the note out (\(model.livePostedCounts.chars))")
+        model.copyAuthorNote()
+        check(pb.string(forType: .string) == "감사합니다.", "작가의 말 복사 puts only the note on the clipboard ('\(pb.string(forType: .string) ?? "nil")')")
+        model.toast = nil
+        model.copyForPaste()
+        check(pb.string(forType: .string) == "그는 웃었다.", "붙여넣기용 복사 leaves the note out ('\(pb.string(forType: .string) ?? "nil")')")
+        model.toast = nil
+        for _ in 0..<12 where tv.string.contains("감사") { undo() }
+        undo()
+        pump(0.4)
+        check(tv.string == "# 1화\n\n그는 웃었다.", "one more undo takes the heading back ('\(tv.string)')")
+        check(coord.note.debugAddVisible, "and [＋ 작가의 말] is back")
+        model.flushSave()
+
         // 24. Story bible in the editor (story-bible spec §2–§5): `@` names, ⌥Esc, the card, mentions, underline.
         bibleChecks(model: model, lib: lib, tv: tv, coord: coord, check: check, setText: setText, type: type, undo: undo)
 

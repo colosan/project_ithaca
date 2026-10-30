@@ -99,6 +99,8 @@ protocol EditorBridge: AnyObject {
     @discardableResult func showEntryCard() -> Bool
 }
 
+enum NewSheetKind { case manuscript, page }
+
 enum TextFormat { case bold, italic, strike, heading(Int), body, quote, sceneBreak }
 
 @MainActor
@@ -642,7 +644,7 @@ final class AppModel {
 
     /// The footer / inspector / goal number: the open sheet's body as it would be posted (core platform_body — no title
     /// line, no Markdown marks, scene breaks normalized) counted with count_for. `liveCounts` stays the text as written
-    /// ("원고 전체"). Recounted only when the debounced `liveText` changes.
+    /// ("manuscript sheet 전체"). Recounted only when the debounced `liveText` changes.
     var livePostedCounts: Counts {
         let t = liveText
         if let c = postedLiveCache, c.text == t { return c.counts }
@@ -675,7 +677,9 @@ final class AppModel {
 
     // MARK: Actions
 
-    func newSheet() {
+    /// ⌘N and the picker's first row make a `manuscript sheet` (an episode: number, status, the author's note box);
+    /// `.page` is a blank page with no episode metadata (notes, plans).
+    func newSheet(_ kind: NewSheetKind = .manuscript) {
         guard let projectId, !readOnly else { return }
         let fid = folderId ?? folders.first?.id
         guard let fid else { return }
@@ -683,14 +687,15 @@ final class AppModel {
         showingTrash = false
         libraryOverlay = false
         // Reuse an untouched empty sheet at the end instead of piling up blanks.
-        if let last = folders.first(where: { $0.id == fid })?.sheets.last, last.counts.chars == 0 {
+        if let last = folders.first(where: { $0.id == fid })?.sheets.last, last.counts.chars == 0, (last.episode != nil) == (kind == .manuscript) {
             openSheet(last.id)
         } else {
             do {
                 let s = try library.createSheet(project: projectId, folder: fid, text: "")
-                // New sheets of the serial (first) folder are the next episode: last number + 1, Draft (PRODUCT 2026-10-24).
-                if let next = nextEpisodeNumber(in: fid) {
-                    try library.setEpisode(project: projectId, sheet: s.id, info: EpisodeInfo(number: next, status: .draft))
+                // A manuscript sheet of the serial (first) folder is the next episode: last number + 1, Draft (PRODUCT 2026-10-24).
+                // Elsewhere it is a Draft with no number.
+                if kind == .manuscript {
+                    try library.setEpisode(project: projectId, sheet: s.id, info: EpisodeInfo(number: nextEpisodeNumber(in: fid), status: .draft))
                 }
                 reloadOutline()
                 openSheet(s.id)
@@ -773,10 +778,10 @@ final class AppModel {
         return (folders.first?.sheets.compactMap { $0.episode?.excluded == true ? nil : $0.episode?.number }.max() ?? 0) + 1
     }
 
-    func newSheet(in folder: String) {
+    func newSheet(in folder: String, _ kind: NewSheetKind = .manuscript) {
         guard folders.contains(where: { $0.id == folder }) else { return }
         if folder != folderId { selectFolder(folder) }
-        newSheet()
+        newSheet(kind)
     }
 
     func restoreSheet(_ id: String) {
@@ -1063,6 +1068,16 @@ final class AppModel {
             let n = library.countFor(text: text, rule: .withSpaces)
             showToast(Toast(message: t(.sheetCopiedForPaste, ["count": n], count: n)))
         } catch { fail(error) }
+    }
+
+    /// Sheet menu "author's note 복사" / the box's copy button: the open sheet's note, plain text (paste rules), no dialog.
+    func copyAuthorNote() {
+        guard sheetId != nil else { return }
+        guard let note = library.authorNote(text: text), !note.isEmpty else { return showToast(Toast(message: t(.noteEmpty))) }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(note, forType: .string)
+        let n = library.countFor(text: note, rule: .withSpaces)
+        showToast(Toast(message: t(.noteCopied, ["count": n], count: n)))
     }
 
     /// Side story / notice: stays in the folder, not numbered (its number is cleared; renumber skips it).

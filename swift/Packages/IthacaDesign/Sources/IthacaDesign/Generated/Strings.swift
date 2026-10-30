@@ -685,6 +685,13 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case prefsEditorUnderlineNamesHint = "prefs.editor.underlineNamesHint"
     case prefsEditorHoverCard = "prefs.editor.hoverCard"
     case prefsEditorHoverCardHint = "prefs.editor.hoverCardHint"
+    case newSheetPage = "newSheet.page"
+    case newSheetPageHint = "newSheet.pageHint"
+    case noteTitle = "note.title"
+    case noteAdd = "note.add"
+    case noteCopy = "note.copy"
+    case noteCopied = "note.copied"
+    case noteEmpty = "note.empty"
 }
 
 enum L10nValue: Sendable {
@@ -1137,7 +1144,7 @@ public enum L10n {
             .episodeStatusRevising: .text("퇴고"),
             .episodeStatusScheduled: .text("예약"),
             .episodeStatusPublished: .text("발행"),
-            .episodeNone: .text("회차 아님"),
+            .episodeNone: .text("빈 페이지"),
             .episodeStock: .text("비축 {count}화"),
             .episodeStockHint: .text("아직 발행하지 않은 회차 수예요."),
             .episodeRenumber: .text("회차 번호 다시 매기기"),
@@ -1326,15 +1333,15 @@ public enum L10n {
             .entryNewGroup: .text("새 집단"),
             .entryNewTerm: .text("새 용어"),
             .newSheetTitle: .text("새로 만들기"),
-            .newSheetBlank: .text("빈 원고"),
-            .newSheetBlankHint: .text("원고 · 메모 · 무엇이든"),
-            .newSheetEpisodeHint: .text("{number}화로 이어서 써요"),
+            .newSheetBlank: .text("원고"),
+            .newSheetBlankHint: .text("본문 아래 작가의 말 칸이 있어요"),
+            .newSheetEpisodeHint: .text("{number}화 · 본문 아래 작가의 말 칸이 있어요"),
             .newSheetBible: .text("설정 항목"),
             .newSheetHintCharacter: .text("등장인물 — 성격과 말투"),
             .newSheetHintPlace: .text("무대가 되는 곳"),
             .newSheetHintGroup: .text("가문 · 길드 · 회사 · 나라"),
             .newSheetHintTerm: .text("작품 속 낱말과 뜻"),
-            .newSheetShortcut: .text("⌘N 은 고르지 않고 바로 빈 원고를 만들어요."),
+            .newSheetShortcut: .text("⌘N 은 고르지 않고 바로 원고를 만들어요."),
             .entryFromSelection: .text("설정 항목으로 만들기"),
             .entryFromSelectionAs: .text("설정 항목으로 만들기 · {kind}"),
             .entryCreated: .text("{folder}에 ‘{name}’ 항목을 만들었어요"),
@@ -1385,6 +1392,13 @@ public enum L10n {
             .prefsEditorUnderlineNamesHint: .text("점선 밑줄로 보이기만 해요. 원고 글자는 그대로예요."),
             .prefsEditorHoverCard: .text("마우스를 올리면 설정 카드"),
             .prefsEditorHoverCardHint: .text("이름 위에 1초 머물면 카드가 떠요. 타자를 친 뒤 3초 동안은 안 떠요."),
+            .newSheetPage: .text("빈 페이지"),
+            .newSheetPageHint: .text("메모 · 구상 · 형식 없이 무엇이든"),
+            .noteTitle: .text("작가의 말"),
+            .noteAdd: .text("작가의 말"),
+            .noteCopy: .text("작가의 말 복사"),
+            .noteCopied: .text("작가의 말을 복사했어요 · {count}자"),
+            .noteEmpty: .text("이 원고에는 작가의 말이 없어요."),
         ],
     ]
 }

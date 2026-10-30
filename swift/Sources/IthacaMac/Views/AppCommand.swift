@@ -7,7 +7,7 @@ import IthacaDesign
 import SwiftUI
 
 enum AppCommand: CaseIterable {
-    case newSheet, newProject, search, focus, sheetInfo, history, export, copyForPaste, projectSettings, settings, moveUp, moveDown, showTrash, trashSheet, importWeb
+    case newSheet, newPage, newProject, search, focus, sheetInfo, history, export, copyForPaste, projectSettings, settings, moveUp, moveDown, showTrash, trashSheet, importWeb
     // Episodes (2026-10-24 review): the daily serial steps without the context menu.
     case publishedThrough, renumber, toggleExclude, statusDraft, statusRevising, statusScheduled, statusPublished
     // The menu bar's editing and view commands, so the palette finds them by name too.
@@ -18,10 +18,14 @@ enum AppCommand: CaseIterable {
     case newCharacter, newPlace, newGroup, newTerm, entryCharacter, entryPlace, entryGroup, entryTerm, addField, importBible
     // Story bible (story-bible spec §2 · §3).
     case completeName, entryCard
+    // author's note (app-shell spec section on manuscripts and blank pages).
+    case copyNote
 
     var label: L10nKey {
         switch self {
         case .newSheet: .sheetNew
+        case .newPage: .newSheetPage
+        case .copyNote: .noteCopy
         case .newProject: .libraryNewProject
         case .search: .searchTitle
         case .focus: .focusTitle
@@ -211,6 +215,8 @@ enum AppCommand: CaseIterable {
     var icon: IthacaIcon {
         switch self {
         case .newSheet: .add
+        case .newPage: .sheet
+        case .copyNote: .copy
         case .newProject: .folder
         case .search, .findInSheet, .findNext, .findPrevious: .search
         case .focus, .editorOnly: .focus
@@ -243,7 +249,7 @@ enum AppCommand: CaseIterable {
     /// Same rule as the menu bar's disabled items: sheet commands need an open sheet, project commands a project.
     @MainActor func available(_ m: AppModel) -> Bool {
         // Read-only library: nothing that writes.
-        if m.readOnly, [.newSheet, .newProject, .moveUp, .moveDown, .trashSheet, .importWeb, .importTextFolder, .publishedThrough,
+        if m.readOnly, [.newSheet, .newPage, .newProject, .moveUp, .moveDown, .trashSheet, .importWeb, .importTextFolder, .publishedThrough,
                         .renumber, .toggleExclude, .saveNow, .addField, .importBible].contains(self) { return false }
         if m.readOnly, entryKind != nil { return false }
         if fromSelection { return m.sheetId != nil && !m.editorLocked && !StoryBible.name(fromSelection: m.editor?.selectedText ?? "").isEmpty }
@@ -254,11 +260,11 @@ enum AppCommand: CaseIterable {
         if self == .entryCard { return m.sheetId != nil && !m.bible.isEmpty }
         return switch self {
         case .sheetInfo, .history, .moveUp, .moveDown, .trashSheet, .copyForPaste, .saveNow, .previousSheet, .nextSheet,
-             .findInSheet, .findNext, .findPrevious: m.sheetId != nil
+             .findInSheet, .findNext, .findPrevious, .copyNote: m.sheetId != nil
         case .publishedThrough: m.sheet?.episode != nil
         case .toggleExclude: m.sheet != nil && (m.sheet?.episode != nil || m.sheet?.folder == m.folders.first?.id)
         case .renumber: m.folder != nil
-        case .export, .projectSettings, .showTrash, .newSheet, .importBible: m.projectId != nil
+        case .export, .projectSettings, .showTrash, .newSheet, .newPage, .importBible: m.projectId != nil
         case .addField: !m.editorLocked && m.openEntryKind != nil
         case .palette: false  // already open when the palette asks
         default: true
@@ -268,6 +274,8 @@ enum AppCommand: CaseIterable {
     @MainActor func run(_ m: AppModel) {
         switch self {
         case .newSheet: m.newSheet()
+        case .newPage: m.newSheet(.page)
+        case .copyNote: m.copyAuthorNote()
         case .newProject: m.show(.newProject(firstRun: false))
         case .search: m.overlay = .palette(search: true)
         case .focus: m.toggleFocus()

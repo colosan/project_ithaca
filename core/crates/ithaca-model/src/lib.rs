@@ -4,6 +4,7 @@ pub mod bible;
 pub mod docx;
 pub mod episode;
 pub mod export;
+pub mod note;
 pub mod platform;
 pub mod text;
 pub mod toc;
@@ -17,6 +18,7 @@ pub use bible::{
 pub use docx::{DocxOptions, export_docx};
 pub use episode::{EpisodeInfo, EpisodeStatus};
 pub use export::{ExportOptions, export_sheets, render_sheet};
+pub use note::author_note;
 pub use platform::{
     CountRule, MUNPIA_PAGE_CHARS, count_for, goal_count, munpia_pages, platform_body,
 };

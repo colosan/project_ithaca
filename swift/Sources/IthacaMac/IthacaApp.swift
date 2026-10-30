@@ -100,10 +100,11 @@ enum SelfTest {
         model.textDidChange("옛 시트의 글", token: model.loadToken - 1)
         check(model.text == before && !model.dirty, "stale-token edit ignored")
 
-        // qa1: renumber numbers every sheet; "published up to here"; text-folder import reports skipped files.
+        // qa1: renumber numbers every manuscript sheet (ADR-0012: blank pages are skipped); "published up to here";
+        // text-folder import reports skipped files.
         model.renumberEpisodes()
-        let serial = model.folders.first?.sheets ?? []
-        check(!serial.isEmpty && serial.enumerated().allSatisfy { $0.element.episode?.number == $0.offset + 1 }, "renumber numbered all \(serial.count) sheets")
+        let serial = (model.folders.first?.sheets ?? []).filter { $0.episode != nil }
+        check(!serial.isEmpty && serial.enumerated().allSatisfy { $0.element.episode?.number == $0.offset + 1 }, "renumber numbered all \(serial.count) manuscript sheets")
         if let first = serial.first {
             model.markPublishedThrough(first.id)
             check(model.folders.first?.sheets.first?.episode?.status == .published, "marked published through the first sheet")
@@ -543,6 +544,7 @@ struct IthacaCommands: Commands {
         }
         CommandGroup(replacing: .newItem) {
             item(.newSheet, off: noProject || ro)
+            item(.newPage, off: noProject || ro)
             item(.newProject, t(.libraryNewProject) + "…", off: ro)
             Divider()
             item(.export, t(.exportTitle) + "…", off: noProject)
@@ -611,6 +613,7 @@ struct IthacaCommands: Commands {
             item(.moveDown, off: noSheet || ro)
             Divider()
             item(.copyForPaste, off: noSheet)
+            item(.copyNote, off: noSheet)
             Divider()
             item(.publishedThrough, off: noSheet || ro)
             item(.renumber, off: noProject || ro)

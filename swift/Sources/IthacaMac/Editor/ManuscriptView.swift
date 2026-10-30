@@ -54,6 +54,7 @@ struct ManuscriptView: NSViewRepresentable {
         tv.names = context.coordinator.names
         tv.card = context.coordinator.card
         tv.marks = context.coordinator.marks
+        tv.note = context.coordinator.note
         tv.bibleEntries = { [weak model] in model?.bible ?? [] }
         tv.onEscape = { [weak model] in
             guard let model, model.panesHidden else { return false }
@@ -77,6 +78,7 @@ struct ManuscriptView: NSViewRepresentable {
         if c.loadedToken != model.loadToken { c.load() }
         c.updateFocusDim()
         c.marks.update()
+        c.note.update()
     }
 
     @MainActor
@@ -96,6 +98,8 @@ struct ManuscriptView: NSViewRepresentable {
         lazy var names = NameCompletion(coordinator: self)
         lazy var card = EntryCardPresenter(coordinator: self)
         lazy var marks = NameMarks(coordinator: self)
+        // author's note: the box behind it, its copy button, "＋ author's note" (AuthorNote.swift).
+        lazy var note = AuthorNoteBox(coordinator: self)
 
         // MARK: EditorBridge
 
@@ -363,6 +367,8 @@ struct ManuscriptView: NSViewRepresentable {
             guard editedMask.contains(.editedCharacters), !loading else { return }
             dirtyRange = dirtyRange.map { NSUnionRange($0, editedRange) } ?? editedRange
             marks.edited(editedRange, delta: delta, in: textStorage.string as NSString)
+            // Undo can change the text without a restyle following: the note's buttons follow every edit.
+            note.setNeedsUpdate()
         }
 
         func textDidChange(_ notification: Notification) {
@@ -444,6 +450,7 @@ struct ManuscriptView: NSViewRepresentable {
         }
 
         private var styledAsEntry = false
+        private var styledNoteStart: Int?
 
         /// `--selftest-perf`: what a markup-mode or text-size change costs.
         func debugRestyleAll() { restyle(NSRange(location: 0, length: (textView?.string as NSString?)?.length ?? 0)) }
@@ -452,15 +459,28 @@ struct ManuscriptView: NSViewRepresentable {
             guard let tv = textView, let storage = tv.textStorage else { return }
             let ns = storage.string as NSString
             let indent = model.firstLineIndent
-            guard ns.length > 0 else { tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing, indent: indent); return }
+            guard ns.length > 0 else {
+                tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing, indent: indent)
+                styledNoteStart = nil
+                note.update()
+                return
+            }
             let start = min(range.location, ns.length)
             var para = ns.paragraphRange(for: NSRange(location: start, length: min(range.length, ns.length - start)))
             // A sheet becoming (or no longer being) an entry restyles every line: its `## ` titles change look.
-            let entry = Styles.entryFrontMatterEnd(ns) > 0
+            let entryEnd = Styles.entryFrontMatterEnd(ns)
+            let entry = entryEnd > 0
             if entry != styledAsEntry { styledAsEntry = entry; para = NSRange(location: 0, length: ns.length) }
+            // The author's note heading appearing, moving or going away restyles from there to the end (AuthorNote.swift).
+            let noteStart = TextMetrics.noteStart(ns, from: entryEnd)
+            if noteStart != styledNoteStart {
+                let from = min(noteStart ?? ns.length, styledNoteStart ?? ns.length, para.location)
+                para = NSRange(location: from, length: ns.length - from)
+                styledNoteStart = noteStart
+            }
             let selection = tv.selectedRanges
             storage.beginEditing()
-            Styles.apply(to: storage, in: para, size: model.textSize, spacing: model.lineSpacing, markup: model.markup, indent: indent)
+            Styles.apply(to: storage, in: para, size: model.textSize, spacing: model.lineSpacing, markup: model.markup, indent: indent, noteStart: noteStart)
             storage.endEditing()
             tv.selectedRanges = selection
             // New characters take the style of the line the caret is on.
@@ -468,8 +488,11 @@ struct ManuscriptView: NSViewRepresentable {
             let line = ns.paragraphRange(for: NSRange(location: caret, length: 0))
             let lineText = ns.substring(with: line)
             let heading = TextMetrics.isHeading(Substring(lineText))
-            tv.typingAttributes = heading && entry && lineText.hasPrefix("## ") ? Styles.entrySection(model.textSize, model.lineSpacing)
+            let inNote = noteStart.map { line.location > $0 } ?? false
+            tv.typingAttributes = inNote ? Styles.note(model.textSize, model.lineSpacing)
+                : heading && entry && lineText.hasPrefix("## ") ? Styles.entrySection(model.textSize, model.lineSpacing)
                 : heading ? Styles.heading(model.textSize, model.lineSpacing) : Styles.base(model.textSize, model.lineSpacing, indent: indent)
+            note.update()
         }
 
         // MARK: Focus mode (rendering attributes: drawn on top, storage untouched)
@@ -579,6 +602,7 @@ final class ManuscriptTextView: NSTextView {
     weak var names: NameCompletion?
     weak var card: EntryCardPresenter?
     weak var marks: NameMarks?
+    weak var note: AuthorNoteBox?
     var bibleEntries: () -> [BibleEntry] = { [] }
     /// Last key input (typing or composing): hover cards stay away for a while after it.
     private(set) var lastTyped = Date.distantPast
@@ -632,6 +656,7 @@ final class ManuscriptTextView: NSTextView {
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
         updateInsets()
+        note?.setNeedsUpdate()
     }
 
     func updateInsets() {
@@ -749,6 +774,12 @@ final class ManuscriptTextView: NSTextView {
         marks?.draw(in: self, dirtyRect: dirtyRect)
     }
 
+    /// The author's note box sits behind the text.
+    override func drawBackground(in rect: NSRect) {
+        super.drawBackground(in: rect)
+        note?.drawBackground(in: self, dirtyRect: rect)
+    }
+
     override func mouseMoved(with event: NSEvent) {
         super.mouseMoved(with: event)
         card?.mouseMoved(event)
@@ -862,7 +893,8 @@ enum Styles {
         return 0
     }
 
-    static func apply(to storage: NSTextStorage, in range: NSRange, size: TextSize, spacing: LineSpacing = .normal, markup: MarkupMode, indent: Bool = false) {
+    static func apply(to storage: NSTextStorage, in range: NSRange, size: TextSize, spacing: LineSpacing = .normal, markup: MarkupMode, indent: Bool = false,
+                      noteStart: Int? = nil) {
         let ns = storage.string as NSString
         storage.setAttributes(base(size, spacing, indent: indent), range: range)
         let markColor: NSColor = switch markup {
@@ -878,6 +910,10 @@ enum Styles {
         ns.enumerateSubstrings(in: range, options: [.byParagraphs, .substringNotRequired]) { _, line, enclosing, _ in
             if line.location < entryEnd {
                 styleFrontMatterLine(storage, ns, line: enclosing, blockEnd: entryEnd, size: size, spacing: spacing)
+                return
+            }
+            if let noteStart, line.location >= noteStart {
+                styleNoteLine(storage, ns, line: line, heading: line.location == noteStart, size: size, spacing: spacing, markColor: markColor)
                 return
             }
             if let m = headingRe.firstMatch(in: storage.string, range: line) {

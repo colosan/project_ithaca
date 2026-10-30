@@ -1,6 +1,7 @@
 // "What to make": the sheet list's ＋ popover and the empty folder's body (app-shell · story-bible §1).
-// A blank sheet first, then the four story bible kinds with the fields their template brings, then the Notion import.
-// Keyboard: ↑↓ choose · Return make · 1–5 make that row · Esc close. ⌘N stays the instant blank sheet.
+// A manuscript sheet (episode with the author's note box) first, a blank page (no form), then the four story bible kinds with the fields
+// their template brings, then the Notion import.
+// Keyboard: ↑↓ choose · Return make · 1–6 make that row · Esc close. ⌘N stays the instant manuscript sheet.
 import IthacaCore
 import IthacaDesign
 import SwiftUI
@@ -16,8 +17,8 @@ struct NewSheetPicker: View {
     @State private var hover: Int?
     @FocusState private var focused: Bool
 
-    private enum Choice: Hashable { case blank, entry(EntryKind) }
-    private var choices: [Choice] { [.blank] + EntryKind.all.map(Choice.entry) }
+    private enum Choice: Hashable { case blank, page, entry(EntryKind) }
+    private var choices: [Choice] { [.blank, .page] + EntryKind.all.map(Choice.entry) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: T.Space.s50) {
@@ -25,10 +26,11 @@ struct NewSheetPicker: View {
                 .padding(.horizontal, T.Space.s100)
                 .padding(.bottom, T.Space.s50)
             row(0)
+            row(1)
             Caption(model.t(.newSheetBible))
                 .padding(.horizontal, T.Space.s100)
                 .padding(.top, T.Space.s150)
-            ForEach(1..<choices.count, id: \.self) { row($0) }
+            ForEach(2..<choices.count, id: \.self) { row($0) }
             Rectangle().fill(Color.lineSubtle).frame(height: T.Size.strokeHairline).padding(.vertical, T.Space.s100)
             HStack(spacing: T.Space.s100) {
                 KitButton(model.t(.importBibleTitle) + "…", icon: .folderOpen, variant: .ghost) {
@@ -61,9 +63,9 @@ struct NewSheetPicker: View {
         let on = hover.map { $0 == i } ?? (i == index && focused)
         return Button { make(choice) } label: {
             HStack(alignment: .top, spacing: T.Space.s150) {
-                Icon(icon(choice), size: T.Size.iconMd, color: choice == .blank ? .inkSecondary : .accentPrimary)
+                Icon(icon(choice), size: T.Size.iconMd, color: plain(choice) ? .inkSecondary : .accentPrimary)
                     .frame(width: T.Size.controlMd, height: T.Size.controlMd)
-                    .background(RoundedRectangle(cornerRadius: T.Radius.control).fill(choice == .blank ? Color.surfaceSelected : Color.accentSoft))
+                    .background(RoundedRectangle(cornerRadius: T.Radius.control).fill(plain(choice) ? Color.surfaceSelected : Color.accentSoft))
                 VStack(alignment: .leading, spacing: T.Space.s25) {
                     Text(title(choice)).textStyle(.label).foregroundStyle(Color.inkPrimary)
                     Text(hint(choice)).textStyle(.caption).foregroundStyle(Color.inkSecondary).lineLimit(1)
@@ -104,17 +106,21 @@ struct NewSheetPicker: View {
         return t
     }
 
+    private func plain(_ c: Choice) -> Bool { if case .entry = c { false } else { true } }
+
     private func make(_ c: Choice) {
         done()
         switch c {
         case .blank: model.newSheet(in: folder)
+        case .page: model.newSheet(in: folder, .page)
         case .entry(let k): model.newEntry(k, in: folder)
         }
     }
 
     private func icon(_ c: Choice) -> IthacaIcon {
         switch c {
-        case .blank: .sheet
+        case .blank: .edit
+        case .page: .sheet
         case .entry(let k): k.icon
         }
     }
@@ -122,6 +128,7 @@ struct NewSheetPicker: View {
     private func title(_ c: Choice) -> String {
         switch c {
         case .blank: model.t(.newSheetBlank)
+        case .page: model.t(.newSheetPage)
         case .entry(let k): model.t(k.label)
         }
     }
@@ -129,6 +136,7 @@ struct NewSheetPicker: View {
     private func hint(_ c: Choice) -> String {
         switch c {
         case .blank: model.nextEpisodeNumber(in: folder).map { model.t(.newSheetEpisodeHint, ["number": $0]) } ?? model.t(.newSheetBlankHint)
+        case .page: model.t(.newSheetPageHint)
         case .entry(let k): model.t(k.hint)
         }
     }

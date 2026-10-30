@@ -299,6 +299,8 @@ protocol LibraryAPI: AnyObject {
     /// (r3) What is pasted into a platform's body field: title line removed, Markdown stripped, scene breaks normalized.
     /// The app's counts (footer, list rows, inspector, goal) count this text (PRODUCT "글자수 정의", 2026-10-24).
     nonisolated func platformBody(text: String) -> String
+    /// (note) The sheet's `작가의 말` as pasted into the platform's own field; nil without a `## 작가의 말` heading.
+    nonisolated func authorNote(text: String) -> String?
 
     func search(query: String, project: String?) -> [SearchHit]
     /// (qa1) Every live project, `current` first, so one long project can't crowd out the rest.

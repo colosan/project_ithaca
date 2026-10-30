@@ -943,9 +943,9 @@ impl Store {
             .ok_or(StoreError::NotFound)
     }
 
-    /// `비축분`: live sheets of the folder that are not `Published`. A sheet without episode metadata
-    /// counts as not published (a serial folder's new sheet is stock until marked otherwise).
+    /// `비축분`: live episodes (`원고`) of the folder that are not `Published`.
     /// (changed: r3) Excluded sheets (prologue, `외전`, `공지`) are never stock.
+    /// (changed: note) A sheet without episode metadata is a `빈 페이지`, never stock.
     pub fn stock(&self, project: &str, folder: &str) -> Result<u32> {
         let p = self.project(project)?;
         let f = Self::live_folder(p, folder)?;
@@ -955,15 +955,15 @@ impl Store {
                 p.toc.sheets[*s]
                     .episode
                     .as_ref()
-                    .is_none_or(|e| !e.excluded && e.status != EpisodeStatus::Published)
+                    .is_some_and(|e| !e.excluded && e.status != EpisodeStatus::Published)
             })
             .count() as u32)
     }
 
-    /// Numbers every live sheet of the folder 1..n in serial order (one toc block); a sheet without
-    /// episode metadata gets `Draft` metadata. Status, date and platform are untouched. Returns n.
-    /// (changed: qa1 — sheets without metadata used to be skipped.)
+    /// Numbers every live episode (`원고`) of the folder 1..n in serial order (one toc block). Status,
+    /// date and platform are untouched. Returns n.
     /// (changed: r3) Excluded sheets are skipped and lose their number; n counts the others.
+    /// (changed: note) Sheets without metadata are `빈 페이지` and are skipped (qa1 gave them `Draft`).
     pub fn renumber_episodes(&mut self, project: &str, folder: &str) -> Result<u32> {
         Self::live_folder(self.project(project)?, folder)?;
         self.edit_toc(project, |t, _| {
@@ -976,11 +976,10 @@ impl Store {
                         e.number = None;
                         continue;
                     }
-                    n += 1;
-                    entry
-                        .episode
-                        .get_or_insert_with(EpisodeInfo::default)
-                        .number = Some(n);
+                    if let Some(e) = entry.episode.as_mut() {
+                        n += 1;
+                        e.number = Some(n);
+                    }
                 }
             }
             Ok(n)
@@ -988,8 +987,8 @@ impl Store {
     }
 
     /// Sets `status` on every live sheet of the folder up to and including `sheet`, in serial
-    /// order ("mark everything up to here as published"); sheets without metadata get it with no
-    /// number. One toc block. `sheet` must be a live sheet of that folder (else NotFound). Returns
+    /// order ("mark everything up to here as published"). (changed: note) Sheets without metadata
+    /// (`빈 페이지`) are left alone. One toc block. `sheet` must be a live sheet of that folder (else NotFound). Returns
     /// how many sheets it covers. (added: qa1)
     pub fn set_status_through(
         &mut self,
@@ -1007,11 +1006,8 @@ impl Store {
             .ok_or(StoreError::NotFound)?;
         self.edit_toc(project, |t, _| {
             for id in &ids[..=upto] {
-                if let Some(entry) = t.sheets.get_mut(id) {
-                    entry
-                        .episode
-                        .get_or_insert_with(EpisodeInfo::default)
-                        .status = status;
+                if let Some(e) = t.sheets.get_mut(id).and_then(|e| e.episode.as_mut()) {
+                    e.status = status;
                 }
             }
             Ok(upto as u32 + 1)
@@ -1049,15 +1045,15 @@ impl Store {
             let body = ithaca_model::platform_body(text);
             st.munpia_total += ithaca_model::count_for(&body, ithaca_model::CountRule::Munpia);
             st.novelpia_total += ithaca_model::count_for(&body, ithaca_model::CountRule::Novelpia);
-            let ep = p.toc.sheets[s].episode.as_ref();
-            if ep.is_some_and(|e| e.excluded) {
+            // (changed: note) A `빈 페이지` (no metadata) is in the totals, not an episode.
+            let Some(ep) = p.toc.sheets[s].episode.as_ref().filter(|e| !e.excluded) else {
                 continue;
-            }
+            };
             st.episodes += 1;
             episode_chars += u64::from(counts.chars);
-            match ep.map(|e| e.status) {
-                Some(EpisodeStatus::Published) => st.published += 1,
-                Some(EpisodeStatus::Scheduled) => st.scheduled += 1,
+            match ep.status {
+                EpisodeStatus::Published => st.published += 1,
+                EpisodeStatus::Scheduled => st.scheduled += 1,
                 _ => st.drafts += 1,
             }
         }

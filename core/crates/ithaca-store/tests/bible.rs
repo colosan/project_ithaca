@@ -54,6 +54,16 @@ fn fixture(s: &mut Store) -> Fixture {
         .create_sheet(&p, &serial, "# 3화 빈 등대\n\n아무도 없었다.")
         .unwrap()
         .id;
+    // (note) Only `원고` (episode metadata) are numbered: make every serial sheet one.
+    for x in s.outline(&p).unwrap().folders[0]
+        .sheets
+        .iter()
+        .map(|x| x.id.clone())
+        .collect::<Vec<_>>()
+    {
+        s.set_episode(&p, &x, Some(ithaca_model::EpisodeInfo::default()))
+            .unwrap();
+    }
     s.renumber_episodes(&p, &serial).unwrap();
     let seoyun = s
         .create_sheet(

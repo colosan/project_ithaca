@@ -338,6 +338,7 @@ struct SheetRow: View {
         Divider()
         Button(model.t(.navHistory)) { model.openSheet(sheet.id); model.show(.history) }
         Button(model.t(.sheetCopyForPaste)) { model.openSheet(sheet.id); model.copyForPaste() }
+        Button(model.t(.noteCopy)) { model.openSheet(sheet.id); model.copyAuthorNote() }
         Button(model.t(.exportTitle) + "…") { model.openSheet(sheet.id); model.show(.export) }
         if !model.readOnly {
             Divider()

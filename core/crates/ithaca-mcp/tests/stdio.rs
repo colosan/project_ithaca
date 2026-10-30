@@ -102,6 +102,16 @@ fn library(dir: &Path) -> (Store, String, String) {
         "# 인물\n\n해원: 등대지기의 딸. 안개를 싫어한다.",
     )
     .unwrap();
+    // (note) Only `원고` (episode metadata) are numbered: make every serial sheet one.
+    for x in s.outline(&a).unwrap().folders[0]
+        .sheets
+        .iter()
+        .map(|x| x.id.clone())
+        .collect::<Vec<_>>()
+    {
+        s.set_episode(&a, &x, Some(ithaca_model::EpisodeInfo::default()))
+            .unwrap();
+    }
     s.renumber_episodes(&a, &serial).unwrap();
     s.set_status_through(&a, &serial, &e1, EpisodeStatus::Published)
         .unwrap();

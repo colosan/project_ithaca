@@ -32,6 +32,16 @@ fn excluded_sheets_keep_no_number_and_are_not_stock() {
     let e1 = s.create_sheet(&p, &f, "# 1화\n\n가 나.").unwrap().id;
     let notice = s.create_sheet(&p, &f, "# 공지\n\n휴재").unwrap().id;
     let e2 = s.create_sheet(&p, &f, "# 2화\n\n다라마바").unwrap().id;
+    // (note) Only `원고` (episode metadata) are numbered: make every serial sheet one.
+    for x in s.outline(&p).unwrap().folders[0]
+        .sheets
+        .iter()
+        .map(|x| x.id.clone())
+        .collect::<Vec<_>>()
+    {
+        s.set_episode(&p, &x, Some(ithaca_model::EpisodeInfo::default()))
+            .unwrap();
+    }
     assert_eq!(s.renumber_episodes(&p, &f).unwrap(), 4);
     for id in [&prologue, &notice] {
         let mut info = s.sheet_summary_of(&p, id).unwrap().episode.unwrap();

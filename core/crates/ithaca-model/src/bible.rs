@@ -140,9 +140,7 @@ pub fn section_titles(kind: EntryKind, language: Language) -> &'static [&'static
             "Notes",
         ],
         (EntryKind::Place, Language::En) => &["Summary", "Senses", "Rules", "Notes"],
-        (EntryKind::Group, Language::En) => {
-            &["Summary", "Members", "Goals", "Relations", "Notes"]
-        }
+        (EntryKind::Group, Language::En) => &["Summary", "Members", "Goals", "Relations", "Notes"],
         (EntryKind::Term, Language::En) => &["Meaning", "Notes"],
     }
 }
@@ -246,9 +244,11 @@ pub fn body_offset(text: &str) -> usize {
     entry_front_matter(text).map_or(0, |(_, fm)| fm.end)
 }
 
-/// The text without an entry's front matter. Any other text is returned whole (ADR-0010 §2).
+/// The text without an entry's front matter (ADR-0010 §2) and without its `작가의 말`
+/// (added: note, [`crate::note`]). Any other text is returned whole.
 pub fn body_of(text: &str) -> &str {
-    &text[body_offset(text)..]
+    let start = body_offset(text);
+    &text[start..crate::note::note_start(text, start)]
 }
 
 fn utf16_len(s: &str) -> u32 {

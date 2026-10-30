@@ -268,7 +268,7 @@ final class MockLibrary: LibraryAPI {
 
     func exportText(project: String, sheets ids: [String], options: ExportOptions) throws -> String {
         let parts = try ids.map { id -> String in
-            let text = try find(id).text
+            let text = TextMetrics.splitNote(try find(id).text).body
             return TextMetrics.render(text, title: TextMetrics.title(text), options)
         }
         return parts.joined(separator: options.markdown ? "\n\n---\n\n" : "\n\n\n")
@@ -288,16 +288,17 @@ final class MockLibrary: LibraryAPI {
     }
 
     func stock(project: String, folder: String) throws -> Int {
-        sheets.filter { $0.folder == folder && $0.trashed == nil && $0.episode?.status != .published }.count
+        sheets.filter { $0.folder == folder && $0.trashed == nil && $0.episode.map { !$0.excluded && $0.status != .published } == true }.count
     }
 
     func renumberEpisodes(project: String, folder: String) throws -> Int {
         var n = 0
         for i in sheets.indices.sorted(by: { (sheets[$0].order, sheets[$0].created) < (sheets[$1].order, sheets[$1].created) })
         where sheets[i].folder == folder && sheets[i].trashed == nil {
+            // A blank page (no metadata) is skipped, like an excluded sheet (core, changed: note).
+            guard sheets[i].episode != nil else { continue }
             if sheets[i].episode?.excluded == true { sheets[i].episode?.number = nil; continue }
             n += 1
-            if sheets[i].episode == nil { sheets[i].episode = EpisodeInfo(status: .draft) }
             sheets[i].episode?.number = n
         }
         return n
@@ -314,7 +315,7 @@ final class MockLibrary: LibraryAPI {
         var n = 0
         for i in sheets.indices.sorted(by: { (sheets[$0].order, sheets[$0].created) < (sheets[$1].order, sheets[$1].created) })
         where sheets[i].folder == folder && sheets[i].trashed == nil {
-            if sheets[i].episode == nil { sheets[i].episode = EpisodeInfo(status: status) } else { sheets[i].episode?.status = status }
+            sheets[i].episode?.status = status
             n += 1
             if sheets[i].id == sheet { return n }
         }
@@ -356,10 +357,10 @@ final class MockLibrary: LibraryAPI {
             let pasted = TextMetrics.render(s.text, title: TextMetrics.title(s.text), ExportOptions(includeTitle: false))
             st.munpia += countFor(text: pasted, rule: .munpia)
             st.novelpia += countFor(text: pasted, rule: .novelpia)
-            guard s.episode?.excluded != true else { continue }
+            guard let e = s.episode, !e.excluded else { continue }
             st.episodes += 1
             episodeChars += c.chars
-            switch s.episode?.status {
+            switch e.status {
             case .published: st.published += 1
             case .scheduled: st.scheduled += 1
             default: st.drafts += 1
@@ -387,7 +388,12 @@ final class MockLibrary: LibraryAPI {
     func munpiaPages(text: String) -> Int { (countFor(text: text, rule: .munpia) + 469) / 470 }
 
     nonisolated func platformBody(text: String) -> String {
-        TextMetrics.render(text, title: TextMetrics.title(text), ExportOptions(includeTitle: false))
+        let body = TextMetrics.splitNote(text).body
+        return TextMetrics.render(body, title: TextMetrics.title(body), ExportOptions(includeTitle: false))
+    }
+
+    nonisolated func authorNote(text: String) -> String? {
+        TextMetrics.splitNote(text).note.map { TextMetrics.render($0, title: "", ExportOptions()) }
     }
 
     func goalCount(text: String, basis: GoalBasis) -> Int {

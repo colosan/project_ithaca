@@ -36,8 +36,8 @@ fn v1_fixture_without_episodes_loads_and_takes_them() {
         o.folders[0].sheets[0].id.clone(),
         o.folders[0].sheets[1].id.clone(),
     );
-    // No metadata: every live sheet is stock.
-    assert_eq!(s.stock(&p, &serial).unwrap(), 2);
+    // (note) No metadata: `빈 페이지`, never stock.
+    assert_eq!(s.stock(&p, &serial).unwrap(), 0);
 
     let info = EpisodeInfo {
         number: Some(1),
@@ -121,8 +121,8 @@ fn renumber_and_stock() {
     s.set_episode(&p, &b, Some(ep(Some(99), EpisodeStatus::Published)))
         .unwrap();
     let blocks_before = s.history(&p, &a).unwrap().len();
-    // (qa1) Every live sheet is numbered in serial order; the prologue gets Draft metadata.
-    assert_eq!(s.renumber_episodes(&p, &serial).unwrap(), 4);
+    // (note) Every live `원고` is numbered in serial order; the prologue (no metadata: `빈 페이지`) is skipped.
+    assert_eq!(s.renumber_episodes(&p, &serial).unwrap(), 3);
     assert_eq!(s.history(&p, &a).unwrap().len(), blocks_before);
     let o = s.outline(&p).unwrap();
     let nums: Vec<Option<u32>> = o.folders[0]
@@ -130,19 +130,16 @@ fn renumber_and_stock() {
         .iter()
         .map(|x| x.episode.as_ref().and_then(|e| e.number))
         .collect();
-    assert_eq!(nums, [Some(1), Some(2), Some(3), Some(4)]);
-    assert_eq!(
-        o.folders[0].sheets[0].episode.as_ref().unwrap().status,
-        EpisodeStatus::Draft
-    );
+    assert_eq!(nums, [None, Some(1), Some(2), Some(3)]);
+    assert_eq!(o.folders[0].sheets[0].episode, None);
     // Status is untouched by renumbering; the trashed sheet keeps its old number.
     assert_eq!(
         o.folders[0].sheets[3].episode.as_ref().unwrap().status,
         EpisodeStatus::Published
     );
     assert_eq!(o.trash[0].episode.as_ref().unwrap().number, Some(99));
-    // prologue (now Draft), c, a are stock; b is published; the trashed sheet doesn't count.
-    assert_eq!(s.stock(&p, &serial).unwrap(), 3);
+    // c, a are stock; b is published; the prologue and the trashed sheet don't count.
+    assert_eq!(s.stock(&p, &serial).unwrap(), 2);
     s.set_episode(&p, &prologue, None).unwrap();
     assert_eq!(s.stock(&p, &o.folders[1].id).unwrap(), 0);
     assert!(matches!(s.stock(&p, "nope"), Err(StoreError::NotFound)));
@@ -187,13 +184,14 @@ fn set_status_through_marks_everything_up_to_a_sheet() {
     assert_eq!(
         st,
         [
-            Some((None, EpisodeStatus::Published)),
+            None, // (note) a `빈 페이지` is left alone
             Some((Some(2), EpisodeStatus::Published)),
             None
         ]
     );
     assert_eq!(o.trash[0].episode, None, "trashed sheets are left alone");
-    assert_eq!(s.stock(&p, &serial).unwrap(), 1);
+    // `b` has no metadata: a `빈 페이지`, not stock.
+    assert_eq!(s.stock(&p, &serial).unwrap(), 0);
     let _ = first;
     // The sheet must be a live sheet of that folder.
     for (folder, sheet) in [

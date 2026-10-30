@@ -15,6 +15,23 @@ enum TextMetrics {
         line.range(of: #"^\s*([-*_＊])(\s*\1){2,}\s*$"#, options: .regularExpression) != nil
     }
 
+    /// `## 작가의 말` (any heading level, core `note::is_note_heading`): it and every line after it are the author's note.
+    nonisolated(unsafe) static let noteHeadingRe = try! NSRegularExpression(pattern: #"^#{1,6}[ \t]+작가의 ?말[ \t]*$"#, options: [.anchorsMatchLines])
+
+    /// UTF-16 location of the first note heading line at or after `from`, else nil.
+    static func noteStart(_ ns: NSString, from: Int = 0) -> Int? {
+        guard from < ns.length else { return nil }
+        return noteHeadingRe.firstMatch(in: ns as String, range: NSRange(location: from, length: ns.length - from))?.range.location
+    }
+
+    /// The manuscript before the note, and the note after its heading line (nil without one).
+    static func splitNote(_ s: String) -> (body: String, note: String?) {
+        let ns = s as NSString
+        guard let at = noteStart(ns) else { return (s, nil) }
+        let line = ns.lineRange(for: NSRange(location: at, length: 0))
+        return (ns.substring(to: at), ns.substring(from: NSMaxRange(line)))
+    }
+
     static func isHeading(_ line: Substring) -> Bool {
         line.range(of: #"^#{1,6}\s"#, options: .regularExpression) != nil
     }

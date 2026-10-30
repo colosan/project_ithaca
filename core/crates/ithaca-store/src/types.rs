@@ -194,9 +194,9 @@ pub struct BackupInfo {
 /// (added: r3) Totals for one folder, for the info tab and the Claude connector.
 ///
 /// `sheets` and the length totals cover every live sheet of the folder (a prologue is pasted too).
-/// `episodes` are the live sheets that are not excluded; `average_chars` (`Counts::chars`, rounded)
+/// `episodes` are the live `원고` (sheets with episode metadata) that are not excluded; `average_chars` (`Counts::chars`, rounded)
 /// and the status split cover only those, so `published + scheduled + drafts == episodes` and
-/// `scheduled + drafts == stock`. `drafts` = Draft, Revising or no metadata.
+/// `scheduled + drafts == stock`. `drafts` = Draft or Revising.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct FolderStats {
     pub sheets: u32,
