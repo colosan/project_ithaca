@@ -36,7 +36,7 @@ extension ManuscriptView.Coordinator {
     /// The palette's "Add Field": the same menu at the caret.
     func showAddFieldMenu() {
         guard let tv = editable, let menu = addFieldMenu() else { return }
-        var at = NSPoint(x: tv.textContainerInset.width, y: tv.textContainerInset.height)
+        var at = NSPoint(x: tv.textContainerInset.width, y: tv.textContainerOrigin.y)
         if let w = tv.window {
             let rect = tv.firstRect(forCharacterRange: tv.selectedRange(), actualRange: nil)
             if rect != .zero { let r = tv.convert(w.convertFromScreen(rect), from: nil); at = NSPoint(x: r.minX, y: r.maxY + 4) }

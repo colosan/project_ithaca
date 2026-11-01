@@ -250,30 +250,31 @@ struct ToastBar: View {
         HStack(spacing: T.Space.s150) {
             Text(toast.message).textStyle(.label).fixedSize(horizontal: false, vertical: true)
             if let undo = toast.undo {
-                // A real button (ghost on the dark toast), not just bold text.
+                // A real button, not just bold text.
                 Button { undo(); model.toast = nil } label: {
                     Text(toast.action ?? model.t(.actionUndo))
                         .font(Fonts.swiftUI(.label, weight: T.Typography.heading.weight))
                         .padding(.horizontal, T.Space.s100)
                         .padding(.vertical, T.Space.s25)
-                        .overlay(RoundedRectangle(cornerRadius: T.Radius.control).strokeBorder(Color.surfaceCanvas, lineWidth: T.Size.strokeHairline))
+                        .overlay(RoundedRectangle(cornerRadius: T.Radius.control).strokeBorder(Color.accentPrimary, lineWidth: T.Size.strokeHairline))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .foregroundStyle(Color.surfaceCanvas)
+                .foregroundStyle(Color.accentPrimary)
                 .fixedSize()
             }
-            if toast.sticky || toast.undo == nil {
-                Button { model.toast = nil } label: { Icon(.close, size: T.Size.iconSm, color: .surfaceCanvas) }
-                    .buttonStyle(.plain)
-                    .help(model.t(.actionClose))
-            }
+            // Every toast can be closed at once, with an undo too.
+            Button { model.toast = nil } label: { Icon(.close, size: T.Size.iconSm, color: .inkTertiary) }
+                .buttonStyle(.plain)
+                .help(model.t(.actionClose))
         }
         .padding(.vertical, T.Space.s100)
         .padding(.leading, T.Space.s200)
         .padding(.trailing, T.Space.s150)
-        .foregroundStyle(Color.surfaceCanvas)
-        .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.inkPrimary))
+        .foregroundStyle(Color.inkPrimary)
+        // Raised surface, not an inverted one: it follows the light and dark themes.
+        .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.surfaceRaised))
+        .overlay(RoundedRectangle(cornerRadius: T.Radius.panel).strokeBorder(Color.lineStrong, lineWidth: T.Size.strokeHairline))
         .tokenShadow(T.Shadow.popover)
         .frame(maxWidth: T.Layout.Pane.dialogDefault)
         .onHover { model.holdToast($0) }

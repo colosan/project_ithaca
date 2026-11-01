@@ -12,8 +12,20 @@ struct EditorPane: View {
             toolbar
             NoticeBar()
             if model.sheetId != nil {
-                ManuscriptView(model: model, sizeClass: sizeClass)
-                    .opacity(model.editorLocked ? T.Opacity.readOnly : 1)
+                // Rewrite: the original on the left, the manuscript being written again on the right. The manuscript keeps
+                // its place in the tree either way, so starting or ending a rewrite never reloads it.
+                let rewrite = model.mini ? nil : model.rewrite
+                if rewrite != nil { RewriteBar() }
+                HStack(spacing: 0) {
+                    if let rewrite {
+                        OriginalPane(rewrite: rewrite, sizeClass: sizeClass)
+                            .frame(minWidth: 0, maxWidth: .infinity)
+                        Rectangle().fill(Color.lineSubtle).frame(width: T.Size.strokeHairline)
+                    }
+                    ManuscriptView(model: model, sizeClass: sizeClass)
+                        .opacity(model.editorLocked ? T.Opacity.readOnly : 1)
+                        .frame(minWidth: 0, maxWidth: .infinity)
+                }
                 EditorFooter()
             } else {
                 empty
@@ -45,6 +57,11 @@ struct EditorPane: View {
                 IconButton(.command, label: model.t(.paletteTitle)) { model.show(.palette(search: false)) }
                 IconButton(.focus, label: model.t(.focusTitle)) { model.toggleFocus() }
                 if model.sheetId != nil {
+                    if model.rewrite == nil {
+                        IconButton(.rewrite, label: model.t(.rewriteStart)) { model.startRewrite() }
+                            .disabled(!model.canRewrite)
+                            .help(model.t(.rewriteStartHint))
+                    }
                     IconButton(.history, label: model.t(.historyTitle)) { model.show(.history) }
                     IconButton(.export, label: model.t(.exportTitle)) { model.show(.export) }
                 }

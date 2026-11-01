@@ -70,4 +70,5 @@ enum class IthacaIcon(val asset: String) {
     EntryTerm("book-a"),
     Mini("sticky-note"),
     Expand("maximize-2"),
+    Rewrite("columns-2"),
 }

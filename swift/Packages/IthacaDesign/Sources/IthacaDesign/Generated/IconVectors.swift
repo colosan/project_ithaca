@@ -40,6 +40,7 @@ public enum IconVectors {
         case "clock": return [.circle(cx: 12, cy: 12, r: 10), .path("M12 6v6l4 2")]
         case "cloud-check": return [.path("m17 15-5.5 5.5L9 18"), .path("M5.516 16.07A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 3.501 7.327")]
         case "code": return [.path("m16 18 6-6-6-6"), .path("m8 6-6 6 6 6")]
+        case "columns-2": return [.rect(x: 3, y: 3, width: 18, height: 18, rx: 2), .path("M12 3v18")]
         case "command": return [.path("M15 6v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3V6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3")]
         case "copy": return [.rect(x: 8, y: 8, width: 14, height: 14, rx: 2), .path("M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2")]
         case "download": return [.path("M12 15V3"), .path("M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"), .path("m7 10 5 5 5-5")]

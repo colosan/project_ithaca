@@ -77,6 +77,8 @@ protocol EditorBridge: AnyObject {
     var isComposing: Bool { get }
     /// Ends any IME composition so the text can be saved or replaced safely.
     func commitComposition()
+    /// The manuscript's text (not the author's note) replaced as one undo step, the caret at its start.
+    func replaceBody(with text: String)
     func select(_ range: NSRange, center: Bool)
     func focus()
     func showFindBar()
@@ -153,6 +155,9 @@ final class AppModel {
     @ObservationIgnored private var countGeneration = 0
     @ObservationIgnored private var caretTask: Task<Void, Never>?
     @ObservationIgnored weak var editor: EditorBridge?
+
+    /// The open sheet is being rewritten side by side (AppModel+Rewrite.swift).
+    var rewrite: Rewrite?
 
     // MARK: View state
     var inspectorOpen = false
@@ -411,6 +416,7 @@ final class AppModel {
         menu.hasSheet = true
         rememberSelection()
         refreshMentions()
+        refreshRewrite()
     }
 
     /// Where the editor should put the selection after the next load (search hits); otherwise the remembered caret.
@@ -442,6 +448,7 @@ final class AppModel {
         assert(!dirty, "closeSheet with unsaved text")
         sheetId = nil
         text = ""
+        rewrite = nil
         loadToken += 1
         updateCounts(now: true)
         menu.hasSheet = false
@@ -632,7 +639,7 @@ final class AppModel {
     }
 
     /// Update one sheet row (title/excerpt/counts) without reloading the whole outline.
-    private func replaceSummary(_ s: SheetSummary) {
+    func replaceSummary(_ s: SheetSummary) {
         guard var o = outline else { return }
         for fi in o.folders.indices {
             if let si = o.folders[fi].sheets.firstIndex(where: { $0.id == s.id }) { o.folders[fi].sheets[si] = s }
@@ -1086,7 +1093,9 @@ final class AppModel {
         var info = s.episode ?? EpisodeInfo(status: .draft)
         info.excluded.toggle()
         if info.excluded { info.number = nil }
+        let wasManuscript = sheet?.episode != nil
         perform { try library.setEpisode(project: projectId, sheet: id, info: info) }
+        reloadIfKindChanged(wasManuscript)
     }
 
     /// Folder header click / "Folder info": the folder's totals in the inspector's Info tab.
@@ -1138,7 +1147,18 @@ final class AppModel {
             info.publishAt = Int64(at.timeIntervalSince1970 * 1000)
         }
         if status == .scheduled || status == .published, info.platform == nil, let p = lastPlatform { info.platform = p }
+        let wasManuscript = self.sheet?.episode != nil
         perform { try library.setEpisode(project: projectId, sheet: sheet.id, info: status == nil ? nil : info) }
+        reloadIfKindChanged(wasManuscript)
+    }
+
+    /// The open sheet became a manuscript or a blank page: the editor reloads it with or without the note field.
+    private func reloadIfKindChanged(_ wasManuscript: Bool) {
+        guard sheetId != nil, (sheet?.episode != nil) != wasManuscript else { return }
+        editor?.commitComposition()
+        // Takes the editor's latest text into the buffer before the editor loads it again.
+        _ = text
+        loadToken += 1
     }
 
     func renumberEpisodes() {
@@ -1260,7 +1280,7 @@ final class AppModel {
         self.toast = toast
         guard !toast.sticky else { return }
         toastTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(6))
+            try? await Task.sleep(for: .seconds(4))
             guard !Task.isCancelled else { return }
             self?.toast = nil
         }

@@ -32,6 +32,21 @@ enum TextMetrics {
         return (ns.substring(to: at), ns.substring(from: NSMaxRange(line)))
     }
 
+    /// A manuscript's two editor fields (ADR-0012): the body without the blank line before the note, and the note
+    /// without its heading line ("" without one). `joinNote` puts them back together.
+    static func noteParts(_ s: String) -> (body: String, note: String) {
+        let (body, note) = splitNote(s)
+        guard let note else { return (s, "") }
+        var b = body
+        for _ in 0..<2 where b.hasSuffix("\n") { b.removeLast() }
+        return (b, note)
+    }
+
+    /// The stored text of a manuscript: an empty note leaves no heading behind.
+    static func joinNote(body: String, note: String, title: String) -> String {
+        note.isEmpty ? body : body + "\n\n## " + title + "\n" + note
+    }
+
     static func isHeading(_ line: Substring) -> Bool {
         line.range(of: #"^#{1,6}\s"#, options: .regularExpression) != nil
     }

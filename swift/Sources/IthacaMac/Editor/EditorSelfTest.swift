@@ -243,7 +243,7 @@ enum EditorSelfTest {
         check(tv.validRequestor(forSendType: legacy, returnType: legacy) != nil, "Services can take and replace the selection")
 
         // 16. Context menu: cut/copy/paste/look up stay; Font and Layout Orientation (vertical text) are gone.
-        let right = NSEvent.mouseEvent(with: .rightMouseDown, location: tv.convert(NSPoint(x: tv.textContainerInset.width + 4, y: tv.textContainerInset.height + 4), to: nil),
+        let right = NSEvent.mouseEvent(with: .rightMouseDown, location: tv.convert(NSPoint(x: tv.textContainerInset.width + 4, y: tv.textContainerOrigin.y + 4), to: nil),
                                        modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
         let menuActions = (tv.menu(for: right)?.items ?? []).flatMap { [$0] + ($0.submenu?.items ?? []) }.compactMap { $0.action.map(NSStringFromSelector) }
         check(["cut:", "copy:", "paste:"].allSatisfy(menuActions.contains), "context menu has cut / copy / paste")
@@ -631,26 +631,29 @@ enum EditorSelfTest {
         let sub = (tv.string as NSString).range(of: "소제목").location
         check(color(at: sub) == resolved(.token(T.Color.inkSecondary)), "becoming an entry restyles its ## lines")
         model.flushSave()
-        // 25. manuscript sheet and blank page (app-shell spec): the author's note box, its copy button, the add-note button, counts without it.
+        // 25. manuscript sheet and blank page (ADR-0012): the author's note in a field of its own under the manuscript.
+        let noteTV = coord.note.textView
+        func typeNote(_ s: String) { noteTV.insertText(s, replacementRange: noteTV.selectedRange()); pump(0.05) }
         model.newSheet(in: model.folders[0].id, .page)
         pump(0.3)
         check(model.sheet?.episode == nil, "new 빈 페이지 has no episode metadata")
-        check(!coord.note.debugAddVisible && !coord.note.debugCopyVisible, "빈 페이지: no [＋ 작가의 말]")
+        check(coord.note.isHidden && tv.noteRoom == 0, "빈 페이지: no note field")
         model.newSheet(in: model.folders[0].id)
         pump(0.3)
-        check(model.sheet?.episode != nil, "new 원고 is an episode")
+        check(model.sheet?.episode != nil && !coord.note.isHidden, "new 원고 shows the note field")
+        let manuscriptId = model.sheetId!
         setText("# 1화\n\n그는 웃었다.")
         pump(0.3)
-        check(coord.note.debugAddVisible && !coord.note.debugCopyVisible, "원고 without a note shows [＋ 작가의 말]")
-        coord.note.debugAdd()
-        type("감사합니다.")
+        let bodyBottom = tv.textContainerOrigin.y + (tv.textLayoutManager?.usageBoundsForTextContainer.maxY ?? 0)
+        check(coord.note.frame.minY > bodyBottom && coord.note.frame.maxY <= tv.bounds.height, "the field sits below the last line, inside the text view (\(coord.note.frame), \(bodyBottom))")
+        tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
+        tv.doCommand(by: #selector(NSResponder.moveDown(_:)))
+        check(coord.note.hasFocus, "↓ at the end of the manuscript goes into the note field")
+        typeNote("감사합니다.")
         pump(0.4)
-        check(tv.string == "# 1화\n\n그는 웃었다.\n\n## 작가의 말\n감사합니다.", "[＋ 작가의 말] adds the heading, the caret below it ('\(tv.string)')")
-        check(coord.note.debugCopyVisible && !coord.note.debugAddVisible, "the note's copy button shows")
-        check(coord.note.boxRect(in: tv) != nil, "the note's box is drawn")
-        let noteAt = (tv.string as NSString).range(of: "감사").location
-        check(color(at: noteAt) == resolved(.token(T.Color.inkSecondary)) && color(at: 6) == resolved(.token(T.Color.inkPrimary)), "note text in ink.secondary, the manuscript untouched")
+        check(tv.string == "# 1화\n\n그는 웃었다.", "the note stays out of the manuscript text ('\(tv.string)')")
         model.flushSave()
+        check(model.text == "# 1화\n\n그는 웃었다.\n\n## 작가의 말\n감사합니다.", "stored: the body, the note heading, the note ('\(model.text)')")
         pump(0.5)
         check(model.livePostedCounts.chars == 7, "counts leave the note out (\(model.livePostedCounts.chars))")
         model.copyAuthorNote()
@@ -659,12 +662,75 @@ enum EditorSelfTest {
         model.copyForPaste()
         check(pb.string(forType: .string) == "그는 웃었다.", "붙여넣기용 복사 leaves the note out ('\(pb.string(forType: .string) ?? "nil")')")
         model.toast = nil
-        for _ in 0..<12 where tv.string.contains("감사") { undo() }
-        undo()
+        model.openSheet(manuscriptId)
         pump(0.4)
-        check(tv.string == "# 1화\n\n그는 웃었다.", "one more undo takes the heading back ('\(tv.string)')")
-        check(coord.note.debugAddVisible, "and [＋ 작가의 말] is back")
+        check(tv.string == "# 1화\n\n그는 웃었다." && coord.note.text == "감사합니다.", "reopened: body and note back in their places")
+        // Typing in the manuscript keeps the note.
+        tv.window?.makeFirstResponder(tv)
+        tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
+        type(" 또")
         model.flushSave()
+        check(model.text == "# 1화\n\n그는 웃었다. 또\n\n## 작가의 말\n감사합니다.", "a manuscript edit keeps the note ('\(model.text)')")
+        coord.note.focus(at: 0)
+        noteTV.doCommand(by: #selector(NSResponder.moveUp(_:)))
+        check(!coord.note.hasFocus && tv.selectedRange().location == (tv.string as NSString).length, "↑ from the note's first line goes back to the manuscript's end")
+        // Emptying the note leaves no heading behind; its own undo brings it back.
+        coord.note.focus(at: 0)
+        noteTV.selectAll(nil)
+        noteTV.delete(nil)
+        pump(0.2)
+        model.flushSave()
+        check(model.text == "# 1화\n\n그는 웃었다. 또", "an empty note leaves no heading ('\(model.text)')")
+        noteTV.undoManager?.undo()
+        pump(0.2)
+        model.flushSave()
+        check(coord.note.text == "감사합니다." && model.text.hasSuffix("## 작가의 말\n감사합니다."), "the note field has its own undo ('\(coord.note.text)' / '\(model.text)' dirty=\(model.dirty))")
+        // A blank page shows the heading as text; turning the manuscript into a blank page does the same.
+        model.setEpisodeStatus(nil)
+        pump(0.4)
+        check(coord.note.isHidden && tv.string.hasSuffix("## 작가의 말\n감사합니다."), "as a 빈 페이지 the note is plain text again ('\(tv.string)')")
+        model.setEpisodeStatus(.draft)
+        pump(0.4)
+        check(!coord.note.isHidden && coord.note.text == "감사합니다." && tv.string == "# 1화\n\n그는 웃었다. 또", "back to 원고: the field again")
+        model.flushSave()
+
+        // 26. rewrite side by side (app-shell spec): the original on the left; the manuscript emptied, its note kept.
+        let original = "# 1화\n\n그는 웃었다. 또"
+        pump(0.4)
+        check(model.canRewrite && model.rewrite == nil, "a manuscript with text can be rewritten")
+        model.startRewrite()
+        pump(0.4)
+        check(model.rewrite?.original == original && tv.string.isEmpty && coord.note.text == "감사합니다.",
+              "rewrite: the original on the left, the manuscript empty, the note kept ('\(model.rewrite?.original ?? "nil")', '\(tv.string)')")
+        check(model.rewriteBodyEmpty, "an empty right side offers the original")
+        model.bringOriginal()
+        pump(0.3)
+        check(tv.string == original, "원래 글 가져오기 fills the right side")
+        undo()
+        pump(0.3)
+        check(tv.string.isEmpty, "one undo empties it again")
+        tv.window?.makeFirstResponder(tv)
+        type("새로 쓴 글")
+        model.flushSave()
+        check(model.text == "새로 쓴 글\n\n## 작가의 말\n감사합니다.", "the new text is the sheet, with its note ('\(model.text)')")
+        model.openSheet(manuscriptId)
+        pump(0.3)
+        check(model.rewrite?.original == original, "the rewrite goes on after reopening the sheet")
+        model.revertRewrite()
+        pump(0.4)
+        check(model.rewrite == nil && model.text == original + "\n\n## 작가의 말\n감사합니다." && tv.string == original,
+              "원래 글로 되돌리기 puts the original back and ends the rewrite ('\(model.text)')")
+        check((try? lib.history(project: model.projectId!, sheet: manuscriptId))?.contains { (try? lib.textAt(project: model.projectId!, sheet: manuscriptId, hash: $0.hash))?.hasPrefix("새로 쓴 글") == true } == true,
+              "what was written stays in the history")
+        model.toast = nil
+        model.startRewrite()
+        pump(0.4)
+        tv.window?.makeFirstResponder(tv)
+        type("둘째 판")
+        model.finishRewrite()
+        pump(0.3)
+        check(model.rewrite == nil && model.text.hasPrefix("둘째 판") && tv.string == "둘째 판", "다 썼어요 keeps the new text and closes the left side")
+        model.toast = nil
 
         // 24. Story bible in the editor (story-bible spec §2–§5): `@` names, ⌥Esc, the card, mentions, underline.
         bibleChecks(model: model, lib: lib, tv: tv, coord: coord, check: check, setText: setText, type: type, undo: undo)

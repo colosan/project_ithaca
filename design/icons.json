@@ -73,6 +73,7 @@
     "entryGroup": "users",
     "entryTerm": "book-a",
     "mini": "sticky-note",
-    "expand": "maximize-2"
+    "expand": "maximize-2",
+    "rewrite": "columns-2"
   }
 }

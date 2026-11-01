@@ -614,6 +614,7 @@ struct IthacaCommands: Commands {
             Divider()
             item(.copyForPaste, off: noSheet)
             item(.copyNote, off: noSheet)
+            item(.rewrite, off: noSheet || ro)
             Divider()
             item(.publishedThrough, off: noSheet || ro)
             item(.renumber, off: noProject || ro)

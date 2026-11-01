@@ -688,10 +688,22 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case newSheetPage = "newSheet.page"
     case newSheetPageHint = "newSheet.pageHint"
     case noteTitle = "note.title"
-    case noteAdd = "note.add"
     case noteCopy = "note.copy"
     case noteCopied = "note.copied"
     case noteEmpty = "note.empty"
+    case notePlaceholder = "note.placeholder"
+    case noteCopyShort = "note.copyShort"
+    case rewriteStart = "rewrite.start"
+    case rewriteStartHint = "rewrite.startHint"
+    case rewriteOriginal = "rewrite.original"
+    case rewriteBanner = "rewrite.banner"
+    case rewriteBring = "rewrite.bring"
+    case rewriteBringHint = "rewrite.bringHint"
+    case rewriteRevert = "rewrite.revert"
+    case rewriteDone = "rewrite.done"
+    case rewriteFinished = "rewrite.finished"
+    case rewriteReverted = "rewrite.reverted"
+    case rewriteLost = "rewrite.lost"
 }
 
 enum L10nValue: Sendable {
@@ -1395,10 +1407,22 @@ public enum L10n {
             .newSheetPage: .text("빈 페이지"),
             .newSheetPageHint: .text("메모 · 구상 · 형식 없이 무엇이든"),
             .noteTitle: .text("작가의 말"),
-            .noteAdd: .text("작가의 말"),
             .noteCopy: .text("작가의 말 복사"),
             .noteCopied: .text("작가의 말을 복사했어요 · {count}자"),
             .noteEmpty: .text("이 원고에는 작가의 말이 없어요."),
+            .notePlaceholder: .text("연재처의 작가의 말 칸에 올릴 글을 여기에 쓰세요"),
+            .noteCopyShort: .text("복사"),
+            .rewriteStart: .text("다시 쓰기"),
+            .rewriteStartHint: .text("원래 글을 왼쪽에 두고, 오른쪽 빈 칸에 새로 써요"),
+            .rewriteOriginal: .text("원래 글"),
+            .rewriteBanner: .text("다시 쓰는 중 — 왼쪽 원래 글을 보며 오른쪽에 새로 쓰세요"),
+            .rewriteBring: .text("원래 글 가져오기"),
+            .rewriteBringHint: .text("빈 칸 대신 원래 글을 복사해 두고 고쳐 가며 써요"),
+            .rewriteRevert: .text("원래 글로 되돌리기"),
+            .rewriteDone: .text("다 썼어요"),
+            .rewriteFinished: .text("다시 쓰기를 마쳤어요 · 원래 글은 변경 기록에 남아 있어요"),
+            .rewriteReverted: .text("원래 글로 되돌렸어요 · 새로 쓴 글은 변경 기록에 남아 있어요"),
+            .rewriteLost: .text("원래 글을 찾지 못해서 다시 쓰기를 끝냈어요"),
         ],
     ]
 }

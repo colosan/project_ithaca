@@ -54,7 +54,9 @@ struct ManuscriptView: NSViewRepresentable {
         tv.names = context.coordinator.names
         tv.card = context.coordinator.card
         tv.marks = context.coordinator.marks
-        tv.note = context.coordinator.note
+        // The author's note field rides inside the text view, below the last line (AuthorNote.swift).
+        tv.noteField = context.coordinator.note
+        tv.addSubview(context.coordinator.note)
         tv.bibleEntries = { [weak model] in model?.bible ?? [] }
         tv.onEscape = { [weak model] in
             guard let model, model.panesHidden else { return false }
@@ -78,7 +80,6 @@ struct ManuscriptView: NSViewRepresentable {
         if c.loadedToken != model.loadToken { c.load() }
         c.updateFocusDim()
         c.marks.update()
-        c.note.update()
     }
 
     @MainActor
@@ -98,23 +99,51 @@ struct ManuscriptView: NSViewRepresentable {
         lazy var names = NameCompletion(coordinator: self)
         lazy var card = EntryCardPresenter(coordinator: self)
         lazy var marks = NameMarks(coordinator: self)
-        // author's note: the box behind it, its copy button, "＋ author's note" (AuthorNote.swift).
-        lazy var note = AuthorNoteBox(coordinator: self)
+        // The author's note field under a manuscript (AuthorNote.swift).
+        lazy var note = AuthorNoteField(coordinator: self)
+        /// The loaded sheet shows its note in the field (a manuscript), not in the text.
+        private(set) var noteShown = false
+        var wantsNote: Bool { model.sheet?.episode != nil && model.openEntry == nil }
 
         // MARK: EditorBridge
 
-        var isComposing: Bool { textView?.hasMarkedText() ?? false }
+        var isComposing: Bool { (textView?.hasMarkedText() ?? false) || note.isComposing }
 
         /// Commits into the sheet this view loaded (`loadedToken`). If the model already moved to another sheet,
         /// `textDidChange` ignores it — the model flushes the old sheet before switching, so nothing is lost there.
         func commitComposition() {
-            guard let tv = textView, tv.hasMarkedText() else { return }
-            tv.unmarkText()
-            model.textDidChange(tv.string, token: loadedToken)
+            guard let tv = textView, tv.hasMarkedText() || note.isComposing else { return }
+            if tv.hasMarkedText() { tv.unmarkText() }
+            if note.isComposing { note.textView.unmarkText() }
+            model.textDidChange(pull()(), token: loadedToken)
+        }
+
+        /// The sheet's text as stored, from the two fields: the copy is made only when the model asks for it.
+        /// Captures the views, not the coordinator, so it can never hand back an empty text.
+        func pull() -> () -> String {
+            guard let storage = textView?.textStorage else { return { [model] in model.text } }
+            guard noteShown else { return { Self.nativeCopy(storage.string as NSString) } }
+            let noteView = note.textView, title = model.t(.noteTitle)
+            return { TextMetrics.joinNote(body: Self.nativeCopy(storage.string as NSString), note: noteView.string, title: title) }
+        }
+
+        /// Where a location in the stored text falls in the note field, when it is past the body.
+        private func noteLocation(_ location: Int) -> Int? {
+            guard noteShown, let tv = textView else { return nil }
+            let body = (tv.string as NSString).length
+            let separator = ("\n\n## " + model.t(.noteTitle) + "\n" as NSString).length
+            return location >= body + separator ? location - body - separator : nil
+        }
+
+        /// The note field changed: the model takes the joined text when it needs it.
+        func noteDidChange() {
+            guard !loading else { return }
+            model.textDidChange(token: loadedToken, pull: pull())
         }
 
         func select(_ range: NSRange, center: Bool) {
             guard let tv = textView else { return }
+            if let at = noteLocation(range.location) { return note.select(NSRange(location: at, length: range.length)) }
             let len = (tv.string as NSString).length
             let r = NSRange(location: min(range.location, len), length: min(range.length, max(0, len - range.location)))
             tv.window?.makeFirstResponder(tv)
@@ -138,7 +167,8 @@ struct ManuscriptView: NSViewRepresentable {
 
         /// The text view, focused, with any composition committed — or nil when there's nothing to edit.
         var editable: ManuscriptTextView? {
-            guard let tv = textView, tv.isEditable else { return nil }
+            // Formatting and symbols are for the manuscript: from the note field they would pull the focus away.
+            guard let tv = textView, tv.isEditable, !note.hasFocus else { return nil }
             tv.window?.makeFirstResponder(tv)
             commitComposition()
             return tv
@@ -287,7 +317,7 @@ struct ManuscriptView: NSViewRepresentable {
         func showSymbols() {
             guard let tv = editable else { return }
             let menu = symbolMenu()
-            var at = NSPoint(x: tv.textContainerInset.width, y: tv.textContainerInset.height)
+            var at = NSPoint(x: tv.textContainerInset.width, y: tv.textContainerOrigin.y)
             if let rect = tv.firstRect(forCharacterRange: tv.selectedRange(), actualRange: nil) as NSRect?, let w = tv.window, rect != .zero {
                 let inView = tv.convert(w.convertFromScreen(rect), from: nil)
                 at = NSPoint(x: inView.minX, y: inView.maxY + 4)
@@ -320,9 +350,13 @@ struct ManuscriptView: NSViewRepresentable {
             tv.conveniences.reset()
             names.close()
             card.close()
-            tv.string = model.text
+            // A manuscript: the body here, the note in its field.
+            noteShown = wantsNote
+            let parts = noteShown ? TextMetrics.noteParts(model.text) : (body: model.text, note: "")
+            tv.string = parts.body
             tv.undoManager?.removeAllActions()
             tv.isEditable = !model.editorLocked && model.sheetId != nil
+            note.load(noteShown ? parts.note : nil)
             restyle(NSRange(location: 0, length: (tv.string as NSString).length))
             loading = false
             let len = (tv.string as NSString).length
@@ -330,6 +364,7 @@ struct ManuscriptView: NSViewRepresentable {
             model.pendingSelection = nil
             tv.setSelectedRange(NSRange(location: min(sel.location, len), length: min(sel.length, len - min(sel.location, len))))
             tv.window?.makeFirstResponder(tv)
+            if let at = noteLocation(sel.location) { DispatchQueue.main.async { [weak self] in self?.note.select(NSRange(location: at, length: sel.length)) } }
             DispatchQueue.main.async { [weak self] in
                 self?.reveal(center: true)
                 self?.updateFocusDim(force: true)
@@ -359,6 +394,7 @@ struct ManuscriptView: NSViewRepresentable {
                                            attributes: Styles.base(model.textSize, model.lineSpacing).merging([.foregroundColor: NSColor.token(T.Color.inkTertiary)]) { $1 }),
                         forKey: "placeholderAttributedString")
             if !isComposing { restyle(NSRange(location: 0, length: (tv.string as NSString).length)) }
+            note.configure()
         }
 
         // MARK: Changes
@@ -367,14 +403,14 @@ struct ManuscriptView: NSViewRepresentable {
             guard editedMask.contains(.editedCharacters), !loading else { return }
             dirtyRange = dirtyRange.map { NSUnionRange($0, editedRange) } ?? editedRange
             marks.edited(editedRange, delta: delta, in: textStorage.string as NSString)
-            // Undo can change the text without a restyle following: the note's buttons follow every edit.
-            note.setNeedsUpdate()
+            // The note field sits below the last line: it follows every edit, undo included.
+            note.setNeedsRelayout()
         }
 
         func textDidChange(_ notification: Notification) {
             guard let tv = textView, !loading, let storage = tv.textStorage else { return }
             // No copy of the text per keystroke: the model takes one when it needs it (save, counts).
-            model.textDidChange(token: loadedToken) { Self.nativeCopy(storage.string as NSString) }
+            model.textDidChange(token: loadedToken, pull: pull())
             names.textDidChange()
             if breakAfterChange { breakAfterChange = false; tv.breakUndoCoalescing() }
             scheduleStyle()
@@ -401,7 +437,14 @@ struct ManuscriptView: NSViewRepresentable {
         func textView(_ textView: NSTextView, doCommandBy selector: Selector) -> Bool {
             let shift = NSApp.currentEvent.map { $0.type == .keyDown && $0.modifierFlags.contains(.shift) } ?? false
             if names.doCommand(selector, shift: shift) { return true }
-            return card.doCommand(selector)
+            if card.doCommand(selector) { return true }
+            // ↓ at the very end of the manuscript: on into the note field.
+            if selector == #selector(NSResponder.moveDown(_:)), noteShown,
+               textView.selectedRange() == NSRange(location: (textView.string as NSString).length, length: 0) {
+                note.focus(at: 0)
+                return true
+            }
+            return false
         }
 
         func textViewDidChangeSelection(_ notification: Notification) {
@@ -450,7 +493,6 @@ struct ManuscriptView: NSViewRepresentable {
         }
 
         private var styledAsEntry = false
-        private var styledNoteStart: Int?
 
         /// `--selftest-perf`: what a markup-mode or text-size change costs.
         func debugRestyleAll() { restyle(NSRange(location: 0, length: (textView?.string as NSString?)?.length ?? 0)) }
@@ -461,8 +503,6 @@ struct ManuscriptView: NSViewRepresentable {
             let indent = model.firstLineIndent
             guard ns.length > 0 else {
                 tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing, indent: indent)
-                styledNoteStart = nil
-                note.update()
                 return
             }
             let start = min(range.location, ns.length)
@@ -471,16 +511,9 @@ struct ManuscriptView: NSViewRepresentable {
             let entryEnd = Styles.entryFrontMatterEnd(ns)
             let entry = entryEnd > 0
             if entry != styledAsEntry { styledAsEntry = entry; para = NSRange(location: 0, length: ns.length) }
-            // The author's note heading appearing, moving or going away restyles from there to the end (AuthorNote.swift).
-            let noteStart = TextMetrics.noteStart(ns, from: entryEnd)
-            if noteStart != styledNoteStart {
-                let from = min(noteStart ?? ns.length, styledNoteStart ?? ns.length, para.location)
-                para = NSRange(location: from, length: ns.length - from)
-                styledNoteStart = noteStart
-            }
             let selection = tv.selectedRanges
             storage.beginEditing()
-            Styles.apply(to: storage, in: para, size: model.textSize, spacing: model.lineSpacing, markup: model.markup, indent: indent, noteStart: noteStart)
+            Styles.apply(to: storage, in: para, size: model.textSize, spacing: model.lineSpacing, markup: model.markup, indent: indent)
             storage.endEditing()
             tv.selectedRanges = selection
             // New characters take the style of the line the caret is on.
@@ -488,11 +521,8 @@ struct ManuscriptView: NSViewRepresentable {
             let line = ns.paragraphRange(for: NSRange(location: caret, length: 0))
             let lineText = ns.substring(with: line)
             let heading = TextMetrics.isHeading(Substring(lineText))
-            let inNote = noteStart.map { line.location > $0 } ?? false
-            tv.typingAttributes = inNote ? Styles.note(model.textSize, model.lineSpacing)
-                : heading && entry && lineText.hasPrefix("## ") ? Styles.entrySection(model.textSize, model.lineSpacing)
+            tv.typingAttributes = heading && entry && lineText.hasPrefix("## ") ? Styles.entrySection(model.textSize, model.lineSpacing)
                 : heading ? Styles.heading(model.textSize, model.lineSpacing) : Styles.base(model.textSize, model.lineSpacing, indent: indent)
-            note.update()
         }
 
         // MARK: Focus mode (rendering attributes: drawn on top, storage untouched)
@@ -602,7 +632,7 @@ final class ManuscriptTextView: NSTextView {
     weak var names: NameCompletion?
     weak var card: EntryCardPresenter?
     weak var marks: NameMarks?
-    weak var note: AuthorNoteBox?
+    weak var noteField: AuthorNoteField?
     var bibleEntries: () -> [BibleEntry] = { [] }
     /// Last key input (typing or composing): hover cards stay away for a while after it.
     private(set) var lastTyped = Date.distantPast
@@ -656,13 +686,26 @@ final class ManuscriptTextView: NSTextView {
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
         updateInsets()
-        note?.setNeedsUpdate()
+        noteField?.setNeedsRelayout()
     }
+
+    static let topInset = T.Space.s300
+    /// Room kept free below the last line for the author's note field (0 without one).
+    var noteRoom: CGFloat = 0 {
+        didSet { if abs(noteRoom - oldValue) > 0.5 { updateInsets() } }
+    }
+
+    /// The text starts `topInset` from the top; the inset's other half of `noteRoom` goes below the last line too.
+    override var textContainerOrigin: NSPoint { NSPoint(x: textContainerInset.width, y: Self.topInset) }
 
     func updateInsets() {
         // The line stops at the chosen measure however wide the window gets; the rest is margin on both sides.
+        // The inset is the same above and below: half the note room on each side, all of it shows below (`textContainerOrigin`).
         let side = max(padX, (bounds.width - measure) / 2)
-        if abs(textContainerInset.width - side) > 0.5 { textContainerInset = NSSize(width: side, height: T.Space.s300) }
+        let height = Self.topInset + noteRoom / 2
+        if abs(textContainerInset.width - side) > 0.5 || abs(textContainerInset.height - height) > 0.5 {
+            textContainerInset = NSSize(width: side, height: height)
+        }
         if let scroll = enclosingScrollView {
             // Let the last line scroll up to the comfortable band instead of sitting on the bottom edge.
             let bottom = (scroll.contentSize.height * (typewriter ? 0.5 : 0.4)).rounded()
@@ -772,12 +815,6 @@ final class ManuscriptTextView: NSTextView {
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
         marks?.draw(in: self, dirtyRect: dirtyRect)
-    }
-
-    /// The author's note box sits behind the text.
-    override func drawBackground(in rect: NSRect) {
-        super.drawBackground(in: rect)
-        note?.drawBackground(in: self, dirtyRect: rect)
     }
 
     override func mouseMoved(with event: NSEvent) {
@@ -893,8 +930,7 @@ enum Styles {
         return 0
     }
 
-    static func apply(to storage: NSTextStorage, in range: NSRange, size: TextSize, spacing: LineSpacing = .normal, markup: MarkupMode, indent: Bool = false,
-                      noteStart: Int? = nil) {
+    static func apply(to storage: NSTextStorage, in range: NSRange, size: TextSize, spacing: LineSpacing = .normal, markup: MarkupMode, indent: Bool = false) {
         let ns = storage.string as NSString
         storage.setAttributes(base(size, spacing, indent: indent), range: range)
         let markColor: NSColor = switch markup {
@@ -910,10 +946,6 @@ enum Styles {
         ns.enumerateSubstrings(in: range, options: [.byParagraphs, .substringNotRequired]) { _, line, enclosing, _ in
             if line.location < entryEnd {
                 styleFrontMatterLine(storage, ns, line: enclosing, blockEnd: entryEnd, size: size, spacing: spacing)
-                return
-            }
-            if let noteStart, line.location >= noteStart {
-                styleNoteLine(storage, ns, line: line, heading: line.location == noteStart, size: size, spacing: spacing, markColor: markColor)
                 return
             }
             if let m = headingRe.firstMatch(in: storage.string, range: line) {

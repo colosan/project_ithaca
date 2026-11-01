@@ -20,12 +20,15 @@ enum AppCommand: CaseIterable {
     case completeName, entryCard
     // author's note (app-shell spec section on manuscripts and blank pages).
     case copyNote
+    // Rewrite side by side (app-shell spec).
+    case rewrite
 
     var label: L10nKey {
         switch self {
         case .newSheet: .sheetNew
         case .newPage: .newSheetPage
         case .copyNote: .noteCopy
+        case .rewrite: .rewriteStart
         case .newProject: .libraryNewProject
         case .search: .searchTitle
         case .focus: .focusTitle
@@ -217,6 +220,7 @@ enum AppCommand: CaseIterable {
         case .newSheet: .add
         case .newPage: .sheet
         case .copyNote: .copy
+        case .rewrite: .rewrite
         case .newProject: .folder
         case .search, .findInSheet, .findNext, .findPrevious: .search
         case .focus, .editorOnly: .focus
@@ -258,6 +262,7 @@ enum AppCommand: CaseIterable {
         if let status { return m.sheetId != nil && m.sheet?.episode?.status != status }
         if format != nil || self == .symbols || self == .completeName { return m.sheetId != nil && !m.editorLocked }
         if self == .entryCard { return m.sheetId != nil && !m.bible.isEmpty }
+        if self == .rewrite { return m.canRewrite }
         return switch self {
         case .sheetInfo, .history, .moveUp, .moveDown, .trashSheet, .copyForPaste, .saveNow, .previousSheet, .nextSheet,
              .findInSheet, .findNext, .findPrevious, .copyNote: m.sheetId != nil
@@ -276,6 +281,7 @@ enum AppCommand: CaseIterable {
         case .newSheet: m.newSheet()
         case .newPage: m.newSheet(.page)
         case .copyNote: m.copyAuthorNote()
+        case .rewrite: m.startRewrite()
         case .newProject: m.show(.newProject(firstRun: false))
         case .search: m.overlay = .palette(search: true)
         case .focus: m.toggleFocus()

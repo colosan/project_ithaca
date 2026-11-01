@@ -59,7 +59,7 @@ final class EntryCardPresenter: NSObject, NSPopoverDelegate {
         pop.contentSize = host.view.fittingSize
         let screen = tv.firstRect(forCharacterRange: range, actualRange: nil)
         var rect = tv.convert(window.convertFromScreen(screen), from: nil)
-        if screen == .zero { rect = NSRect(x: tv.textContainerInset.width, y: tv.textContainerInset.height, width: 1, height: 1) }
+        if screen == .zero { rect = NSRect(x: tv.textContainerInset.width, y: tv.textContainerOrigin.y, width: 1, height: 1) }
         pop.show(relativeTo: rect, of: tv, preferredEdge: .maxY)
         popover = pop
         shown = (entry.sheet, range, asked)

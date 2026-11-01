@@ -684,10 +684,22 @@ export type StringKey =
   | "newSheet.page"
   | "newSheet.pageHint"
   | "note.title"
-  | "note.add"
   | "note.copy"
   | "note.copied"
   | "note.empty"
+  | "note.placeholder"
+  | "note.copyShort"
+  | "rewrite.start"
+  | "rewrite.startHint"
+  | "rewrite.original"
+  | "rewrite.banner"
+  | "rewrite.bring"
+  | "rewrite.bringHint"
+  | "rewrite.revert"
+  | "rewrite.done"
+  | "rewrite.finished"
+  | "rewrite.reverted"
+  | "rewrite.lost"
   ;
 
 type Value = string | { one: string; other: string };
@@ -1374,10 +1386,22 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "newSheet.page": "빈 페이지",
     "newSheet.pageHint": "메모 · 구상 · 형식 없이 무엇이든",
     "note.title": "작가의 말",
-    "note.add": "작가의 말",
     "note.copy": "작가의 말 복사",
     "note.copied": "작가의 말을 복사했어요 · {count}자",
-    "note.empty": "이 원고에는 작가의 말이 없어요."
+    "note.empty": "이 원고에는 작가의 말이 없어요.",
+    "note.placeholder": "연재처의 작가의 말 칸에 올릴 글을 여기에 쓰세요",
+    "note.copyShort": "복사",
+    "rewrite.start": "다시 쓰기",
+    "rewrite.startHint": "원래 글을 왼쪽에 두고, 오른쪽 빈 칸에 새로 써요",
+    "rewrite.original": "원래 글",
+    "rewrite.banner": "다시 쓰는 중 — 왼쪽 원래 글을 보며 오른쪽에 새로 쓰세요",
+    "rewrite.bring": "원래 글 가져오기",
+    "rewrite.bringHint": "빈 칸 대신 원래 글을 복사해 두고 고쳐 가며 써요",
+    "rewrite.revert": "원래 글로 되돌리기",
+    "rewrite.done": "다 썼어요",
+    "rewrite.finished": "다시 쓰기를 마쳤어요 · 원래 글은 변경 기록에 남아 있어요",
+    "rewrite.reverted": "원래 글로 되돌렸어요 · 새로 쓴 글은 변경 기록에 남아 있어요",
+    "rewrite.lost": "원래 글을 찾지 못해서 다시 쓰기를 끝냈어요"
   }
 };
 
