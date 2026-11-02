@@ -688,7 +688,6 @@ export type StringKey =
   | "note.copied"
   | "note.empty"
   | "note.placeholder"
-  | "note.copyShort"
   | "rewrite.start"
   | "rewrite.startHint"
   | "rewrite.original"
@@ -1390,7 +1389,6 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "note.copied": "작가의 말을 복사했어요 · {count}자",
     "note.empty": "이 원고에는 작가의 말이 없어요.",
     "note.placeholder": "연재처의 작가의 말 칸에 올릴 글을 여기에 쓰세요",
-    "note.copyShort": "복사",
     "rewrite.start": "다시 쓰기",
     "rewrite.startHint": "원래 글을 왼쪽에 두고, 오른쪽 빈 칸에 새로 써요",
     "rewrite.original": "원래 글",

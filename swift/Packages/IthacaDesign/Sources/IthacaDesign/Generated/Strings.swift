@@ -692,7 +692,6 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case noteCopied = "note.copied"
     case noteEmpty = "note.empty"
     case notePlaceholder = "note.placeholder"
-    case noteCopyShort = "note.copyShort"
     case rewriteStart = "rewrite.start"
     case rewriteStartHint = "rewrite.startHint"
     case rewriteOriginal = "rewrite.original"
@@ -1411,7 +1410,6 @@ public enum L10n {
             .noteCopied: .text("작가의 말을 복사했어요 · {count}자"),
             .noteEmpty: .text("이 원고에는 작가의 말이 없어요."),
             .notePlaceholder: .text("연재처의 작가의 말 칸에 올릴 글을 여기에 쓰세요"),
-            .noteCopyShort: .text("복사"),
             .rewriteStart: .text("다시 쓰기"),
             .rewriteStartHint: .text("원래 글을 왼쪽에 두고, 오른쪽 빈 칸에 새로 써요"),
             .rewriteOriginal: .text("원래 글"),

@@ -1,6 +1,6 @@
 // The author's note field (app-shell spec, manuscripts and blank pages; ADR-0012): a manuscript shows its note in a
-// field of its own under the text — a label, a copy button and a text view of its own — never as a heading in the
-// manuscript. The stored text does not change: the body, then the note heading line, then the note
+// field of its own under the text — a hairline, a small label and a text view of its own, no box — never as a heading
+// in the manuscript. The stored text does not change: the body, then the note heading line, then the note
 // (`TextMetrics.noteParts` / `joinNote`). Blank pages and story bible entries have no field and show their text as is.
 //
 // The field is a subview of the manuscript text view, in room kept free below the last line: the text view's bottom
@@ -48,19 +48,12 @@ final class NoteTextView: NSTextView {
 @MainActor
 final class AuthorNoteField: NSView, NSTextViewDelegate, @preconcurrency NSTextStorageDelegate {
     /// Room between the manuscript and the field, in lines.
-    static let gapLines: CGFloat = 1.5
-    private static let padX = T.Space.s200, padY = T.Space.s150
+    static let gapLines: CGFloat = 2
+    private static let labelGap = T.Space.s150, textGap = T.Space.s50
 
     unowned let coordinator: ManuscriptView.Coordinator
     let textView = NoteTextView(usingTextLayoutManager: true)
     private let label = NSTextField(labelWithString: "")
-    private lazy var copyButton: NSHostingView<AnyView> = {
-        let v = NSHostingView(rootView: AnyView(KitButton(coordinator.model.t(.noteCopyShort), icon: .copy, variant: .ghost) { [weak self] in
-            self?.coordinator.model.copyAuthorNote()
-        }.fixedSize()))
-        v.sizingOptions = [.intrinsicContentSize]
-        return v
-    }()
     private var styleTask: Task<Void, Never>?
     private var pending = false
 
@@ -90,10 +83,9 @@ final class AuthorNoteField: NSView, NSTextViewDelegate, @preconcurrency NSTextS
         tv.delegate = self
         tv.textStorage?.delegate = self
         tv.onUpFromTop = { [weak coordinator] in coordinator?.focusBodyEnd() }
-        label.font = Fonts.ns(T.Typography.label)
-        label.textColor = .token(T.Color.inkSecondary)
+        label.font = Fonts.ns(T.Typography.caption)
+        label.textColor = .token(T.Color.inkTertiary)
         addSubview(label)
-        addSubview(copyButton)
         addSubview(tv)
         isHidden = true
     }
@@ -122,8 +114,7 @@ final class AuthorNoteField: NSView, NSTextViewDelegate, @preconcurrency NSTextS
         show(true)
     }
 
-    /// A turn later: loads run inside a SwiftUI update, and showing, hiding or sizing the hosted copy button there
-    /// sent SwiftUI round in a cycle.
+    /// A turn later: loads run inside a SwiftUI update, and changing views there sent SwiftUI round in a cycle.
     private func show(_ shown: Bool) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
@@ -186,7 +177,6 @@ final class AuthorNoteField: NSView, NSTextViewDelegate, @preconcurrency NSTextS
     }
 
     func textDidChange(_ notification: Notification) {
-        copyButton.isHidden = textView.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         relayout()
         styleTask?.cancel()
         styleTask = Task { @MainActor [weak self] in
@@ -226,45 +216,38 @@ final class AuthorNoteField: NSView, NSTextViewDelegate, @preconcurrency NSTextS
             return
         }
         let model = coordinator.model
-        let width = max(0, host.bounds.width - 2 * host.textContainerInset.width) + 2 * Self.padX
-        let inner = max(0, width - 2 * Self.padX)
-        copyButton.isHidden = textView.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        let button = copyButton.fittingSize
+        let width = max(0, host.bounds.width - 2 * host.textContainerInset.width)
         let labelSize = label.fittingSize
-        let header = max(labelSize.height, button.height)
         // The text's own height (one line at least, for the placeholder).
-        if abs(textView.frame.width - inner) > 0.5 { textView.setFrameSize(NSSize(width: inner, height: textView.frame.height)) }
+        if abs(textView.frame.width - width) > 0.5 { textView.setFrameSize(NSSize(width: width, height: textView.frame.height)) }
         var textHeight = Styles.lineHeight(model.textSize, model.lineSpacing)
         if let tlm = textView.textLayoutManager {
             tlm.ensureLayout(for: tlm.documentRange)
             textHeight = max(textHeight, tlm.usageBoundsForTextContainer.height.rounded(.up))
         }
-        let height = Self.padY + header + T.Space.s50 + textHeight + Self.padY
-        label.frame = NSRect(x: Self.padX, y: Self.padY + (header - labelSize.height) / 2, width: labelSize.width, height: labelSize.height)
-        // The ghost button's own padding lines its label up with the text's right edge.
-        copyButton.frame = NSRect(x: width - Self.padX + T.Space.s150 - button.width, y: Self.padY + (header - button.height) / 2,
-                                  width: button.width, height: button.height)
-        textView.frame = NSRect(x: Self.padX, y: Self.padY + header + T.Space.s50, width: inner, height: textHeight)
+        // Hairline at the top, the label under it, then the text — lined up with the manuscript's left edge.
+        // (A label cell draws its text 2 pt in from its frame.)
+        let labelY = T.Size.strokeHairline + Self.labelGap
+        let textY = labelY + labelSize.height + Self.textGap
+        let height = textY + textHeight
+        label.frame = NSRect(x: -2, y: labelY, width: labelSize.width, height: labelSize.height)
+        textView.frame = NSRect(x: 0, y: textY, width: width, height: textHeight)
         let gap = (Styles.lineHeight(model.textSize, model.lineSpacing) * Self.gapLines).rounded()
         host.noteRoom = gap + height
         // Below the last line laid out (the text view can be taller than its text: it fills the visible page).
         let bottom = host.textContainerOrigin.y + (host.textLayoutManager?.usageBoundsForTextContainer.maxY ?? 0)
         let y = bottom + gap
-        let frame = NSRect(x: host.textContainerOrigin.x - Self.padX, y: y, width: width, height: height).integral
+        let frame = NSRect(x: host.textContainerOrigin.x, y: y, width: width, height: height).integral
         if self.frame != frame { self.frame = frame }
         needsDisplay = true
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: T.Radius.control, yRadius: T.Radius.control)
-        NSColor.token(T.Color.surfaceList).setFill()
-        path.fill()
-        NSColor.token(T.Color.lineSubtle).setStroke()
-        path.lineWidth = T.Size.strokeHairline
-        path.stroke()
+        NSColor.token(T.Color.lineSubtle).setFill()
+        NSRect(x: 0, y: 0, width: bounds.width, height: T.Size.strokeHairline).fill()
     }
 
-    /// A click on the field's padding or label: into the note, at its end.
+    /// A click on the label or the room around it: into the note, at its end.
     override func mouseDown(with event: NSEvent) {
         focus(at: (textView.string as NSString).length)
     }
