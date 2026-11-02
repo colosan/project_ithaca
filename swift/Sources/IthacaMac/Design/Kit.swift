@@ -92,7 +92,7 @@ struct IconButton: View {
 
     var body: some View {
         Button(action: action) {
-            Icon(icon, size: T.Size.iconMd, color: active ? .accentPrimary : .inkSecondary)
+            Icon(icon, size: T.Size.iconMd, color: active ? .accentPrimary : hover && enabled ? .inkSecondary : .inkTertiary)
                 .frame(width: T.Size.controlSm, height: T.Size.controlSm)
                 .background(RoundedRectangle(cornerRadius: T.Radius.control).fill(active || (hover && enabled) ? Color.surfaceSelected : .clear))
                 .contentShape(Rectangle())

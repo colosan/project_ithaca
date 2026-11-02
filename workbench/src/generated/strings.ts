@@ -25,6 +25,7 @@ export type StringKey =
   | "count.withoutSpaces"
   | "count.words"
   | "goal.progress"
+  | "goal.percent"
   | "reference.title"
   | "reference.open"
   | "lease.banner"
@@ -726,6 +727,7 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "count.withoutSpaces": "공백 제외 {count}자",
     "count.words": "{count}단어",
     "goal.progress": "목표 {goal} · {percent}%",
+    "goal.percent": "목표 {percent}%",
     "reference.title": "참조",
     "reference.open": "참조 패널",
     "lease.banner": "{device}에서 편집 중 · 마지막 활동 {minutes}분 전",

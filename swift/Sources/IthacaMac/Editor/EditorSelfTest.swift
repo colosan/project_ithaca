@@ -328,6 +328,23 @@ enum EditorSelfTest {
         model.typewriter = false
         pump(0.2)
         check(abs(scroll.contentInsets.bottom - (scroll.contentSize.height * 0.4).rounded()) < 1, "and goes back when it's off")
+        // A title's `# ` folds away unless the caret is on its line.
+        let titled = (try? lib.createSheet(project: pid, folder: model.folders[0].id, text: "# 제목\n본문 한 줄"))!.id
+        model.reloadOutline()
+        model.openSheet(titled)
+        pump(0.3)
+        tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
+        pump(0.1)
+        check(fontSize(at: 0) < 1 && color(at: 0).last == 0, "dim: a title's '# ' folds away with the caret elsewhere (\(fontSize(at: 0)))")
+        tv.setSelectedRange(NSRange(location: 3, length: 0))
+        pump(0.1)
+        check(fontSize(at: 0) > 1 && color(at: 0) == resolved(.token(T.Color.inkMarkup)), "and shows, dimmed, with the caret on its line")
+        model.markup = .show
+        tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
+        pump(0.2)
+        check(fontSize(at: 0) > 1, "show: a title's '# ' always shows")
+        model.markup = .dim
+        pump(0.1)
 
         // 20. Typing at the bottom of a long sheet keeps the caret in view, blank last lines included.
         let long = (try? lib.createSheet(project: pid, folder: model.folders[0].id, text: (1...200).map { "줄 \($0) 가나다라마바사" }.joined(separator: "\n")))!.id

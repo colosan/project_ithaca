@@ -452,6 +452,7 @@ struct ManuscriptView: NSViewRepresentable {
             guard let tv = textView, !loading, !tv.hasMarkedText() else { return }
             model.rememberCaret(tv.selectedRange().location)
             updateFocusDim()
+            revealHeadingMarks(tv)
             // Typewriter centering follows the caret only: recentering under a mouse drag or a growing selection
             // would move the text away from the pointer / the end being extended.
             if model.typewriter, tv.selectedRange().length == 0, NSEvent.pressedMouseButtons == 0 {
@@ -497,6 +498,26 @@ struct ManuscriptView: NSViewRepresentable {
         /// `--selftest-perf`: what a markup-mode or text-size change costs.
         func debugRestyleAll() { restyle(NSRange(location: 0, length: (textView?.string as NSString?)?.length ?? 0)) }
 
+        /// The lines the selection touches when they were last styled: a heading's `# ` shows only there.
+        private var markLines: NSRange?
+
+        private func caretLines(_ tv: NSTextView) -> NSRange {
+            let ns = tv.string as NSString
+            let sel = tv.selectedRange()
+            return ns.paragraphRange(for: NSRange(location: min(sel.location, ns.length), length: min(sel.length, ns.length - min(sel.location, ns.length))))
+        }
+
+        /// The caret moved to other lines: restyle the lines it left and the ones it reached.
+        private func revealHeadingMarks(_ tv: NSTextView) {
+            guard model.markup != .show, !styledAsEntry else { return }
+            let now = caretLines(tv)
+            guard now != markLines else { return }
+            let ns = tv.string as NSString
+            let lines = [markLines, now].compactMap { $0 }.filter { NSMaxRange($0) <= ns.length }
+            markLines = now
+            for r in lines { restyle(r) }
+        }
+
         private func restyle(_ range: NSRange) {
             guard let tv = textView, let storage = tv.textStorage else { return }
             let ns = storage.string as NSString
@@ -513,8 +534,10 @@ struct ManuscriptView: NSViewRepresentable {
             if entry != styledAsEntry { styledAsEntry = entry; para = NSRange(location: 0, length: ns.length) }
             let selection = tv.selectedRanges
             storage.beginEditing()
-            Styles.apply(to: storage, in: para, size: model.textSize, spacing: model.lineSpacing, markup: model.markup, indent: indent)
+            Styles.apply(to: storage, in: para, size: model.textSize, spacing: model.lineSpacing, markup: model.markup, indent: indent,
+                         caret: tv.selectedRange())
             storage.endEditing()
+            markLines = caretLines(tv)
             tv.selectedRanges = selection
             // New characters take the style of the line the caret is on.
             let caret = min(tv.selectedRange().location, ns.length)
@@ -907,6 +930,7 @@ enum Styles {
         attrs(T.Typography.editorHeading, scale: token(size).size / T.Typography.editorBody.size, spacing: spacing)
     }
 
+    private static let foldedMark = NSFont.systemFont(ofSize: 0.01)
     private static let headingRe = try! NSRegularExpression(pattern: #"^(#{1,6})([ \t]+)"#, options: [.anchorsMatchLines])
     private static let listRe = try! NSRegularExpression(pattern: #"^[ \t]*([-*+>]|\d+\.)[ \t]+"#, options: [.anchorsMatchLines])
     /// Longer than any real word (Korean words run to about ten syllables).
@@ -930,7 +954,10 @@ enum Styles {
         return 0
     }
 
-    static func apply(to storage: NSTextStorage, in range: NSRange, size: TextSize, spacing: LineSpacing = .normal, markup: MarkupMode, indent: Bool = false) {
+    /// `caret`: the selection in an editable view. A heading's `# ` folds away (no width, no ink) unless the selection
+    /// touches its line or marks are set to "보이기", so a title reads as a title; a read-only view passes nil and folds them all.
+    static func apply(to storage: NSTextStorage, in range: NSRange, size: TextSize, spacing: LineSpacing = .normal, markup: MarkupMode, indent: Bool = false,
+                      caret: NSRange? = nil) {
         let ns = storage.string as NSString
         storage.setAttributes(base(size, spacing, indent: indent), range: range)
         let markColor: NSColor = switch markup {
@@ -954,7 +981,12 @@ enum Styles {
                     return
                 }
                 storage.setAttributes(heading(size, spacing), range: line)
-                storage.addAttribute(.foregroundColor, value: markColor, range: NSRange(location: m.range.location, length: m.range(at: 1).length))
+                let touched = caret.map { $0.location <= NSMaxRange(line) && NSMaxRange($0) >= line.location } ?? false
+                if markup == .show || touched {
+                    storage.addAttribute(.foregroundColor, value: markColor, range: NSRange(location: m.range.location, length: m.range(at: 1).length))
+                } else {
+                    storage.addAttributes([.font: foldedMark, .foregroundColor: NSColor.clear], range: m.range)
+                }
                 return
             }
             if let m = listRe.firstMatch(in: storage.string, range: line) {

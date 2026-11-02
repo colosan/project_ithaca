@@ -29,6 +29,7 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case countWithoutSpaces = "count.withoutSpaces"
     case countWords = "count.words"
     case goalProgress = "goal.progress"
+    case goalPercent = "goal.percent"
     case referenceTitle = "reference.title"
     case referenceOpen = "reference.open"
     case leaseBanner = "lease.banner"
@@ -747,6 +748,7 @@ public enum L10n {
             .countWithoutSpaces: .text("공백 제외 {count}자"),
             .countWords: .text("{count}단어"),
             .goalProgress: .text("목표 {goal} · {percent}%"),
+            .goalPercent: .text("목표 {percent}%"),
             .referenceTitle: .text("참조"),
             .referenceOpen: .text("참조 패널"),
             .leaseBanner: .text("{device}에서 편집 중 · 마지막 활동 {minutes}분 전"),

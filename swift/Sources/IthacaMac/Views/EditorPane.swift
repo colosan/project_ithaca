@@ -52,9 +52,7 @@ struct EditorPane: View {
                     IconButton(.library, label: model.t(.libraryShow), active: model.libraryOverlay) { model.libraryOverlay.toggle() }
                 }
                 Spacer(minLength: 0)
-                // Labelled, not one more icon: the way into the small window has to be seen to be found.
-                KitButton(model.t(.miniButton), icon: .mini, variant: .ghost) { model.toggleMini() }
-                IconButton(.command, label: model.t(.paletteTitle)) { model.show(.palette(search: false)) }
+                // The writing tools stay in sight; the rest, labelled, behind ⋯ (0.10.0: fewer marks above the text).
                 IconButton(.focus, label: model.t(.focusTitle)) { model.toggleFocus() }
                 if model.sheetId != nil {
                     if model.rewrite == nil {
@@ -63,15 +61,36 @@ struct EditorPane: View {
                             .help(model.t(.rewriteStartHint))
                     }
                     IconButton(.history, label: model.t(.historyTitle)) { model.show(.history) }
-                    IconButton(.export, label: model.t(.exportTitle)) { model.show(.export) }
                 }
                 IconButton(.reference, label: model.t(.inspectorTitle), active: model.inspectorOpen) { model.toggleInspector() }
+                more
             }
         }
         .padding(.horizontal, T.Space.s150)
         // The note's bar sits under the traffic lights' row: leave them room on the left.
         .padding(.leading, model.mini ? 64 : 0)
         .frame(minHeight: T.Size.barTop)
+    }
+
+    private var more: some View {
+        Menu {
+            Button(model.t(.miniButton)) { model.toggleMini() }
+            Button(model.t(.paletteTitle)) { model.show(.palette(search: false)) }
+            if model.sheetId != nil {
+                Divider()
+                Button(model.t(.exportTitle) + "…") { model.show(.export) }
+            }
+        } label: {
+            Icon(.more, size: T.Size.iconMd, color: .inkTertiary)
+                .frame(width: T.Size.controlSm, height: T.Size.controlSm)
+                .contentShape(Rectangle())
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
+        .fixedSize()
+        .help(model.t(.navMore))
+        .accessibilityLabel(model.t(.navMore))
     }
 
     @ViewBuilder private var empty: some View {
@@ -277,18 +296,15 @@ struct EditorFooter: View {
                 .frame(height: T.Size.strokeFocus)
             }
             HStack(spacing: T.Space.s150) {
-                let postedHint = model.t(.countPostedHint, ["raw": raw.chars])
-                if model.language == .ko {
-                    Text(model.t(.countWithSpaces, ["count": c.chars])).help(postedHint)
-                    if !model.mini { Text(model.t(.countWithoutSpaces, ["count": c.charsNoSpace])).help(postedHint) }
-                } else {
-                    Text(model.t(.countWords, ["count": c.words], count: c.words)).help(postedHint)
-                    Text(model.t(.countWithSpaces, ["count": c.chars], count: c.chars)).help(postedHint)
-                }
-                if let goal, !model.mini {
-                    Text(model.t(.goalProgress, ["goal": goal.count, "percent": percent])).foregroundStyle(Color.inkSecondary)
-                        .help(goalBasisName(goal.basis))
-                }
+                // One count in sight (with spaces, as the serial sites count); the rest in the tooltip (0.10.0).
+                let hint = [model.t(.countWithSpaces, ["count": c.chars]), model.t(.countWithoutSpaces, ["count": c.charsNoSpace]),
+                            model.t(.countPostedHint, ["raw": raw.chars]),
+                            goal.map { goalBasisName($0.basis) + " " + model.t(.goalProgress, ["goal": $0.count, "percent": percent]) }]
+                    .compactMap { $0 }.joined(separator: "\n")
+                Text(model.language == .ko ? model.t(.countCharsShort, ["count": c.chars], count: c.chars)
+                                           : model.t(.countWords, ["count": c.words], count: c.words))
+                    .help(hint)
+                if goal != nil, !model.mini { Text(model.t(.goalPercent, ["percent": percent])).help(hint) }
                 saveStatus
             }
             .textStyle(.caption)
@@ -328,10 +344,12 @@ struct EditorFooter: View {
         switch model.saveStatus {
         case .saved:
             // A local disk, not a cloud: nothing leaves this Mac. The tooltip says when the last backup was made.
-            Label { Text(model.t(.syncSavedLocal)) } icon: { Icon(.savedLocal, size: T.Size.iconSm) }.foregroundStyle(Color.stateSuccess)
-                .help(savedHint)
+            // Quiet when all is well: the mark alone, the words in its tooltip; trouble below speaks up.
+            Icon(.savedLocal, size: T.Size.iconSm, color: .inkTertiary)
+                .help(model.t(.syncSavedLocal) + "\n" + savedHint).accessibilityLabel(model.t(.syncSavedLocal))
         case .pending:
-            Label { Text(model.t(.syncSaving)) } icon: { Icon(.savedLocal, size: T.Size.iconSm) }.help(savedHint)
+            Icon(.savedLocal, size: T.Size.iconSm, color: .inkTertiary).opacity(T.Opacity.disabled)
+                .help(model.t(.syncSaving)).accessibilityLabel(model.t(.syncSaving))
         case .failed(let message):
             // Stays until a save succeeds; retries run on their own (AppModel.retryDelays), the button saves now.
             HStack(spacing: T.Space.s100) {

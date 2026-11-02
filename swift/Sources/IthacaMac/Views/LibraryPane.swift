@@ -14,11 +14,12 @@ struct LibraryPane: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
+            // Same band as the list's header and the editor's toolbar, so the three columns start on one line.
             Caption(model.t(.libraryTitle))
                 .textStyle(.label)
                 .padding(.horizontal, T.Space.s200)
-                .padding(.top, T.Space.s200)
                 .padding(.bottom, T.Space.s100)
+                .frame(maxWidth: .infinity, minHeight: T.Size.barTop, alignment: .bottomLeading)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(model.projects) { p in projectRows(p) }

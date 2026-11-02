@@ -50,6 +50,7 @@ struct SheetListPane: View {
             ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 0) {
+                    Color.clear.frame(height: T.Space.s100)
                     if sheets.isEmpty {
                         if !trash, let f = model.folder, !model.readOnly {
                             // An empty folder shows the choices right away instead of a lone button.
@@ -164,12 +165,10 @@ struct SheetListPane: View {
         let full = ko ? model.t(.countWithSpaces, ["count": total], count: total) : model.t(.countWords, ["count": total], count: total)
         let stock = trash ? nil : model.folder.flatMap { model.stock($0) }
         let next = trash ? nil : model.folder.flatMap { model.nextRelease($0) }
-        let line = model.t(.sheetListCount, ["count": sheets.count], count: sheets.count)
-            + (!trash && !sheets.isEmpty ? " · \(short)" : "")
-        // Serial folders: "비축 3화 · 다음 연재 10/26" on its own line so neither gets cut off in a 280 pt list.
-        let serial = [stock.map { model.t(.episodeStock, ["count": $0]) },
-                      next.map { model.t(.episodeNextRelease, ["date": model.releaseDate($0, time: false)]) }].compactMap { $0 }.joined(separator: " · ")
-        let tip = [model.t(.sheetListCount, ["count": sheets.count], count: sheets.count), trash || sheets.isEmpty ? nil : full,
+        // One quiet line under the name: how many, and when the next one is due; totals and stock in the tooltip (0.10.0).
+        let line = [model.t(.sheetListCount, ["count": sheets.count], count: sheets.count),
+                    next.map { model.t(.episodeNextRelease, ["date": model.releaseDate($0, time: false)]) }].compactMap { $0 }.joined(separator: " · ")
+        let tip = [model.t(.sheetListCount, ["count": sheets.count], count: sheets.count), trash || sheets.isEmpty ? nil : full + " (\(short))",
                    stock.map { model.t(.episodeStock, ["count": $0]) + " — " + model.t(.episodeStockHint) },
                    next.map { model.t(.folderStatsNextRelease) + " " + model.releaseDate($0, time: true) },
                    trash ? nil : model.t(.folderInfo)].compactMap { $0 }.joined(separator: "\n")
@@ -180,7 +179,6 @@ struct SheetListPane: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(trash ? model.t(.trashTitle) : model.folder?.name ?? "").textStyle(.heading).lineLimit(1)
                 Caption(line).lineLimit(1).truncationMode(.tail)
-                if !serial.isEmpty { Caption(serial).lineLimit(1).truncationMode(.tail) }
             }
             .padding(.vertical, T.Space.s50)
             .contentShape(Rectangle())
@@ -269,16 +267,18 @@ struct SheetRow: View {
             } else if trash {
                 IconButton(.restore, label: model.t(.trashRestore)) { model.restoreSheet(sheet.id) }
                 IconButton(.delete, label: model.t(.trashDeleteForever)) { model.deleteForever(sheet.id) }
-            } else if hover || active {
+            } else if hover {
                 IconButton(.delete, label: model.t(.sheetTrash)) { model.trashSheet(sheet.id) }
             }
         }
-        .padding(.horizontal, T.Space.s200)
+        .padding(.horizontal, T.Space.s150)
         .padding(.vertical, T.Space.s150)
         .frame(minHeight: T.Size.rowSheet, alignment: .top)
-        .background(active ? (listFocused ? Color.accentSoft : .surfaceSelected) : hover && !trash ? Color.surfaceSelected.opacity(0.5) : .clear)
+        // The library's selection: an inset rounded fill, no rules between rows (0.10.0).
+        .background(RoundedRectangle(cornerRadius: T.Radius.control)
+            .fill(active ? (listFocused ? Color.accentSoft : .surfaceSelected) : hover && !trash ? Color.surfaceSelected.opacity(0.5) : .clear))
         .overlay(alignment: .top) { if dropAbove { Rectangle().fill(Color.accentPrimary).frame(height: T.Size.strokeFocus) } }
-        .hairline(.bottom)
+        .padding(.horizontal, T.Space.s100)
         .contentShape(Rectangle())
         .help(trash ? "" : rowHelp)
         .onHover { hover = $0 }
