@@ -628,14 +628,39 @@ struct ManuscriptView: NSViewRepresentable {
 /// Clicks on the empty page below the text (short sheets, the scroll-past room at the end) land in the text view:
 /// the caret goes to the nearest position, and a drag from there selects.
 final class ManuscriptScrollView: NSScrollView {
+    /// The author's note field is a subview of the text view, but the text view's hit testing skips subviews below its
+    /// text: without this a click on the field fell through to the page and put the caret at the manuscript's end.
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        if let note = (documentView as? ManuscriptTextView)?.noteField, !note.isHidden, let sup = superview {
+            let local = note.convert(point, from: sup)
+            if note.bounds.contains(local), let hit = note.hitTest(note.convert(local, to: note.superview)) { return hit }
+        }
+        return super.hitTest(point)
+    }
+
     override func mouseDown(with event: NSEvent) {
+        if let note = noteHit(event) { return note.mouseDown(with: event) }
         guard let tv = documentView as? NSTextView else { return super.mouseDown(with: event) }
         window?.makeFirstResponder(tv)
         tv.mouseDown(with: event)
     }
 
+    /// The author's note field under the click, if any: its text view, or the field itself (its padding).
+    private func noteHit(_ event: NSEvent) -> NSView? {
+        guard let note = (documentView as? ManuscriptTextView)?.noteField, !note.isHidden else { return nil }
+        let p = note.convert(event.locationInWindow, from: nil)
+        guard note.bounds.contains(p) else { return nil }
+        let tv = note.textView
+        if tv.frame.contains(p) {
+            window?.makeFirstResponder(tv)
+            return tv
+        }
+        return note
+    }
+
     /// The text view's context menu there too, not nothing.
     override func rightMouseDown(with event: NSEvent) {
+        if let note = noteHit(event) as? NSTextView { return note.rightMouseDown(with: event) }
         guard let tv = documentView as? NSTextView else { return super.rightMouseDown(with: event) }
         window?.makeFirstResponder(tv)
         tv.rightMouseDown(with: event)

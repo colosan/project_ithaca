@@ -663,6 +663,19 @@ enum EditorSelfTest {
         pump(0.3)
         let bodyBottom = tv.textContainerOrigin.y + (tv.textLayoutManager?.usageBoundsForTextContainer.maxY ?? 0)
         check(coord.note.frame.minY > bodyBottom && coord.note.frame.maxY <= tv.bounds.height, "the field sits below the last line, inside the text view (\(coord.note.frame), \(bodyBottom))")
+        // A click on the field reaches it: the page's scroll view takes every click in the editor and hands it on.
+        if let w = tv.window, let sv = tv.enclosingScrollView {
+            let p = noteTV.convert(NSPoint(x: noteTV.bounds.midX, y: noteTV.bounds.midY), to: nil)
+            func click(_ type: NSEvent.EventType) -> NSEvent {
+                NSEvent.mouseEvent(with: type, location: p, modifierFlags: [], timestamp: 0, windowNumber: w.windowNumber,
+                                   context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!
+            }
+            // The text view's click tracking waits for the mouse-up: queue it first.
+            w.postEvent(click(.leftMouseUp), atStart: false)
+            sv.mouseDown(with: click(.leftMouseDown))
+            pump(0.1)
+            check(coord.note.hasFocus, "a click on the note field puts the caret in it")
+        }
         tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
         tv.doCommand(by: #selector(NSResponder.moveDown(_:)))
         check(coord.note.hasFocus, "↓ at the end of the manuscript goes into the note field")

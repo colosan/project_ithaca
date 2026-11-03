@@ -71,7 +71,13 @@ struct ShellView: View {
                 }
                 if let busy = model.busy { BusyHUD(message: busy) }
             }
-            .onAppear { sync(panes); model.inspectorDocks = Panes.forWidth(geo.size.width, inspectorOpen: true).inspector }
+            .onAppear {
+                sync(panes)
+                model.inspectorDocks = Panes.forWidth(geo.size.width, inspectorOpen: true).inspector
+                fitMini(geo.size.width)
+            }
+            // Narrower than the full window's minimum: the small window's layout, however the window got there (0.10.1).
+            .onChange(of: geo.size.width) { _, w in fitMini(w) }
             .onChange(of: panes) { _, p in sync(p) }
             .onChange(of: Panes.forWidth(geo.size.width, inspectorOpen: true).inspector) { _, d in model.inspectorDocks = d }
         }
@@ -80,13 +86,16 @@ struct ShellView: View {
             if escape == nil { escape = m }
             m.window = w
             if w != nil { m.install(model) } else { m.remove() }
-            if let w, window !== w { window = w; MiniWindow.apply(w, mini: model.mini) }
+            if let w, window !== w { window = w; MiniWindow.apply(w) }
         })
         .background(Color.surfaceCanvas)
         .foregroundStyle(Color.inkPrimary)
-        .frame(minWidth: model.mini ? MiniWindow.minSize.width : T.Layout.Window.minWidth,
-               minHeight: model.mini ? MiniWindow.minSize.height : T.Layout.Window.minHeight)
-        .onChange(of: model.mini) { _, mini in if let window { MiniWindow.toggle(window, mini: mini, defaults: model.defaults) } }
+        .frame(minWidth: MiniWindow.minSize.width, minHeight: MiniWindow.minSize.height)
+        // ⌘4 / "작은 창": the window moves to the other frame, unless resizing already put it there.
+        .onChange(of: model.mini) { _, mini in
+            guard let window, MiniWindow.isSmall(window.contentLayoutRect.width) != mini else { return }
+            MiniWindow.toggle(window, mini: mini, defaults: model.defaults)
+        }
         .sheet(item: dialogBinding) { o in
             Group {
                 switch o {
@@ -101,6 +110,12 @@ struct ShellView: View {
             }
             .environment(model)
         }
+    }
+
+    private func fitMini(_ width: Double) {
+        guard !MiniWindow.moving else { return }
+        let small = MiniWindow.isSmall(width)
+        if small != model.mini { model.mini = small }
     }
 
     private func sync(_ p: Panes) {
