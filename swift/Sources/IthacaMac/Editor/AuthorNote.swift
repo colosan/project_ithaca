@@ -235,7 +235,14 @@ final class AuthorNoteField: NSView, NSTextViewDelegate, @preconcurrency NSTextS
         let gap = (Styles.lineHeight(model.textSize, model.lineSpacing) * Self.gapLines).rounded()
         host.noteRoom = gap + height
         // Below the last line laid out (the text view can be taller than its text: it fills the visible page).
-        let bottom = host.textContainerOrigin.y + (host.textLayoutManager?.usageBoundsForTextContainer.maxY ?? 0)
+        var used = host.textLayoutManager?.usageBoundsForTextContainer.maxY ?? 0
+        // An empty sheet shows its two-line placeholder (more when wrapped): the note goes below that.
+        if host.string.isEmpty, let hint = host.value(forKey: "placeholderAttributedString") as? NSAttributedString {
+            let measure = host.textContainer?.size.width ?? width
+            used = max(used, hint.boundingRect(with: NSSize(width: measure, height: .greatestFiniteMagnitude),
+                                               options: [.usesLineFragmentOrigin, .usesFontLeading]).maxY.rounded(.up))
+        }
+        let bottom = host.textContainerOrigin.y + used
         let y = bottom + gap
         let frame = NSRect(x: host.textContainerOrigin.x, y: y, width: width, height: height).integral
         if self.frame != frame { self.frame = frame }

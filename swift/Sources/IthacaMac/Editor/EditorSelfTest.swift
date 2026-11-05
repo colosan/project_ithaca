@@ -659,6 +659,11 @@ enum EditorSelfTest {
         pump(0.3)
         check(model.sheet?.episode != nil && !coord.note.isHidden, "new 원고 shows the note field")
         let manuscriptId = model.sheetId!
+        if let hint = tv.value(forKey: "placeholderAttributedString") as? NSAttributedString {
+            let hintBottom = tv.textContainerOrigin.y + hint.boundingRect(with: NSSize(width: tv.textContainer?.size.width ?? 0, height: .greatestFiniteMagnitude),
+                                                                          options: [.usesLineFragmentOrigin, .usesFontLeading]).maxY
+            check(tv.string.isEmpty && coord.note.frame.minY > hintBottom, "an empty 원고: the note field sits below the placeholder (\(coord.note.frame), \(hintBottom))")
+        }
         setText("# 1화\n\n그는 웃었다.")
         pump(0.3)
         let bodyBottom = tv.textContainerOrigin.y + (tv.textLayoutManager?.usageBoundsForTextContainer.maxY ?? 0)
