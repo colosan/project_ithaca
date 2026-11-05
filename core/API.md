@@ -193,6 +193,34 @@ fn set_mcp_settings(&self, enabled: bool, projects: Vec<String>) -> Result<McpSe
 - (changed: qa4) `search`: queries over 1,000 characters → -32602; over 200 the result has
   `queryChars` instead of echoing `query`.
 
+## Sync (added: sync) — ADR-0013
+
+A shared file store (a private GitHub repository, kept by the app) holds every block file at
+`projects/<project>/<chain>/<hash>`. The core lists, plans and takes in; the app moves the bytes.
+
+```rust
+fn sync_files(&self) -> Vec<String>;                                   // every block file here, sorted
+fn sync_plan(&self, remote: Vec<String>, base: Vec<String>) -> SyncPlan;   // { upload, download, delete_remote }
+fn sync_read(&self, path: String) -> Result<Vec<u8>, CoreError>;      // bytes of one of sync_files
+fn sync_ingest(&self, files: Vec<SyncFile>) -> Result<SyncIngest, CoreError>;
+// SyncFile { path, bytes }   SyncIngest { added, skipped: Vec<String>, changed: Vec<SyncChange { project, sheet }>, new_projects }
+```
+
+- `base` = the store's listing after the previous sync (the app keeps it; empty the first time). A
+  file in `base` missing on one side was deleted for good there (permanent delete, purged project):
+  `delete_remote` prunes it from the store, and it is not uploaded again. A remote file whose chain
+  is a tombstoned sheet here is pruned too. Paths that are not block files are ignored.
+- `sync_ingest` checks each file (parses, hash = name, `sheet` = chain), skips files of a sheet this
+  library deleted for good, writes the rest like any block and reads their projects again. `changed`
+  lists chains whose winning head moved (`toc` for a table of contents). A project whose `toc`
+  hasn't arrived stays invisible until it does.
+- A forked table of contents is merged at once: `Toc::merge_from` adds the other side's sheets
+  (after their nearest earlier neighbour; a missing folder at the end) and tombstones, and keeps
+  everything else as the winner has it. The merge block is a snapshot with parents `[winner,
+  branch]`, device `"sync"`, the later parent's `at` and epoch — the same bytes on every device, so
+  two devices merging at once don't fork again. Sheet forks keep their branch copy (ADR-0002).
+- Read-only → `sync_ingest` fails with ReadOnly; the other three work.
+
 ## Backups (added round 2)
 
 ```rust

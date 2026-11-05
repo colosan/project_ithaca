@@ -44,6 +44,8 @@ public enum IthacaIcon: String, CaseIterable, Sendable {
     case rename
     case sync
     case synced
+    case syncOff
+    case externalLink
     case backup
     case editorText
     case keyboard
@@ -116,6 +118,8 @@ public enum IthacaIcon: String, CaseIterable, Sendable {
         case .rename: "pencil-line"
         case .sync: "refresh-cw"
         case .synced: "cloud-check"
+        case .syncOff: "cloud-off"
+        case .externalLink: "external-link"
         case .backup: "archive"
         case .editorText: "type"
         case .keyboard: "keyboard"

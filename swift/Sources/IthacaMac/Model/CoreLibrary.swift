@@ -4,7 +4,7 @@ import Foundation
 import IthacaCore
 
 @MainActor
-final class CoreLibrary: LibraryAPI {
+final class CoreLibrary: LibraryAPI, SyncableLibrary {
     private let lib: IthacaCore.Library
 
     init(path: String, deviceId: String) throws {
@@ -269,6 +269,29 @@ final class CoreLibrary: LibraryAPI {
     private static func appearance(_ a: IthacaCore.Appearance) -> Appearance {
         Appearance(sheet: a.sheet, title: a.title, folder: a.folder, number: a.number.map { Int($0) }, count: Int(a.count),
                    offset: Int(a.offset), length: Int(a.length), lines: a.lines)
+    }
+
+    // MARK: Sync (core/API.md §Sync)
+
+    // Off the main thread: a first sync lists and writes thousands of files.
+    func syncPlan(remote: [String], base: [String]) async -> SyncPlanResult {
+        let l = lib
+        let p = await Task.detached(priority: .utility) { l.syncPlan(remote: remote, base: base) }.value
+        return SyncPlanResult(upload: p.upload, download: p.download, deleteRemote: p.deleteRemote)
+    }
+
+    func syncRead(_ paths: [String]) async throws -> [(String, Data)] {
+        let l = lib
+        do { return try await Task.detached(priority: .utility) { try paths.map { ($0, try l.syncRead(path: $0)) } }.value } catch { throw Self.map(error) }
+    }
+
+    func syncIngest(_ files: [(String, Data)]) async throws -> SyncIngestResult {
+        let l = lib
+        let input = files.map { IthacaCore.SyncFile(path: $0.0, bytes: $0.1) }
+        do {
+            let r = try await Task.detached(priority: .utility) { try l.syncIngest(files: input) }.value
+            return SyncIngestResult(added: Int(r.added), skipped: r.skipped, changed: r.changed.map { ($0.project, $0.sheet) }, newProjects: r.newProjects)
+        } catch { throw Self.map(error) }
     }
 
     // MARK: Mapping

@@ -324,6 +324,27 @@ struct EditorFooter: View {
         model.t(.projectSettingsGoal) + " · " + model.t(GoalField.key(b))
     }
 
+    /// Saved here, and GitHub sync is on (ADR-0013): a cloud, quiet unless sync is stuck.
+    @ViewBuilder private func synced(_ sync: SyncEngine) -> some View {
+        let backup = model.lastBackupAt.map { model.t(.backupLastAt, ["date": model.dateTime($0.date)]) } ?? model.t(.backupLastNone)
+        if let e = sync.failure {
+            let message = sync.message(e) { model.t($0, $1) }
+            // Offline passes by itself: the mark only. Anything else needs the writer (token, repository): words too.
+            HStack(spacing: T.Space.s50) {
+                Icon(.syncOff, size: T.Size.iconSm, color: e == .offline ? .inkTertiary : .stateWarning)
+                if e != .offline { Text(model.t(.syncGithubFailedShort)).foregroundStyle(Color.stateWarning) }
+            }
+            .help(message).accessibilityLabel(message)
+        } else if sync.busy {
+            Icon(.sync, size: T.Size.iconSm, color: .inkTertiary)
+                .help(model.t(.syncInProgress)).accessibilityLabel(model.t(.syncInProgress))
+        } else {
+            let when = sync.lastSync.map(model.syncedAgo) ?? model.t(.syncGithubNever)
+            Icon(.synced, size: T.Size.iconSm, color: .inkTertiary)
+                .help(model.t(.syncGithubFooter) + " · " + when + "\n" + backup).accessibilityLabel(model.t(.syncGithubFooter))
+        }
+    }
+
     @ViewBuilder private var saveStatus: some View {
         if model.sheet?.damaged == true {
             // A damaged sheet shows its last intact text; nothing typed here is kept — never "saved".
@@ -343,10 +364,14 @@ struct EditorFooter: View {
     @ViewBuilder private var status: some View {
         switch model.saveStatus {
         case .saved:
-            // A local disk, not a cloud: nothing leaves this Mac. The tooltip says when the last backup was made.
-            // Quiet when all is well: the mark alone, the words in its tooltip; trouble below speaks up.
-            Icon(.savedLocal, size: T.Size.iconSm, color: .inkTertiary)
-                .help(model.t(.syncSavedLocal) + "\n" + savedHint).accessibilityLabel(model.t(.syncSavedLocal))
+            if let sync = model.sync, sync.connected {
+                synced(sync)
+            } else {
+                // A local disk, not a cloud: nothing leaves this Mac. The tooltip says when the last backup was made.
+                // Quiet when all is well: the mark alone, the words in its tooltip; trouble below speaks up.
+                Icon(.savedLocal, size: T.Size.iconSm, color: .inkTertiary)
+                    .help(model.t(.syncSavedLocal) + "\n" + savedHint).accessibilityLabel(model.t(.syncSavedLocal))
+            }
         case .pending:
             Icon(.savedLocal, size: T.Size.iconSm, color: .inkTertiary).opacity(T.Opacity.disabled)
                 .help(model.t(.syncSaving)).accessibilityLabel(model.t(.syncSaving))

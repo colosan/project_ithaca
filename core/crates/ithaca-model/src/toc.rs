@@ -142,4 +142,44 @@ impl Toc {
         self.removed.insert(sheet.to_string());
         self.drop_empty_deleted_folders();
     }
+
+    /// (added: sync) Takes in what another device's table of contents has and this one lacks:
+    /// its tombstones, and its sheets (each after its nearest earlier neighbour in that device's
+    /// folder, or at the folder's start; a folder this one doesn't have comes along at the end).
+    /// Everything both have — titles, names, order, episode details — stays as this one has it.
+    /// Pure and deterministic, so two devices merging the same pair write the same block.
+    pub fn merge_from(&mut self, other: &Toc) {
+        for s in &other.removed {
+            if !self.removed.contains(s) {
+                self.remove_sheet(s);
+            }
+        }
+        for of in &other.folders {
+            for (slot, id) in of.sheets.iter().enumerate() {
+                if self.sheets.contains_key(id) || self.removed.contains(id) {
+                    continue;
+                }
+                let Some(entry) = other.sheets.get(id) else {
+                    continue;
+                };
+                let fi = match self.folders.iter().position(|f| f.id == of.id) {
+                    Some(fi) => fi,
+                    None => {
+                        let mut f = of.clone();
+                        f.sheets.clear();
+                        self.folders.push(f);
+                        self.folders.len() - 1
+                    }
+                };
+                let here = &self.folders[fi].sheets;
+                let at = of.sheets[..slot]
+                    .iter()
+                    .rev()
+                    .find_map(|n| here.iter().position(|s| s == n))
+                    .map_or(0, |i| i + 1);
+                self.folders[fi].sheets.insert(at, id.clone());
+                self.sheets.insert(id.clone(), entry.clone());
+            }
+        }
+    }
 }

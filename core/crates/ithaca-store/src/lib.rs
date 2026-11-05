@@ -13,6 +13,7 @@ pub mod mcp;
 pub mod project;
 mod recover;
 mod search;
+pub mod sync;
 mod textimport;
 pub mod types;
 
@@ -31,6 +32,7 @@ use ithaca_model::{
 pub use bible::import_preview as bible_import_preview;
 pub use error::{Result, StoreError};
 pub use format::{FORMAT, Migration};
+pub use sync::{SyncChange, SyncFile, SyncIngest, SyncPlan};
 pub use types::*;
 
 use format::{PROJECTS_DIR, Prepared, prepare};

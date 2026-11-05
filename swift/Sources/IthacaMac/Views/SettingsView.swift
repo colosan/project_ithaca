@@ -1,12 +1,12 @@
-// Settings window (design/screens/preferences): General · Editor · Backup · Shortcuts · Claude · About.
-// Sync is hidden until it works; Shortcuts is a read-only list; Claude is read-only (no write permission yet).
+// Settings window (design/screens/preferences): General · Editor · Sync · Backup · Shortcuts · Claude · About.
+// Sync is the GitHub repository (ADR-0013; Views/SyncSettings.swift); Shortcuts is a read-only list; Claude is read-only (no write permission yet).
 // Text is the dialog size (label, 13 pt regular) like System Settings, not the 15 pt list-row body.
 import AppKit
 import IthacaCore
 import IthacaDesign
 import SwiftUI
 
-enum SettingsSection: String { case general, editor, backup, shortcuts, claude, about }
+enum SettingsSection: String { case general, editor, sync, backup, shortcuts, claude, about }
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
@@ -21,6 +21,7 @@ struct SettingsView: View {
                 switch only {
                 case .general: GeneralSettings()
                 case .editor: EditorSettings()
+                case .sync: SyncSettings()
                 case .backup: BackupSettings()
                 case .shortcuts: ShortcutSettings()
                 case .claude: ClaudeSettings()
@@ -38,6 +39,7 @@ struct SettingsView: View {
         TabView(selection: $tab) {
             GeneralSettings().tabItem { Label { Text(model.t(.prefsGeneral)) } icon: { Image(lucide: .settings) } }.tag(SettingsSection.general)
             EditorSettings().tabItem { Label { Text(model.t(.prefsEditor)) } icon: { Image(lucide: .editorText) } }.tag(SettingsSection.editor)
+            SyncSettings().tabItem { Label { Text(model.t(.prefsSync)) } icon: { Image(lucide: .sync) } }.tag(SettingsSection.sync)
             BackupSettings().tabItem { Label { Text(model.t(.prefsBackup)) } icon: { Image(lucide: .backup) } }.tag(SettingsSection.backup)
             ShortcutSettings().tabItem { Label { Text(model.t(.prefsShortcuts)) } icon: { Image(lucide: .keyboard) } }.tag(SettingsSection.shortcuts)
             ClaudeSettings().tabItem { Label { Text(model.t(.prefsClaude)) } icon: { Image(lucide: .claude) } }.tag(SettingsSection.claude)
@@ -494,7 +496,7 @@ private struct AboutSettings: View {
             Section {
                 LabeledContent(model.t(.aboutLicense)) { Text("MIT OR Apache-2.0") }
                 LabeledContent(model.t(.aboutSource)) { Link("github.com/colosan/project_ithaca", destination: URL(string: "https://github.com/colosan/project_ithaca")!) }
-                Text(model.t(.aboutLocalFirst)).textStyle(.caption).foregroundStyle(Color.inkSecondary)
+                Text(model.t(model.sync?.connected == true ? .aboutLocalFirstSynced : .aboutLocalFirst)).textStyle(.caption).foregroundStyle(Color.inkSecondary)
             }
         }
         .formStyle(.grouped)

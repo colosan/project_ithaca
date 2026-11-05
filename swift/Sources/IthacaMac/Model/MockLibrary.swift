@@ -515,3 +515,10 @@ final class MockLibrary: LibraryAPI {
         }
     }
 }
+
+/// Sync against an in-memory library has nothing to send or keep: the settings show, nothing moves.
+extension MockLibrary: SyncableLibrary {
+    func syncPlan(remote: [String], base: [String]) async -> SyncPlanResult { SyncPlanResult() }
+    func syncRead(_ paths: [String]) async throws -> [(String, Data)] { [] }
+    func syncIngest(_ files: [(String, Data)]) async throws -> SyncIngestResult { SyncIngestResult() }
+}

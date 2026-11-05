@@ -123,6 +123,11 @@ first-parent line back to where they part and compare the first blocks after the
 `epoch` wins, then the greater `device` (byte order), then the greater `hash`. The other heads are
 **branch copies**: kept, shown as `branched`, resolved later by a `merge` block naming both.
 
+**Sync merge blocks** (added: sync, ADR-0013): a forked table of contents is resolved by a `merge` block
+(snapshot, parents `[winner, branch]`) whose `device` is `"sync"` and whose `at` / `epoch` are the larger of
+its parents', so every device writes the same bytes for the same fork. A shared store (a GitHub repository)
+mirrors block files at `projects/<project>/<chain>/<hash>`; the library layout itself is unchanged.
+
 ## Table of contents (`toc` chain)
 
 The text of the `toc` chain is the project's table of contents as pretty-printed JSON (one field per

@@ -954,6 +954,61 @@ fn vec<T, U: From<T>>(v: Vec<T>) -> Vec<U> {
     v.into_iter().map(Into::into).collect()
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct SyncPlan {
+    pub upload: Vec<String>,
+    pub download: Vec<String>,
+    pub delete_remote: Vec<String>,
+}
+
+impl From<store::SyncPlan> for SyncPlan {
+    fn from(p: store::SyncPlan) -> Self {
+        SyncPlan {
+            upload: p.upload,
+            download: p.download,
+            delete_remote: p.delete_remote,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct SyncFile {
+    pub path: String,
+    pub bytes: Vec<u8>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct SyncChange {
+    pub project: String,
+    pub sheet: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, uniffi::Record)]
+pub struct SyncIngest {
+    pub added: u32,
+    pub skipped: Vec<String>,
+    pub changed: Vec<SyncChange>,
+    pub new_projects: Vec<String>,
+}
+
+impl From<store::SyncIngest> for SyncIngest {
+    fn from(r: store::SyncIngest) -> Self {
+        SyncIngest {
+            added: r.added,
+            skipped: r.skipped,
+            changed: r
+                .changed
+                .into_iter()
+                .map(|c| SyncChange {
+                    project: c.project,
+                    sheet: c.sheet,
+                })
+                .collect(),
+            new_projects: r.new_projects,
+        }
+    }
+}
+
 // ── Library ───────────────────────────────────────────────────────────
 
 /// An open library folder. All methods are safe to call from any thread; calls are serialized.
@@ -1320,6 +1375,37 @@ impl Library {
         entries: Vec<String>,
     ) -> R<Vec<String>> {
         Ok(self.lock().import_bible(&project, &folder, &entries)?)
+    }
+
+    // ── Sync (added: sync, ADR-0013) ─────────────────────────────────
+
+    /// Every block file as a shared-store path `projects/<project>/<chain>/<hash>`, sorted.
+    pub fn sync_files(&self) -> Vec<String> {
+        self.lock().sync_files()
+    }
+
+    /// What to send, fetch and prune against a listing of the shared store. `base` is the
+    /// listing after the last sync (empty the first time).
+    pub fn sync_plan(&self, remote: Vec<String>, base: Vec<String>) -> SyncPlan {
+        self.lock().sync_plan(&remote, &base).into()
+    }
+
+    /// The bytes of one of `sync_files`.
+    pub fn sync_read(&self, path: String) -> R<Vec<u8>> {
+        Ok(self.lock().sync_read(&path)?)
+    }
+
+    /// Takes in fetched files (checked, written, projects read again; a forked table of contents is
+    /// merged). Read-only → ReadOnly.
+    pub fn sync_ingest(&self, files: Vec<SyncFile>) -> R<SyncIngest> {
+        let files = files
+            .into_iter()
+            .map(|f| store::SyncFile {
+                path: f.path,
+                bytes: f.bytes,
+            })
+            .collect();
+        Ok(self.lock().sync_ingest(files)?.into())
     }
 
     /// `<library>/mcp.json`; off with no projects when missing or unreadable.

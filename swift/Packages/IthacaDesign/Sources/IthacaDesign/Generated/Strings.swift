@@ -704,6 +704,33 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case rewriteFinished = "rewrite.finished"
     case rewriteReverted = "rewrite.reverted"
     case rewriteLost = "rewrite.lost"
+    case syncGithubIntro = "sync.github.intro"
+    case syncGithubRepo = "sync.github.repo"
+    case syncGithubRepoPlaceholder = "sync.github.repoPlaceholder"
+    case syncGithubToken = "sync.github.token"
+    case syncGithubTokenHint = "sync.github.tokenHint"
+    case syncGithubMakeToken = "sync.github.makeToken"
+    case syncGithubConnect = "sync.github.connect"
+    case syncGithubConnecting = "sync.github.connecting"
+    case syncGithubDisconnect = "sync.github.disconnect"
+    case syncGithubDisconnectConfirm = "sync.github.disconnectConfirm"
+    case syncGithubPlainNote = "sync.github.plainNote"
+    case syncGithubReceiving = "sync.github.receiving"
+    case syncGithubSending = "sync.github.sending"
+    case syncGithubNever = "sync.github.never"
+    case syncGithubFooter = "sync.github.footer"
+    case syncGithubFailedShort = "sync.github.failedShort"
+    case syncErrorBadRepo = "sync.error.badRepo"
+    case syncErrorBadToken = "sync.error.badToken"
+    case syncErrorNotFound = "sync.error.notFound"
+    case syncErrorPublic = "sync.error.public"
+    case syncErrorNoWrite = "sync.error.noWrite"
+    case syncErrorOffline = "sync.error.offline"
+    case syncErrorRateLimit = "sync.error.rateLimit"
+    case syncErrorOther = "sync.error.other"
+    case syncForked = "sync.forked"
+    case syncGithubTitle = "sync.github.title"
+    case aboutLocalFirstSynced = "about.localFirstSynced"
 }
 
 enum L10nValue: Sendable {
@@ -1423,6 +1450,33 @@ public enum L10n {
             .rewriteFinished: .text("다시 쓰기를 마쳤어요 · 원래 글은 변경 기록에 남아 있어요"),
             .rewriteReverted: .text("원래 글로 되돌렸어요 · 새로 쓴 글은 변경 기록에 남아 있어요"),
             .rewriteLost: .text("원래 글을 찾지 못해서 다시 쓰기를 끝냈어요"),
+            .syncGithubIntro: .text("비공개 GitHub 저장소에 원고를 올려 두고, 같은 저장소를 쓰는 다른 기기와 맞춰요."),
+            .syncGithubRepo: .text("저장소"),
+            .syncGithubRepoPlaceholder: .text("아이디/저장소"),
+            .syncGithubToken: .text("토큰"),
+            .syncGithubTokenHint: .text("GitHub에서 이 저장소 하나만 고른 토큰(Fine-grained)을 만들고, Contents 권한을 '읽기와 쓰기'로 주세요. 토큰은 이 Mac에만, 나만 읽을 수 있는 파일로 저장돼요."),
+            .syncGithubMakeToken: .text("토큰 만들기"),
+            .syncGithubConnect: .text("연결"),
+            .syncGithubConnecting: .text("확인하는 중…"),
+            .syncGithubDisconnect: .text("연결 끊기"),
+            .syncGithubDisconnectConfirm: .text("GitHub 연결을 끊을까요? 원고는 이 Mac과 저장소에 그대로 남아요."),
+            .syncGithubPlainNote: .text("비공개 저장소라도 원고는 암호화되지 않은 채 GitHub에 올라가요."),
+            .syncGithubReceiving: .text("원고 받는 중 · {done}/{total}"),
+            .syncGithubSending: .text("원고 올리는 중 · {done}/{total}"),
+            .syncGithubNever: .text("아직 맞추지 않았어요"),
+            .syncGithubFooter: .text("GitHub와 맞춰져 있어요"),
+            .syncGithubFailedShort: .text("동기화 안 됨"),
+            .syncErrorBadRepo: .text("'아이디/저장소' 꼴로 적어 주세요."),
+            .syncErrorBadToken: .text("토큰이 맞지 않거나 만료됐어요."),
+            .syncErrorNotFound: .text("저장소를 찾지 못했어요. 이름과, 토큰을 만들 때 고른 저장소를 확인해 주세요."),
+            .syncErrorPublic: .text("공개 저장소예요. 원고는 비공개 저장소에만 올려요."),
+            .syncErrorNoWrite: .text("이 토큰으로는 저장소에 쓸 수 없어요. Contents 권한을 '읽기와 쓰기'로 주세요."),
+            .syncErrorOffline: .text("인터넷에 연결되지 않았어요. 연결되면 이어서 맞춰요."),
+            .syncErrorRateLimit: .text("GitHub 요청 한도에 걸렸어요. 잠시 뒤 이어서 맞춰요."),
+            .syncErrorOther: .text("동기화하지 못했어요 — {message}"),
+            .syncForked: .text("다른 기기에서 같은 원고를 함께 고쳐서 갈라졌어요 · 이 Mac에서 쓴 글은 변경 기록에 있어요"),
+            .syncGithubTitle: .text("GitHub 저장소"),
+            .aboutLocalFirstSynced: .text("Ithaca는 따로 서버 없이 동작해요. 원고는 이 Mac과, 연결한 GitHub 저장소에 있어요."),
         ],
     ]
 }

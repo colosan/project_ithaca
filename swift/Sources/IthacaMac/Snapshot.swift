@@ -111,7 +111,12 @@ enum Snapshot {
             Scene(name: "new-project-first-run-dark", size: CGSize(width: 560, height: 640), dark: true, titled: false, fit: true, view: { _ in AnyView(NewProjectView(firstRun: true)) }),
             Scene(name: "project-settings", size: CGSize(width: 560, height: 560), titled: false, fit: true, view: { _ in AnyView(ProjectSettingsView()) }),
             settings(.general), settings(.editor), settings(.backup), settings(.about),
-            settings(.shortcuts),
+            settings(.shortcuts), settings(.sync),
+            Scene(name: "settings-sync-connected-dark", size: CGSize(width: 640, height: 560), dark: true,
+                  setup: { m, _ in m.sync?.preview(GitHubRepo("colosan/ithaca-library")!, lastSync: .nowMillis - 180_000) }, titled: false,
+                  view: { _ in AnyView(SettingsView(updater: updater, only: .sync)) }),
+            Scene(name: "shell-synced", size: CGSize(width: 900, height: 700),
+                  setup: { m, _ in m.sync?.preview(GitHubRepo("colosan/ithaca-library")!, lastSync: .nowMillis - 180_000) }),
             // The whole editor tab (conveniences, the symbol list with a custom entry) on one tall canvas.
             editorAll(),
             Scene(name: "settings-editor-dark", size: CGSize(width: 640, height: 560), dark: true, titled: false,

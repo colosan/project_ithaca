@@ -31,6 +31,10 @@ enum Main {
             MainActor.assumeIsolated { NavSelfTest.run() }
             return
         }
+        if args.contains("--selftest-sync") {
+            MainActor.assumeIsolated { SyncSelfTest.run() }
+            return
+        }
         if args.contains("--selftest-editor") {
             MainActor.assumeIsolated { EditorSelfTest.run() }
             return
@@ -467,6 +471,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     static func didOpen(_ model: AppModel) {
         model.applyTheme()
         model.runAutoBackupIfDue()
+        model.sync?.start()
         if let from = model.info.migratedFrom {
             model.showToast(Toast(message: model.t(.libraryMigrated, ["from": from, "path": model.info.backupPath ?? ""]), sticky: true))
         }

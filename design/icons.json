@@ -48,6 +48,8 @@
     "rename": "pencil-line",
     "sync": "refresh-cw",
     "synced": "cloud-check",
+    "syncOff": "cloud-off",
+    "externalLink": "external-link",
     "backup": "archive",
     "editorText": "type",
     "keyboard": "keyboard",

@@ -224,6 +224,8 @@ final class AppModel {
 
     @ObservationIgnored let defaults: UserDefaults
     @ObservationIgnored let menu: MenuState
+    /// GitHub sync (ADR-0013); nil for the in-memory library.
+    let sync: SyncEngine?
     @ObservationIgnored private var carets: [String: Int]
 
     init(library: LibraryAPI, defaults: UserDefaults = .standard, menu: MenuState = MenuState()) {
@@ -231,6 +233,7 @@ final class AppModel {
         self.defaults = defaults
         self.menu = menu
         info = library.info()
+        sync = (library as? SyncableLibrary).map { SyncEngine(library: $0, defaults: defaults) }
         theme = ThemePref(rawValue: defaults.string(forKey: "ithaca.theme") ?? "") ?? .system
         textSize = TextSize(rawValue: defaults.string(forKey: "ithaca.textSize") ?? "") ?? .normal
         lineSpacing = LineSpacing(rawValue: defaults.string(forKey: "ithaca.lineSpacing") ?? "") ?? .normal
@@ -255,6 +258,7 @@ final class AppModel {
         refreshProjects()
         restoreSelection()
         refreshLastBackup()
+        sync?.didIngest = { [weak self] r in self?.applySync(r) }
     }
 
     // MARK: Locale
@@ -341,6 +345,8 @@ final class AppModel {
         do { outline = try library.outline(project: projectId) } catch { outline = nil }
         menu.hasSheet = sheetId != nil
         outlineDidReload()
+        // Folders and sheets made, moved or trashed: on to the other devices.
+        sync?.nudge()
     }
 
     private func restoreSelection() {
@@ -552,6 +558,7 @@ final class AppModel {
             saveStatus = .saved
             replaceSummary(summary)
             didSaveForBible(sheetId)
+            sync?.nudge()
         } catch {
             saveStatus = .failed((error as? LibraryError) == .readOnly ? readOnlyMessage : error.localizedDescription)
             scheduleRetry()

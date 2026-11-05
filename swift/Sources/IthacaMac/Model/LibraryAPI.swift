@@ -325,6 +325,34 @@ protocol LibraryAPI: AnyObject {
     func appearances(project: String, entry: String) throws -> [Appearance]
 }
 
+/// (sync) What a sync brought in (core `SyncIngest`).
+struct SyncIngestResult: Equatable, Sendable {
+    var added = 0
+    var skipped: [String] = []
+    /// (project, chain) whose text changed; chain `toc` = the project's table of contents.
+    var changed: [(project: String, sheet: String)] = []
+    var newProjects: [String] = []
+
+    static func == (a: Self, b: Self) -> Bool {
+        a.added == b.added && a.skipped == b.skipped && a.newProjects == b.newProjects
+            && a.changed.map { "\($0.project)/\($0.sheet)" } == b.changed.map { "\($0.project)/\($0.sheet)" }
+    }
+}
+
+struct SyncPlanResult: Equatable, Sendable {
+    var upload: [String] = []
+    var download: [String] = []
+    var deleteRemote: [String] = []
+}
+
+/// (sync, ADR-0013) The library's side of sync. The in-memory mock has nothing to sync.
+@MainActor
+protocol SyncableLibrary: AnyObject {
+    func syncPlan(remote: [String], base: [String]) async -> SyncPlanResult
+    func syncRead(_ paths: [String]) async throws -> [(String, Data)]
+    func syncIngest(_ files: [(String, Data)]) async throws -> SyncIngestResult
+}
+
 extension Int64 {
     static var nowMillis: Int64 { Int64(Date().timeIntervalSince1970 * 1000) }
     var date: Date { Date(timeIntervalSince1970: Double(self) / 1000) }

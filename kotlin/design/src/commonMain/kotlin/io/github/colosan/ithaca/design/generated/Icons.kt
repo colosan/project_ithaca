@@ -44,6 +44,8 @@ enum class IthacaIcon(val asset: String) {
     Rename("pencil-line"),
     Sync("refresh-cw"),
     Synced("cloud-check"),
+    SyncOff("cloud-off"),
+    ExternalLink("external-link"),
     Backup("archive"),
     EditorText("type"),
     Keyboard("keyboard"),
