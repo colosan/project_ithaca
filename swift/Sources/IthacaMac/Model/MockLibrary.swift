@@ -397,12 +397,9 @@ final class MockLibrary: LibraryAPI {
     }
 
     func goalCount(text: String, basis: GoalBasis) -> Int {
-        switch basis {
-        case .munpia, .novelpia:
-            let pasted = TextMetrics.render(text, title: TextMetrics.title(text), ExportOptions(includeTitle: false))
-            return countFor(text: pasted, rule: basis == .munpia ? .munpia : .novelpia)
-        default: return TextMetrics.goalValue(TextMetrics.counts(text), basis)
-        }
+        guard basis.isPlatform else { return TextMetrics.goalValue(TextMetrics.counts(text), basis) }
+        let pasted = TextMetrics.render(text, title: TextMetrics.title(text), ExportOptions(includeTitle: false))
+        return countFor(text: pasted, rule: basis == .novelpia ? .novelpia : basis == .joara ? .bytesUtf8 : .munpia)
     }
 
     // MARK: Helpers

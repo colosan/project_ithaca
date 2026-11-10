@@ -321,6 +321,9 @@ final class CoreLibrary: LibraryAPI, SyncableLibrary {
         case .words: .words
         case .munpia: .munpia
         case .novelpia: .novelpia
+        case .joara: .joara
+        case .kakaopage: .kakaopage
+        case .naverSeries: .naverSeries
         }
     }
 
@@ -331,6 +334,9 @@ final class CoreLibrary: LibraryAPI, SyncableLibrary {
         case .words: .words
         case .munpia: .munpia
         case .novelpia: .novelpia
+        case .joara: .joara
+        case .kakaopage: .kakaopage
+        case .naverSeries: .naverSeries
         }
     }
 

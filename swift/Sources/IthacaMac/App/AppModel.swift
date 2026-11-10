@@ -272,6 +272,13 @@ final class AppModel {
 
     func number(_ n: Int) -> String { n.formatted(.number.locale(Locale(identifier: locale.rawValue))) }
 
+    /// A goal as read: "5,000", or "12KB" for Joara (kept in bytes).
+    func goalText(_ g: Goal) -> String {
+        guard g.basis == .joara else { return number(g.count) }
+        let kb = Double(g.count) / Double(GoalBasis.kb)
+        return t(.goalKb, ["count": kb.formatted(.number.precision(.fractionLength(0...1)).locale(Locale(identifier: locale.rawValue)))])
+    }
+
     func applyTheme() {
         NSApp?.appearance = switch theme {
         case .system: nil
@@ -1116,11 +1123,8 @@ final class AppModel {
 
     /// Footer goal: the open sheet's count on the project's basis (platform bases count the text as pasted).
     func goalValue(_ basis: GoalBasis) -> Int {
-        switch basis {
-        case .munpia, .novelpia: library.goalCount(text: liveText, basis: basis)
         // Same basis as the footer numbers: the body as posted.
-        default: TextMetrics.goalValue(livePostedCounts, basis)
-        }
+        basis.isPlatform ? library.goalCount(text: liveText, basis: basis) : TextMetrics.goalValue(livePostedCounts, basis)
     }
 
     func statusKey(_ s: EpisodeStatus) -> L10nKey {

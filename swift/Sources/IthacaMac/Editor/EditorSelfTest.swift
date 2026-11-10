@@ -184,11 +184,37 @@ enum EditorSelfTest {
         }
 
         // 11b. The toast over the editor takes its own clicks ([Undo] · ✕), not the text view underneath.
-        model.showToast(Toast(message: "Toast", sticky: true))
+        // A long one with an undo (what deleting a project shows): ✕ takes a click anywhere on its square, not only on
+        // its two strokes (0.11.1).
+        let longToast = Toast(message: model.t(.projectSettingsDeleted, ["name": "아주 길게 지은 작품 이름 하나"]), undo: {}, sticky: true)
+        model.showToast(longToast)
         pump(0.3)
-        let onToast = NSPoint(x: window.frame.width - T.Space.s200 - 20, y: window.contentLayoutRect.maxY - T.Size.barTop - T.Space.s100 - 18)
-        check(!(window.contentView?.superview?.hitTest(onToast) is NSTextView), "a click on the toast reaches the toast")
+        if let host = findToastHost(window.contentView) {
+            let frame = host.convert(host.bounds, to: nil)
+            check(!(window.contentView?.superview?.hitTest(NSPoint(x: frame.maxX - 18, y: frame.midY)) is NSTextView), "a click on the toast reaches the toast")
+            var closed = 0
+            for dx in [8.0, 18, 28] {
+                model.showToast(longToast); pump(0.1)
+                let at = NSPoint(x: frame.maxX - dx, y: frame.midY + 6)
+                for type in [NSEvent.EventType.leftMouseDown, .leftMouseUp] {
+                    window.sendEvent(NSEvent.mouseEvent(with: type, location: at, modifierFlags: [], timestamp: ProcessInfo.processInfo.systemUptime,
+                                                        windowNumber: window.windowNumber, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)!)
+                }
+                pump(0.15)
+                if model.toast == nil { closed += 1 }
+            }
+            check(closed == 3, "✕ closes a long toast wherever on its square it is clicked (\(closed)/3)")
+        } else { check(false, "the toast is on screen") }
         model.toast = nil
+
+        // 11c. Wide window: the editor's scroll view clips, so its visible rect (and the I-beam) stays over the editor
+        // instead of the whole window (0.11.1).
+        if let scroll = tv.enclosingScrollView {
+            window.setContentSize(NSSize(width: 1500, height: 800)); pump(0.5)
+            let frame = scroll.convert(scroll.bounds, to: nil), visible = scroll.convert(scroll.visibleRect, to: nil)
+            check(frame.contains(visible), "the editor's visible rect stays in the editor, its cursor too (\(visible) in \(frame))")
+            window.setContentSize(NSSize(width: 900, height: 700)); pump(0.5)
+        }
 
         // 12. ⌘C / ⌘X / ⌘V through the text view (the writer's clipboard is put back afterwards).
         let pb = NSPasteboard.general
@@ -659,10 +685,11 @@ enum EditorSelfTest {
         pump(0.3)
         check(model.sheet?.episode != nil && !coord.note.isHidden, "new 원고 shows the note field")
         let manuscriptId = model.sheetId!
-        if let hint = tv.value(forKey: "placeholderAttributedString") as? NSAttributedString {
-            let hintBottom = tv.textContainerOrigin.y + hint.boundingRect(with: NSSize(width: tv.textContainer?.size.width ?? 0, height: .greatestFiniteMagnitude),
-                                                                          options: [.usesLineFragmentOrigin, .usesFontLeading]).maxY
-            check(tv.string.isEmpty && coord.note.frame.minY > hintBottom, "an empty 원고: the note field sits below the placeholder (\(coord.note.frame), \(hintBottom))")
+        check(tv.hint != nil && tv.hintRect.minY == tv.textContainerOrigin.y, "an empty 원고: the hint sits where the first line goes (\(tv.hintRect.minY))")
+        check(tv.string.isEmpty && coord.note.frame.minY > tv.hintRect.maxY, "an empty 원고: the note field sits below the hint (\(coord.note.frame), \(tv.hintRect.maxY))")
+        if let page = tv.enclosingScrollView?.contentSize.height {
+            check(abs(coord.note.frame.maxY - (page - ManuscriptTextView.topInset)) < 1, "a short 원고: the note sits at the foot of the page (\(coord.note.frame.maxY) of \(page))")
+            check(tv.enclosingScrollView?.contentInsets.bottom == 0 && tv.frame.height <= page + 0.5, "and the page doesn't scroll (\(tv.frame.height) of \(page))")
         }
         setText("# 1화\n\n그는 웃었다.")
         pump(0.3)
@@ -1020,6 +1047,13 @@ enum EditorSelfTest {
         guard let v else { return nil }
         if let t = v as? ManuscriptTextView { return t }
         for s in v.subviews { if let t = findTextView(s) { return t } }
+        return nil
+    }
+
+    private static func findToastHost(_ v: NSView?) -> NSView? {
+        guard let v else { return nil }
+        if v is NSHostingView<AnyView> { return v }
+        for s in v.subviews { if let t = findToastHost(s) { return t } }
         return nil
     }
 

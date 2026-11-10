@@ -56,8 +56,9 @@ fn projects(&self) -> Vec<ProjectSummary>;                  // live projects, in
 // copies go last even though they keep their original `created`. Ties: `created`, then id.
 // ProjectSummary { id, title, language: Language, goal: Option<Goal>, created, modified, deleted: Option<i64>,
 //                  sheets: u32 /* live sheets */, counts: Counts /* sum over live sheets */ }
-// Goal { count: u32, basis: GoalBasis }   GoalBasis { WithSpaces, WithoutSpaces, Words, Munpia /* (added: r3) */, Novelpia /* (added: r3) */ }
-// (added: r3) Progress toward a Munpia / Novelpia goal = `goal_count(sheet_text, basis)` (§Platform counts).
+// Goal { count: u32, basis: GoalBasis }   GoalBasis { WithSpaces, WithoutSpaces, Words, Munpia /* (added: r3) */, Novelpia /* (added: r3) */, Joara, Kakaopage, NaverSeries /* (added: 0.11.1) */ }
+// (added: r3) Progress toward a platform goal = `goal_count(sheet_text, basis)` (§Platform counts).
+// (added: 0.11.1) Joara = BytesUtf8 of the body (count in bytes); Kakaopage / NaverSeries = the Munpia rule.
 // `modified` = time of the newest block in the project (any sheet or the table of contents).
 
 /// `folders` must not be empty (InvalidInput). Like the web app, one empty sheet is created in the first folder.
@@ -309,7 +310,8 @@ fn munpia_pages(text: String) -> u32;   // ⌈count_for(Munpia) / 470⌉; empty 
 /// blank line between paragraphs, no indent) WITHOUT the title line (platforms take it separately).
 fn platform_body(text: String) -> String;
 /// (added: r3) A sheet's length under a goal basis: WithSpaces / WithoutSpaces / Words = its Counts
-/// (the sheet as written); Munpia / Novelpia = count_for(platform_body(text), rule).
+/// (the sheet as written); Munpia / Novelpia = count_for(platform_body(text), rule); Joara = BytesUtf8,
+/// Kakaopage / NaverSeries = Munpia, both on platform_body(text) (0.11.1).
 fn goal_count(text: String, basis: GoalBasis) -> u32;
 // CountRule {
 //   WithSpaces     // = Counts.chars (every grapheme except "\n")
@@ -492,7 +494,7 @@ Rules elsewhere (changed: bible):
 
 ## Types
 
-`Language { Ko, En }` · `GoalBasis { WithSpaces, WithoutSpaces, Words, Munpia, Novelpia }` (r3) · `McpPermission { Read }` (r3) · `Actor { Me, Claude }` ·
+`Language { Ko, En }` · `GoalBasis { WithSpaces, WithoutSpaces, Words, Munpia, Novelpia, Joara, Kakaopage, NaverSeries }` (r3, 0.11.1) · `McpPermission { Read }` (r3) · `Actor { Me, Claude }` ·
 `EpisodeStatus` · `BackupKind` · `CountRule` (added round 2, above) ·
 `BlockKind { Edit, Lease, Merge, Meta }` · `IssueKind` (above) ·
 `CoreError { NotFound, ReadOnly, InvalidInput{message}, Io{message}, Corrupt{message} }` (uniffi::Error).

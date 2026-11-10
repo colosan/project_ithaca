@@ -47,7 +47,7 @@ pub fn munpia_pages(text: String) -> u32 {
 }
 
 /// (added: r3) A sheet's length under a goal basis: `WithSpaces` / `WithoutSpaces` / `Words` count
-/// the sheet as written (= its `Counts`); `Munpia` / `Novelpia` count `platform_body(text)`.
+/// the sheet as written (= its `Counts`); the platform bases count `platform_body(text)`.
 #[uniffi::export]
 pub fn goal_count(text: String, basis: GoalBasis) -> u32 {
     ithaca_model::goal_count(&text, basis.into())
@@ -327,6 +327,12 @@ pub enum GoalBasis {
     Munpia,
     /// (added: r3)
     Novelpia,
+    /// (added: 0.11.1) UTF-8 bytes of the paste-ready body.
+    Joara,
+    /// (added: 0.11.1)
+    Kakaopage,
+    /// (added: 0.11.1)
+    NaverSeries,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Enum)]
@@ -660,6 +666,9 @@ impl From<ithaca_model::Goal> for Goal {
             B::Words => GoalBasis::Words,
             B::Munpia => GoalBasis::Munpia,
             B::Novelpia => GoalBasis::Novelpia,
+            B::Joara => GoalBasis::Joara,
+            B::Kakaopage => GoalBasis::Kakaopage,
+            B::NaverSeries => GoalBasis::NaverSeries,
         };
         Goal {
             count: g.count,
@@ -677,6 +686,9 @@ impl From<GoalBasis> for ithaca_model::GoalBasis {
             GoalBasis::Words => B::Words,
             GoalBasis::Munpia => B::Munpia,
             GoalBasis::Novelpia => B::Novelpia,
+            GoalBasis::Joara => B::Joara,
+            GoalBasis::Kakaopage => B::Kakaopage,
+            GoalBasis::NaverSeries => B::NaverSeries,
         }
     }
 }

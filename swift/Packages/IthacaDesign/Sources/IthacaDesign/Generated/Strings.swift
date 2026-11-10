@@ -521,6 +521,12 @@ public enum L10nKey: String, CaseIterable, Sendable {
     case folderStatsHint = "folderStats.hint"
     case goalBasisMunpia = "goal.basis.munpia"
     case goalBasisNovelpia = "goal.basis.novelpia"
+    case goalBasisJoara = "goal.basis.joara"
+    case goalBasisKakaopage = "goal.basis.kakaopage"
+    case goalBasisNaverSeries = "goal.basis.naverSeries"
+    case goalKb = "goal.kb"
+    case goalBasisHintJoara = "goal.basisHint.joara"
+    case goalBasisHintPlatform = "goal.basisHint.platform"
     case mcpReadToggle = "mcp.readToggle"
     case mcpReadOnlyHint = "mcp.readOnlyHint"
     case mcpProjectsHint = "mcp.projectsHint"
@@ -1267,6 +1273,12 @@ public enum L10n {
             .folderStatsHint: .text("휴지통에 있는 원고는 세지 않았어요. 글자수는 올릴 본문 기준이고, 연재처 기준은 저장된 내용으로 셌어요."),
             .goalBasisMunpia: .text("문피아"),
             .goalBasisNovelpia: .text("노벨피아"),
+            .goalBasisJoara: .text("조아라"),
+            .goalBasisKakaopage: .text("카카오페이지"),
+            .goalBasisNaverSeries: .text("네이버 시리즈"),
+            .goalKb: .text("{count}KB"),
+            .goalBasisHintJoara: .text("조아라는 용량으로 세요. 올릴 본문 기준이에요."),
+            .goalBasisHintPlatform: .text("{platform}에 올릴 본문 기준으로 세요."),
             .mcpReadToggle: .text("Claude가 원고를 읽게 하기"),
             .mcpReadOnlyHint: .text("읽기만 해요. Claude는 원고를 고치거나 지울 수 없어요. 이 컴퓨터 안에서만 연결돼요."),
             .mcpProjectsHint: .text("체크한 작품만 Claude에게 보여요."),

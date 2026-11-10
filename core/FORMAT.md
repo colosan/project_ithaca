@@ -136,7 +136,7 @@ line keeps deltas small), stored with the same snapshot/delta rules as sheets, `
 ```json
 {
   "title": "등대지기의 딸", "language": "ko",
-  "goal": { "count": 5500, "basis": "withSpaces" },   // or null; basis: withSpaces | withoutSpaces | words | munpia | novelpia
+  "goal": { "count": 5500, "basis": "withSpaces" },   // or null; basis: withSpaces | withoutSpaces | words | munpia | novelpia | joara | kakaopage | naverSeries
   "created": 1790000000000,
   "deleted": null,                                       // ms when soft-deleted
   "folders": [ { "id": "…", "name": "연재", "deleted": null, "sheets": ["<sheet id>", …] } ],
@@ -154,6 +154,8 @@ line keeps deltas small), stored with the same snapshot/delta rules as sheets, `
 - `goal.basis` (added: r3) may also be `munpia | novelpia`. **A core older than r3 (app ≤ 0.2.0) cannot
   parse such a goal and skips that project on open** (reported, nothing written; it loads again in a
   newer app). Accepted: apps only move forward via updates; see ADR-0009.
+  (added: 0.11.1) also `joara | kakaopage | naverSeries` (`count` for `joara` is in bytes). The same holds:
+  a core before 0.11.1 skips a project with such a goal until it is updated — on synced Macs, update both.
 - **Unknown fields are kept.** A core keeps fields it does not know at the top level, in folder entries and
   in sheet entries, and writes them back when it rewrites the table of contents, so adding an optional
   field never needs a format bump and an older core never drops a newer core's data.

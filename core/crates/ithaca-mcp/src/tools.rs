@@ -380,6 +380,9 @@ fn basis_name(b: GoalBasis) -> &'static str {
         GoalBasis::Words => "words",
         GoalBasis::Munpia => "Munpia characters",
         GoalBasis::Novelpia => "Novelpia characters",
+        GoalBasis::Joara => "Joara bytes (UTF-8)",
+        GoalBasis::Kakaopage => "KakaoPage characters (with spaces)",
+        GoalBasis::NaverSeries => "Naver Series characters (with spaces)",
     }
 }
 

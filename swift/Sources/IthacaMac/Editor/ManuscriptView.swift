@@ -24,6 +24,9 @@ struct ManuscriptView: NSViewRepresentable {
         scroll.autohidesScrollers = true
         scroll.drawsBackground = false
         scroll.automaticallyAdjustsContentInsets = false
+        // Since macOS 14 views don't clip, and unclipped the scroll view's visible rect ran over the whole window: the
+        // I-beam showed over the library and the list too (0.11.1).
+        scroll.clipsToBounds = true
         tv.minSize = .zero
         tv.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         tv.isVerticallyResizable = true
@@ -390,9 +393,8 @@ struct ManuscriptView: NSViewRepresentable {
             style = key
             tv.isContinuousSpellCheckingEnabled = key.spell
             tv.typingAttributes = Styles.base(model.textSize, model.lineSpacing, indent: key.indent)
-            tv.setValue(NSAttributedString(string: "\(model.t(.sheetPlaceholderTitle))\n\(model.t(.sheetPlaceholderBody))",
-                                           attributes: Styles.base(model.textSize, model.lineSpacing).merging([.foregroundColor: NSColor.token(T.Color.inkTertiary)]) { $1 }),
-                        forKey: "placeholderAttributedString")
+            tv.hint = NSAttributedString(string: "\(model.t(.sheetPlaceholderTitle))\n\(model.t(.sheetPlaceholderBody))",
+                                         attributes: Styles.base(model.textSize, model.lineSpacing).merging([.foregroundColor: NSColor.token(T.Color.inkTertiary)]) { $1 })
             if !isComposing { restyle(NSRange(location: 0, length: (tv.string as NSString).length)) }
             note.configure()
         }
@@ -731,8 +733,24 @@ final class ManuscriptTextView: NSTextView {
         breakUndoCoalescing()
     }
 
+    /// At least this tall (the visible page, with a note field): a short manuscript's note sits at the page's foot.
+    var pageHeight: CGFloat = 0 {
+        didSet {
+            guard abs(pageHeight - oldValue) > 0.5 else { return }
+            if frame.height < pageHeight { setFrameSize(frame.size) } else { updateInsets() }
+        }
+    }
+
+    /// The text and its room fit on the page: nothing to scroll, not even the band below the last line. From the
+    /// layout, not the frame: the frame follows the scroll view's insets, and those follow this.
+    private var fitsPage: Bool {
+        guard pageHeight > 0 else { return false }
+        let used = textLayoutManager?.usageBoundsForTextContainer.maxY ?? 0
+        return Self.topInset + used + textContainerInset.height <= pageHeight
+    }
+
     override func setFrameSize(_ newSize: NSSize) {
-        super.setFrameSize(newSize)
+        super.setFrameSize(NSSize(width: newSize.width, height: max(newSize.height, pageHeight)))
         updateInsets()
         noteField?.setNeedsRelayout()
     }
@@ -756,7 +774,7 @@ final class ManuscriptTextView: NSTextView {
         }
         if let scroll = enclosingScrollView {
             // Let the last line scroll up to the comfortable band instead of sitting on the bottom edge.
-            let bottom = (scroll.contentSize.height * (typewriter ? 0.5 : 0.4)).rounded()
+            let bottom = fitsPage ? 0 : (scroll.contentSize.height * (typewriter ? 0.5 : 0.4)).rounded()
             if abs(scroll.contentInsets.bottom - bottom) > 0.5 { scroll.contentInsets = NSEdgeInsets(top: 0, left: 0, bottom: bottom, right: 0) }
         }
     }
@@ -862,7 +880,28 @@ final class ManuscriptTextView: NSTextView {
     /// Story bible names underlined (Settings › Editor): drawn on top, the text and its attributes untouched.
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
+        if string.isEmpty, let hint { hint.draw(with: hintRect, options: [.usesLineFragmentOrigin, .usesFontLeading]) }
         marks?.draw(in: self, dirtyRect: dirtyRect)
+    }
+
+    /// The empty sheet's hint, drawn where the first line goes. NSTextView's own placeholder sits at the container
+    /// inset, which here includes half the note's room: it floated down the page (0.11.1).
+    var hint: NSAttributedString? {
+        didSet { needsDisplay = true }
+    }
+    private var hintShown = true
+
+    /// Where the hint is drawn; the note field goes below its bottom.
+    var hintRect: NSRect {
+        let pad = textContainer?.lineFragmentPadding ?? 0
+        let width = (textContainer?.size.width ?? bounds.width) - 2 * pad
+        let height = hint?.boundingRect(with: NSSize(width: width, height: .greatestFiniteMagnitude), options: [.usesLineFragmentOrigin, .usesFontLeading]).height ?? 0
+        return NSRect(x: textContainerOrigin.x + pad, y: textContainerOrigin.y, width: width, height: height.rounded(.up))
+    }
+
+    override func didChangeText() {
+        super.didChangeText()
+        if string.isEmpty != hintShown { hintShown = string.isEmpty; setNeedsDisplay(hintRect) }
     }
 
     override func mouseMoved(with event: NSEvent) {

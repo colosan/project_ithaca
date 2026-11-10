@@ -84,7 +84,7 @@ pub fn platform_body(sheet_text: &str) -> String {
 }
 
 /// A sheet's length under a goal basis (added: r3). `WithSpaces` / `WithoutSpaces` / `Words` count
-/// the sheet as written (= its `Counts`); `Munpia` / `Novelpia` count [`platform_body`].
+/// the sheet as written (= its `Counts`); the platform bases count [`platform_body`].
 pub fn goal_count(sheet_text: &str, basis: GoalBasis) -> u32 {
     match basis {
         GoalBasis::WithSpaces => counts(sheet_text).chars,
@@ -92,6 +92,10 @@ pub fn goal_count(sheet_text: &str, basis: GoalBasis) -> u32 {
         GoalBasis::Words => counts(sheet_text).words,
         GoalBasis::Munpia => count_for(&platform_body(sheet_text), CountRule::Munpia),
         GoalBasis::Novelpia => count_for(&platform_body(sheet_text), CountRule::Novelpia),
+        GoalBasis::Joara => count_for(&platform_body(sheet_text), CountRule::BytesUtf8),
+        GoalBasis::Kakaopage | GoalBasis::NaverSeries => {
+            count_for(&platform_body(sheet_text), CountRule::Munpia)
+        }
     }
 }
 
@@ -158,6 +162,10 @@ mod tests {
         assert_eq!(platform_body(sheet), "\"가!\" 나 다.\n\n라");
         assert_eq!(goal_count(sheet, GoalBasis::Munpia), 10);
         assert_eq!(goal_count(sheet, GoalBasis::Novelpia), 4);
+        assert_eq!(goal_count(sheet, GoalBasis::Kakaopage), 10);
+        assert_eq!(goal_count(sheet, GoalBasis::NaverSeries), 10);
+        // Bytes: Hangul 3 each, ASCII and line breaks 1.
+        assert_eq!(goal_count(sheet, GoalBasis::Joara), 20);
         assert_eq!(
             goal_count(sheet, GoalBasis::WithSpaces),
             counts(sheet).chars

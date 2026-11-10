@@ -6,8 +6,29 @@ import IthacaCore
 import IthacaDesign
 
 enum ManuscriptLanguage: String, Codable, Sendable, CaseIterable { case ko, en }
-/// (r3) munpia / novelpia: the platform's own count of the text as it would be pasted (Markdown stripped).
-enum GoalBasis: String, Codable, Sendable, CaseIterable { case withSpaces, withoutSpaces, words, munpia, novelpia }
+/// (r3) munpia / novelpia, (0.11.1) joara / kakaopage / naverSeries: the platform's own count of the text as it would
+/// be pasted (Markdown stripped). Joara counts bytes.
+enum GoalBasis: String, Codable, Sendable, CaseIterable {
+    case withSpaces, withoutSpaces, words, munpia, novelpia, joara, kakaopage, naverSeries
+
+    /// Counted by the core on the body as pasted.
+    var isPlatform: Bool { ![.withSpaces, .withoutSpaces, .words].contains(self) }
+
+    /// Joara's goal is bytes, read and typed in KB.
+    static let kb = 1024
+
+    /// Where a goal on this basis starts: a usual episode in that count (docs/research/2026-11-10-episode-lengths.md).
+    var defaultCount: Int {
+        switch self {
+        case .withSpaces, .munpia: 5000
+        case .withoutSpaces: 3700
+        case .words: 2500
+        case .novelpia: 3500
+        case .joara: 12 * Self.kb
+        case .kakaopage, .naverSeries: 5500
+        }
+    }
+}
 enum Actor: String, Sendable { case me, claude }
 enum BlockKind: String, Sendable { case edit, lease, merge, meta }
 

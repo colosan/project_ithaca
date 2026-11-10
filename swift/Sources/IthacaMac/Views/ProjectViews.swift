@@ -81,6 +81,9 @@ struct GoalField: View {
         case .words: .goalBasisWords
         case .munpia: .goalBasisMunpia
         case .novelpia: .goalBasisNovelpia
+        case .joara: .goalBasisJoara
+        case .kakaopage: .goalBasisKakaopage
+        case .naverSeries: .goalBasisNaverSeries
         }
     }
 
@@ -90,7 +93,15 @@ struct GoalField: View {
 
     private var bases: [GoalBasis] {
         // Platform bases for Korean manuscripts (research P1); a saved one stays listed either way.
-        GoalBasis.allCases.filter { language == .ko || $0 == goal?.basis || ($0 != .munpia && $0 != .novelpia) }
+        GoalBasis.allCases.filter { language == .ko || $0 == goal?.basis || !$0.isPlatform }
+    }
+
+    private var hint: String {
+        switch goal?.basis {
+        case .joara: model.t(.goalBasisHintJoara)
+        case let b? where b.isPlatform: model.t(.goalBasisHintPlatform, ["platform": model.t(Self.key(b))])
+        default: model.t(.projectSettingsGoalHint)
+        }
     }
 
     var body: some View {
@@ -101,7 +112,8 @@ struct GoalField: View {
                         get: { goal?.basis },
                         set: { b in
                             guard let b else { goal = nil; return }
-                            goal = Goal(count: goal?.count ?? (b == .words ? 2000 : 5000), basis: b)
+                            // Each basis counts differently: a new basis starts at its own usual episode length.
+                            if b != goal?.basis { goal = Goal(count: b.defaultCount, basis: b) }
                         }
                     )) {
                         Text(model.t(.projectSettingsGoalNone)).tag(GoalBasis?.none)
@@ -111,12 +123,22 @@ struct GoalField: View {
                     .labelsHidden()
                     .fixedSize()
                     if let g = goal {
-                        TextField("", value: Binding(get: { g.count }, set: { goal = Goal(count: max(0, $0), basis: g.basis) }), format: .number)
-                            .labelsHidden()
-                            .frame(width: 90)
+                        if g.basis == .joara {
+                            // Typed in KB, kept in bytes.
+                            TextField("", value: Binding(get: { Double(g.count) / Double(GoalBasis.kb) },
+                                                         set: { goal = Goal(count: max(0, Int(($0 * Double(GoalBasis.kb)).rounded())), basis: g.basis) }),
+                                      format: .number.precision(.fractionLength(0...1)))
+                                .labelsHidden()
+                                .frame(width: 70)
+                            Text("KB").foregroundStyle(Color.inkSecondary)
+                        } else {
+                            TextField("", value: Binding(get: { g.count }, set: { goal = Goal(count: max(0, $0), basis: g.basis) }), format: .number)
+                                .labelsHidden()
+                                .frame(width: 90)
+                        }
                     }
                 }
-                Caption(model.t(.projectSettingsGoalHint))
+                Caption(hint)
             }
         }
     }

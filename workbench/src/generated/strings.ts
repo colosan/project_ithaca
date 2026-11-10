@@ -517,6 +517,12 @@ export type StringKey =
   | "folderStats.hint"
   | "goal.basis.munpia"
   | "goal.basis.novelpia"
+  | "goal.basis.joara"
+  | "goal.basis.kakaopage"
+  | "goal.basis.naverSeries"
+  | "goal.kb"
+  | "goal.basisHint.joara"
+  | "goal.basisHint.platform"
   | "mcp.readToggle"
   | "mcp.readOnlyHint"
   | "mcp.projectsHint"
@@ -1246,6 +1252,12 @@ export const strings: Record<Locale, Record<StringKey, Value>> = {
     "folderStats.hint": "휴지통에 있는 원고는 세지 않았어요. 글자수는 올릴 본문 기준이고, 연재처 기준은 저장된 내용으로 셌어요.",
     "goal.basis.munpia": "문피아",
     "goal.basis.novelpia": "노벨피아",
+    "goal.basis.joara": "조아라",
+    "goal.basis.kakaopage": "카카오페이지",
+    "goal.basis.naverSeries": "네이버 시리즈",
+    "goal.kb": "{count}KB",
+    "goal.basisHint.joara": "조아라는 용량으로 세요. 올릴 본문 기준이에요.",
+    "goal.basisHint.platform": "{platform}에 올릴 본문 기준으로 세요.",
     "mcp.readToggle": "Claude가 원고를 읽게 하기",
     "mcp.readOnlyHint": "읽기만 해요. Claude는 원고를 고치거나 지울 수 없어요. 이 컴퓨터 안에서만 연결돼요.",
     "mcp.projectsHint": "체크한 작품만 Claude에게 보여요.",

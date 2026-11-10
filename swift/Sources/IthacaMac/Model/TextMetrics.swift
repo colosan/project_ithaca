@@ -82,8 +82,9 @@ enum TextMetrics {
         case .withoutSpaces: c.charsNoSpace
         case .words: c.words
         // Platform bases need the core's counter: AppModel.goalValue. These are the nearest plain counts.
-        case .munpia: c.chars
+        case .munpia, .kakaopage, .naverSeries: c.chars
         case .novelpia: c.charsNoSpace
+        case .joara: c.chars * 3
         }
     }
 

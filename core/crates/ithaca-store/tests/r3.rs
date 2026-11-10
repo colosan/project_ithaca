@@ -130,7 +130,13 @@ fn platform_goal_bases_round_trip() {
         .create_project("작품", Language::Ko, &["연재".into()])
         .unwrap()
         .id;
-    for basis in [GoalBasis::Munpia, GoalBasis::Novelpia] {
+    for basis in [
+        GoalBasis::Joara,
+        GoalBasis::Kakaopage,
+        GoalBasis::NaverSeries,
+        GoalBasis::Munpia,
+        GoalBasis::Novelpia,
+    ] {
         let goal = Goal { count: 5000, basis };
         let patch = ProjectPatch {
             goal: Some(goal),

@@ -172,7 +172,9 @@ struct NoticeBar: View {
                     .fixedSize()
                     }
                     if first == .problems {
-                        Button { model.problemsDismissed = true } label: { Icon(.close, size: T.Size.iconSm) }
+                        Button { model.problemsDismissed = true } label: {
+                            Icon(.close, size: T.Size.iconSm).frame(width: T.Size.controlSm, height: T.Size.controlSm).contentShape(Rectangle())
+                        }
                             .buttonStyle(.plain)
                             .help(model.t(.actionClose))
                     }
@@ -299,7 +301,7 @@ struct EditorFooter: View {
                 // One count in sight (with spaces, as the serial sites count); the rest in the tooltip (0.10.0).
                 let hint = [model.t(.countWithSpaces, ["count": c.chars]), model.t(.countWithoutSpaces, ["count": c.charsNoSpace]),
                             model.t(.countPostedHint, ["raw": raw.chars]),
-                            goal.map { goalBasisName($0.basis) + " " + model.t(.goalProgress, ["goal": $0.count, "percent": percent]) }]
+                            goal.map { goalBasisName($0.basis) + " " + model.t(.goalProgress, ["goal": model.goalText($0), "percent": percent]) }]
                     .compactMap { $0 }.joined(separator: "\n")
                 Text(model.language == .ko ? model.t(.countCharsShort, ["count": c.chars], count: c.chars)
                                            : model.t(.countWords, ["count": c.words], count: c.words))

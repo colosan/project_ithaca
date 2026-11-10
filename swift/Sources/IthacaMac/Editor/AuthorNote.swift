@@ -208,11 +208,12 @@ final class AuthorNoteField: NSView, NSTextViewDelegate, @preconcurrency NSTextS
         }
     }
 
-    /// Sizes the field to its text and puts it at the top of the room below the manuscript's last line.
+    /// Sizes the field to its text and puts it below the manuscript's last line, at the foot of the page when the text is short.
     func relayout() {
         guard let host = coordinator.textView else { return }
         guard !isHidden else {
             host.noteRoom = 0
+            host.pageHeight = 0
             return
         }
         let model = coordinator.model
@@ -233,17 +234,18 @@ final class AuthorNoteField: NSView, NSTextViewDelegate, @preconcurrency NSTextS
         label.frame = NSRect(x: -2, y: labelY, width: labelSize.width, height: labelSize.height)
         textView.frame = NSRect(x: 0, y: textY, width: width, height: textHeight)
         let gap = (Styles.lineHeight(model.textSize, model.lineSpacing) * Self.gapLines).rounded()
-        host.noteRoom = gap + height
         // Below the last line laid out (the text view can be taller than its text: it fills the visible page).
         var used = host.textLayoutManager?.usageBoundsForTextContainer.maxY ?? 0
-        // An empty sheet shows its two-line placeholder (more when wrapped): the note goes below that.
-        if host.string.isEmpty, let hint = host.value(forKey: "placeholderAttributedString") as? NSAttributedString {
-            let measure = host.textContainer?.size.width ?? width
-            used = max(used, hint.boundingRect(with: NSSize(width: measure, height: .greatestFiniteMagnitude),
-                                               options: [.usesLineFragmentOrigin, .usesFontLeading]).maxY.rounded(.up))
-        }
+        // An empty sheet shows its two-line hint (more when wrapped): the note goes below that.
+        if host.string.isEmpty, host.hint != nil { used = max(used, host.hintRect.maxY - host.textContainerOrigin.y) }
+        let top = ManuscriptTextView.topInset
         let bottom = host.textContainerOrigin.y + used
-        let y = bottom + gap
+        // A short manuscript leaves the note at the foot of the page, not stuck under its last line or the placeholder
+        // (0.11.1): the room below the text grows to fill the page. A longer one pushes the note down; it follows the text.
+        host.noteRoom = gap + height
+        let page = host.enclosingScrollView?.contentSize.height ?? 0
+        host.pageHeight = page
+        let y = max(bottom + gap, page - top - height)
         let frame = NSRect(x: host.textContainerOrigin.x, y: y, width: width, height: height).integral
         if self.frame != frame { self.frame = frame }
         needsDisplay = true

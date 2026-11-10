@@ -45,6 +45,14 @@ pub enum GoalBasis {
     Munpia,
     /// (added: r3) `노벨피아` count ([`CountRule::Novelpia`]) of the paste-ready body.
     Novelpia,
+    /// (added: 0.11.1) `조아라`: size of the paste-ready body in UTF-8 bytes ([`CountRule::BytesUtf8`]);
+    /// the app shows it in KB (1,024 bytes).
+    Joara,
+    /// (added: 0.11.1) `카카오페이지`: `공백 포함` of the paste-ready body, line breaks left out (the
+    /// [`CountRule::Munpia`] rule; the platform publishes no rule of its own).
+    Kakaopage,
+    /// (added: 0.11.1) `네이버 시리즈`: as [`GoalBasis::Kakaopage`].
+    NaverSeries,
 }
 
 /// Per-episode length goal.

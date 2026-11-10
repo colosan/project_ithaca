@@ -278,14 +278,17 @@ struct ToastBar: View {
                 .foregroundStyle(Color.accentPrimary)
                 .fixedSize()
             }
-            // Every toast can be closed at once, with an undo too.
-            Button { model.toast = nil } label: { Icon(.close, size: T.Size.iconSm, color: .inkTertiary) }
+            // Every toast can be closed at once, with an undo too. The whole square takes the click, not just the
+            // ✕'s two strokes (a plain button hit-tests only what it draws).
+            Button { model.toast = nil } label: {
+                Icon(.close, size: T.Size.iconSm, color: .inkTertiary).frame(width: T.Size.controlSm, height: T.Size.controlSm).contentShape(Rectangle())
+            }
                 .buttonStyle(.plain)
                 .help(model.t(.actionClose))
         }
-        .padding(.vertical, T.Space.s100)
+        .padding(.vertical, T.Space.s50)
         .padding(.leading, T.Space.s200)
-        .padding(.trailing, T.Space.s150)
+        .padding(.trailing, T.Space.s50)
         .foregroundStyle(Color.inkPrimary)
         // Raised surface, not an inverted one: it follows the light and dark themes.
         .background(RoundedRectangle(cornerRadius: T.Radius.panel).fill(Color.surfaceRaised))

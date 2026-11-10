@@ -74,6 +74,9 @@ enum Snapshot {
                 m.textDidChange("# 3화 · 불빛\n\n해원은 등대 계단을 올랐다. 불빛은 세 번 깜박이고 꺼졌다.", token: m.loadToken)
                 Self.reopen(m)
             }),
+            // A new, empty manuscript: the hint at the top, the note at the foot of the page (0.11.1).
+            Scene(name: "blank-manuscript", size: wide, setup: { m, _ in m.newSheet() }),
+            Scene(name: "blank-manuscript-mini", size: CGSize(width: 360, height: 480), setup: { m, _ in m.newSheet(); m.mini = true }),
             // Rewrite side by side: the original on the left, the first lines written again on the right.
             Scene(name: "shell-rewrite", size: wide, setup: { m, _ in Self.rewriteSeed(m) }),
             Scene(name: "shell-rewrite-dark", size: wide, dark: true, setup: { m, _ in Self.rewriteSeed(m) }),
@@ -136,6 +139,10 @@ enum Snapshot {
             Scene(name: "shell-goal-munpia", size: wide, setup: { m, _ in m.updateProject(ProjectPatch(goal: .some(Goal(count: 5000, basis: .munpia)))) }),
             Scene(name: "project-settings-munpia", size: CGSize(width: 560, height: 560), setup: { m, _ in m.updateProject(ProjectPatch(goal: .some(Goal(count: 5000, basis: .munpia)))) },
                   view: { _ in AnyView(ProjectSettingsView()) }),
+            // 0.11.1: Joara in KB.
+            Scene(name: "project-settings-joara", size: CGSize(width: 560, height: 560), setup: { m, _ in m.updateProject(ProjectPatch(goal: .some(Goal(count: GoalBasis.joara.defaultCount, basis: .joara)))) },
+                  view: { _ in AnyView(ProjectSettingsView()) }),
+            Scene(name: "shell-goal-joara", size: wide, setup: { m, _ in m.updateProject(ProjectPatch(goal: .some(Goal(count: GoalBasis.joara.defaultCount, basis: .joara)))) }),
             claude(), settings(.claude),
             // fix4: read-only causes, one compact notice bar.
             Scene(name: "shell-readonly-locked-damaged", size: wide,
